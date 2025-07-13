@@ -1,35 +1,43 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+
+// Import your components
+import Landing from './pages/Landing';
+import LoginPage from './pages/Authentication/Login';
+import SignUpPage from './pages/Authentication/SignUp';
+import ForgotPassword from './pages/Authentication/ForgotPassword';
+
+// You can add these components later as you build them
+// import StudentDashboard from './pages/Student/Dashboard';
+// import FacultyDashboard from './pages/Faculty/Dashboard';
+// import AdminDashboard from './pages/Admin/Dashboard';
 
 function App() {
-  const [count, setCount] = useState(0)
-
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
+    <Router>
+      <div className="App">
+        <Routes>
+          {/* Landing Page */}
+          <Route path="/" element={<Landing />} />
+          
+          {/* Authentication Routes */}
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/signup" element={<SignUpPage />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          
+          {/* Uncomment these routes as you create the components */}
+          
+          {/* Dashboard Routes */}
+          {/* <Route path="/student/dashboard" element={<StudentDashboard />} /> */}
+          {/* <Route path="/faculty/dashboard" element={<FacultyDashboard />} /> */}
+          {/* <Route path="/admin/dashboard" element={<AdminDashboard />} /> */}
+          
+          {/* Redirect any unknown routes to landing page */}
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
       </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.jsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+    </Router>
+  );
 }
 
-export default App
+export default App;
