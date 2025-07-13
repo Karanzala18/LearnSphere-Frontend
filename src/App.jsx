@@ -10,8 +10,8 @@ import ForgotPassword from './pages/Authentication/ForgotPassword';
 
 // You can add these components later as you build them
 import StudentDashboard from './pages/Dashboard/StudentDashboard';
-// import FacultyDashboard from './pages/Faculty/Dashboard';
-// import AdminDashboard from './pages/Admin/Dashboard';
+import FacultyDashboard from './pages/Dashboard/FacultyDashboard';
+import AdminDashboard from './pages/Dashboard/AdminDashboard';
 
 function App() {
   return (
@@ -26,13 +26,9 @@ function App() {
           <Route path="/signup" element={<SignUpPage />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path='/student/dashboard' element={<StudentDashboard />} />
-          
-          {/* Uncomment these routes as you create the components */}
-          
-          {/* Dashboard Routes */}
-          {/* <Route path="/student/dashboard" element={<StudentDashboard />} /> */}
-          {/* <Route path="/faculty/dashboard" element={<FacultyDashboard />} /> */}
-          {/* <Route path="/admin/dashboard" element={<AdminDashboard />} /> */}
+          <Route path='/faculty/dashboard' element={<FacultyDashboard />} />
+          <Route path='/admin/dashboard' element={<AdminDashboard />} />
+        
           
           {/* Redirect any unknown routes to landing page */}
           <Route path="*" element={<Navigate to="/" replace />} />
