@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { authService } from '../../services/authService';
 import { 
   Brain, 
   Plus, 
@@ -165,7 +166,7 @@ const FacultyDashboard = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 text-white">
       {/* Header */}
-      <header className="bg-black/20 backdrop-blur-md border-b border-white/10">
+      <header className="bg-black/20 backdrop-blur-md border-b border-white/10 z-40 relative">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
             <div className="flex items-center space-x-4">
@@ -180,12 +181,30 @@ const FacultyDashboard = () => {
             <div className="flex items-center space-x-4">
               <Bell className="w-6 h-6 text-gray-300 hover:text-cyan-400 cursor-pointer" />
               <div className="relative">
-                <button className="flex items-center space-x-2 bg-white/10 rounded-full px-4 py-2 hover:bg-white/20 transition-all">
+                <button 
+                  onClick={() => setIsMenuOpen(!isMenuOpen)}
+                  className="flex items-center space-x-2 bg-white/10 rounded-full px-4 py-2 hover:bg-white/20 transition-all"
+                >
                   <User className="w-5 h-5" />
-                  <span>Dr. Smith</span>
+                  <span>{authService.getCurrentUser()?.name || 'User'}</span>
                   <ChevronDown className="w-4 h-4" />
                 </button>
-                {/* TODO: Add dropdown menu */}
+                {isMenuOpen && (
+                  <div className="absolute right-0 mt-2 w-48 bg-white/10 backdrop-blur-sm rounded-lg shadow-lg border border-white/10 z-50">
+                    <a href="/profile" className="flex items-center space-x-2 px-4 py-2 text-gray-300 hover:bg-white/20">
+                      <User className="w-4 h-4" />
+                      <span>Profile</span>
+                    </a>
+                    <a href="/settings" className="flex items-center space-x-2 px-4 py-2 text-gray-300 hover:bg-white/20">
+                      <Settings className="w-4 h-4" />
+                      <span>Settings</span>
+                    </a>
+                    <button onClick={authService.logout} className="flex items-center space-x-2 w-full px-4 py-2 text-gray-300 hover:bg-white/20">
+                      <LogOut className="w-4 h-4" />
+                      <span>Logout</span>
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           </div>

@@ -1,6 +1,8 @@
+// pages/Authentication/Login.jsx
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Brain, Eye, EyeOff, Mail, Lock, ArrowRight } from 'lucide-react';
+import { authService } from '../../services/authService';
 
 const LoginPage = () => {
   const [formData, setFormData] = useState({
@@ -12,6 +14,10 @@ const LoginPage = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState({});
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Get the page user was trying to access before login
+  const from = location.state?.from?.pathname || null;
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -54,61 +60,60 @@ const LoginPage = () => {
     if (!validateForm()) return;
     
     setIsLoading(true);
+    setErrors({});
     
     try {
-      // TODO: Replace with actual API call to your Laravel backend
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email: formData.email,
-          password: formData.password,
-          role: formData.role
-        }),
+      const response = await authService.login({
+        email: formData.email,
+        password: formData.password,
+        role: formData.role
       });
 
-      const data = await response.json();
+      // Check if user was trying to access a specific page before login
+      if (from) {
+        // Check if the user has permission to access that page
+        const userRole = response.user.role;
+        const rolePermissions = {
+          '/admin/dashboard': ['admin'],
+          '/faculty/dashboard': ['faculty'],
+          '/student/dashboard': ['student']
+        };
 
-      if (response.ok) {
-        // TODO: Handle successful login
-        // Store JWT token in localStorage or context
-        // localStorage.setItem('token', data.token);
-        // localStorage.setItem('user', JSON.stringify(data.user));
-        
-        // Redirect based on role
-        if (formData.role === 'faculty') {
-          // window.location.href = '/faculty/dashboard';
-        } else if (formData.role === 'admin') {
-          // window.location.href = '/admin/dashboard';
+        const requiredRoles = rolePermissions[from];
+        if (requiredRoles && requiredRoles.includes(userRole)) {
+          navigate(from, { replace: true });
         } else {
-          // window.location.href = '/student/dashboard';
+          // User doesn't have permission, redirect to their dashboard
+          const dashboardRoute = authService.getDashboardRoute(userRole);
+          navigate(dashboardRoute, { replace: true });
         }
-        
-        console.log('Login successful:', data);
       } else {
-        // Handle login errors
-        setErrors({ submit: data.message || 'Login failed. Please try again.' });
+        // Normal login, redirect to appropriate dashboard
+        const dashboardRoute = authService.getDashboardRoute(response.user.role);
+        navigate(dashboardRoute, { replace: true });
       }
+      
     } catch (error) {
       console.error('Login error:', error);
-      setErrors({ submit: 'Something went wrong. Please try again.' });
+      
+      if (error.errors) {
+        setErrors(error.errors);
+      } else {
+        setErrors({ 
+          submit: error.message || 'Login failed. Please try again.' 
+        });
+      }
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleSignupRedirect = () => {
-    // TODO: Navigate to signup page
     navigate('/signup');
-    // window.location.href = '/signup';
   };
 
   const handleForgotPassword = () => {
-    // TODO: Navigate to forgot password page
     navigate('/forgot-password');
-    // window.location.href = '/forgot-password';
   };
 
   return (
@@ -140,6 +145,11 @@ const LoginPage = () => {
             </div>
             <h1 className="text-2xl font-bold text-white mb-2">Welcome Back</h1>
             <p className="text-gray-300">Sign in to your account</p>
+            {from && (
+              <p className="text-sm text-cyan-400 mt-2">
+                Please log in to access the requested page
+              </p>
+            )}
           </div>
 
           {/* Role Selection */}
@@ -166,7 +176,7 @@ const LoginPage = () => {
           </div>
 
           {/* Login Form */}
-          <div className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-6">
             {/* Email Input */}
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
@@ -238,7 +248,7 @@ const LoginPage = () => {
 
             {/* Submit Button */}
             <button
-              onClick={handleSubmit}
+              type="submit"
               disabled={isLoading}
               className="w-full py-3 bg-gradient-to-r from-cyan-500 to-purple-500 text-white font-semibold rounded-lg hover:from-cyan-600 hover:to-purple-600 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:ring-offset-2 focus:ring-offset-gray-900 transition-all duration-200 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center space-x-2"
             >
@@ -254,7 +264,7 @@ const LoginPage = () => {
                 </>
               )}
             </button>
-          </div>
+          </form>
 
           {/* Sign Up Link */}
           <div className="mt-8 text-center">
@@ -273,7 +283,7 @@ const LoginPage = () => {
         {/* Back to Home */}
         <div className="text-center mt-6">
           <button
-            onClick={() => window.location.href = '/'}
+            onClick={() => navigate('/')}
             className="text-gray-400 hover:text-white transition-colors"
           >
             ← Back to Home

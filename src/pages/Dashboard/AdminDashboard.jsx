@@ -26,14 +26,18 @@ import {
   Clock,
   GraduationCap,
   UserCheck,
-  Bell
+  Bell,
+  ChevronDown,
+  LogOut
 } from 'lucide-react';
+import { authService } from '../../services/authService';
 
 const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('overview');
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('all');
   const [notifications, setNotifications] = useState([]);
+  const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false); // Added missing state
   const [dashboardData, setDashboardData] = useState({
     stats: {
       totalUsers: 0,
@@ -505,7 +509,7 @@ const AdminDashboard = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 text-white">
       {/* Header */}
-      <header className="bg-black/20 backdrop-blur-sm border-b border-white/10">
+      <header className="relative z-40 bg-black/20 backdrop-blur-sm border-b border-white/10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center space-x-4">
@@ -529,12 +533,42 @@ const AdminDashboard = () => {
                 )}
               </button>
               
-              {/* Profile */}
-              <div className="flex items-center space-x-2">
-                <div className="w-8 h-8 bg-gradient-to-r from-cyan-500 to-purple-500 rounded-full flex items-center justify-center">
-                  <span className="text-sm font-medium">A</span>
-                </div>
-                <span className="text-sm text-gray-300">Admin</span>
+              {/* Profile Dropdown */}
+              <div className="relative">
+                <button
+                  onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
+                  className="flex items-center space-x-2 p-2 rounded-lg hover:bg-white/10 transition-colors"
+                >
+                  <div className="w-8 h-8 bg-gradient-to-r from-cyan-500 to-purple-500 rounded-full flex items-center justify-center">
+                    <span className="text-sm font-medium">A</span>
+                  </div>
+                  <span className="text-sm text-gray-300">Admin</span>
+                  <ChevronDown className="w-4 h-4 text-gray-400" />
+                </button>
+
+                {isProfileDropdownOpen && (
+                  <div className="absolute right-0 mt-2 w-48 bg-black/80 backdrop-blur-md rounded-lg border border-white/10 py-2 z-50">
+                    <div className="px-4 py-2 border-b border-white/10">
+                      <p className="text-sm font-medium">Admin</p>
+                      <p className="text-xs text-gray-400">admin@learnsphere.ai</p>
+                    </div>
+                    <a href="/profile" className="flex items-center space-x-2 px-4 py-2 text-gray-300 hover:bg-white/10 transition-colors">
+                      <UserCheck className="w-4 h-4" />
+                      <span>Profile</span>
+                    </a>
+                    <a href="/settings" className="flex items-center space-x-2 px-4 py-2 text-gray-300 hover:bg-white/10 transition-colors">
+                      <Settings className="w-4 h-4" />
+                      <span>Settings</span>
+                    </a>
+                    <button
+                      onClick={authService.logout}
+                      className="w-full px-4 py-2 text-left hover:bg-white/10 transition-colors flex items-center space-x-2 text-red-400"
+                    >
+                      <LogOut className="w-4 h-4" />
+                      <span>Logout</span>
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           </div>

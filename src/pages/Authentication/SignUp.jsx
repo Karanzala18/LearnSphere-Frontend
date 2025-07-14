@@ -1,16 +1,16 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Brain, Eye, EyeOff, Mail, Lock, User, ArrowRight, Check } from 'lucide-react';
+import { Brain, Eye, EyeOff, Mail, Lock, User, ArrowRight, Check, Phone } from 'lucide-react';
+import { authService } from '../../services/authService';
 
 const SignupPage = () => {
   const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
+    name: '',
     email: '',
     password: '',
-    confirmPassword: '',
+    password_confirmation: '',
     role: 'student',
-    institution: '',
+    phone: '',
     agreeToTerms: false
   });
   const [showPassword, setShowPassword] = useState(false);
@@ -38,12 +38,8 @@ const SignupPage = () => {
   const validateForm = () => {
     const newErrors = {};
     
-    if (!formData.firstName.trim()) {
-      newErrors.firstName = 'First name is required';
-    }
-    
-    if (!formData.lastName.trim()) {
-      newErrors.lastName = 'Last name is required';
+    if (!formData.name.trim()) {
+      newErrors.name = 'Name is required';
     }
     
     if (!formData.email) {
@@ -60,14 +56,10 @@ const SignupPage = () => {
       newErrors.password = 'Password must contain at least one uppercase letter, one lowercase letter, and one number';
     }
     
-    if (!formData.confirmPassword) {
-      newErrors.confirmPassword = 'Please confirm your password';
-    } else if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = 'Passwords do not match';
-    }
-    
-    if (!formData.institution.trim()) {
-      newErrors.institution = 'Institution name is required';
+    if (!formData.password_confirmation) {
+      newErrors.password_confirmation = 'Please confirm your password';
+    } else if (formData.password !== formData.password_confirmation) {
+      newErrors.password_confirmation = 'Passwords do not match';
     }
     
     if (!formData.agreeToTerms) {
@@ -84,68 +76,39 @@ const SignupPage = () => {
     if (!validateForm()) return;
     
     setIsLoading(true);
+    setErrors({});
     
     try {
-      // TODO: Replace with actual API call to your Laravel backend
-      const response = await fetch('/api/auth/register', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          first_name: formData.firstName,
-          last_name: formData.lastName,
-          email: formData.email,
-          password: formData.password,
-          password_confirmation: formData.confirmPassword,
-          role: formData.role,
-          institution: formData.institution
-        }),
+      const response = await authService.register({
+        name: formData.name,
+        email: formData.email,
+        password: formData.password,
+        password_confirmation: formData.password_confirmation,
+        role: formData.role,
+        phone: formData.phone || null
       });
 
-      const data = await response.json();
-
-      if (response.ok) {
-        // TODO: Handle successful registration
-        // You might want to redirect to login page or email verification page
-        console.log('Registration successful:', data);
-        
-        // Option 1: Redirect to login with success message
-        // window.location.href = '/login?registered=true';
-        
-        // Option 2: Auto-login and redirect to dashboard
-        // localStorage.setItem('token', data.token);
-        // localStorage.setItem('user', JSON.stringify(data.user));
-        // if (formData.role === 'faculty') {
-        //   window.location.href = '/faculty/dashboard';
-        // } else if (formData.role === 'admin') {
-        //   window.location.href = '/admin/dashboard';
-        // } else {
-        //   window.location.href = '/student/dashboard';
-        // }
-        
-        alert('Registration successful! Please check your email to verify your account.');
-        
-      } else {
-        // Handle registration errors
-        if (data.errors) {
-          setErrors(data.errors);
-        } else {
-          setErrors({ submit: data.message || 'Registration failed. Please try again.' });
-        }
-      }
+      // Redirect based on user role
+      const dashboardRoute = authService.getDashboardRoute(response.user.role);
+      navigate(dashboardRoute);
+      
     } catch (error) {
       console.error('Registration error:', error);
-      setErrors({ submit: 'Something went wrong. Please try again.' });
+      
+      if (error.errors) {
+        setErrors(error.errors);
+      } else {
+        setErrors({ 
+          submit: error.message || 'Registration failed. Please try again.' 
+        });
+      }
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleLoginRedirect = () => {
-    // TODO: Navigate to login page
     navigate('/login');
-    // window.location.href = '/login';
   };
 
   const getPasswordStrength = (password) => {
@@ -227,45 +190,27 @@ const SignupPage = () => {
           </div>
 
           {/* Signup Form */}
-          <div className="space-y-4">
-            {/* Name Fields */}
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
-                  First Name
-                </label>
-                <div className="relative">
-                  <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                  <input
-                    type="text"
-                    name="firstName"
-                    value={formData.firstName}
-                    onChange={handleInputChange}
-                    className="w-full pl-10 pr-4 py-3 bg-white/5 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all duration-200"
-                    placeholder="John"
-                  />
-                </div>
-                {errors.firstName && (
-                  <p className="mt-1 text-sm text-red-400">{errors.firstName}</p>
-                )}
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Last Name
-                </label>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Name Input */}
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Full Name
+              </label>
+              <div className="relative">
+                <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                 <input
                   type="text"
-                  name="lastName"
-                  value={formData.lastName}
+                  name="name"
+                  value={formData.name}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-3 bg-white/5 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all duration-200"
-                  placeholder="Doe"
+                  className="w-full pl-10 pr-4 py-3 bg-white/5 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all duration-200"
+                  placeholder="Enter your full name"
+                  required
                 />
-                {errors.lastName && (
-                  <p className="mt-1 text-sm text-red-400">{errors.lastName}</p>
-                )}
               </div>
+              {errors.name && (
+                <p className="mt-1 text-sm text-red-400">{errors.name}</p>
+              )}
             </div>
 
             {/* Email Input */}
@@ -281,7 +226,8 @@ const SignupPage = () => {
                   value={formData.email}
                   onChange={handleInputChange}
                   className="w-full pl-10 pr-4 py-3 bg-white/5 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all duration-200"
-                  placeholder="john@example.com"
+                  placeholder="Enter your email"
+                  required
                 />
               </div>
               {errors.email && (
@@ -289,21 +235,24 @@ const SignupPage = () => {
               )}
             </div>
 
-            {/* Institution Input */}
+            {/* Phone Input (Optional) */}
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
-                Institution
+                Phone Number (Optional)
               </label>
-              <input
-                type="text"
-                name="institution"
-                value={formData.institution}
-                onChange={handleInputChange}
-                className="w-full px-4 py-3 bg-white/5 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all duration-200"
-                placeholder="University/School Name"
-              />
-              {errors.institution && (
-                <p className="mt-1 text-sm text-red-400">{errors.institution}</p>
+              <div className="relative">
+                <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                <input
+                  type="tel"
+                  name="phone"
+                  value={formData.phone}
+                  onChange={handleInputChange}
+                  className="w-full pl-10 pr-4 py-3 bg-white/5 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all duration-200"
+                  placeholder="Enter your phone number"
+                />
+              </div>
+              {errors.phone && (
+                <p className="mt-1 text-sm text-red-400">{errors.phone}</p>
               )}
             </div>
 
@@ -321,6 +270,7 @@ const SignupPage = () => {
                   onChange={handleInputChange}
                   className="w-full pl-10 pr-12 py-3 bg-white/5 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all duration-200"
                   placeholder="Create a strong password"
+                  required
                 />
                 <button
                   type="button"
@@ -360,11 +310,12 @@ const SignupPage = () => {
                 <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                 <input
                   type={showConfirmPassword ? 'text' : 'password'}
-                  name="confirmPassword"
-                  value={formData.confirmPassword}
+                  name="password_confirmation"
+                  value={formData.password_confirmation}
                   onChange={handleInputChange}
                   className="w-full pl-10 pr-12 py-3 bg-white/5 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all duration-200"
                   placeholder="Confirm your password"
+                  required
                 />
                 <button
                   type="button"
@@ -374,8 +325,8 @@ const SignupPage = () => {
                   {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
               </div>
-              {errors.confirmPassword && (
-                <p className="mt-1 text-sm text-red-400">{errors.confirmPassword}</p>
+              {errors.password_confirmation && (
+                <p className="mt-1 text-sm text-red-400">{errors.password_confirmation}</p>
               )}
             </div>
 
@@ -416,7 +367,7 @@ const SignupPage = () => {
 
             {/* Submit Button */}
             <button
-              onClick={handleSubmit}
+              type="submit"
               disabled={isLoading}
               className="w-full py-3 bg-gradient-to-r from-cyan-500 to-purple-500 text-white font-semibold rounded-lg hover:from-cyan-600 hover:to-purple-600 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:ring-offset-2 focus:ring-offset-gray-900 transition-all duration-200 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center space-x-2"
             >
@@ -432,7 +383,7 @@ const SignupPage = () => {
                 </>
               )}
             </button>
-          </div>
+          </form>
 
           {/* Login Link */}
           <div className="mt-6 text-center">
@@ -451,7 +402,7 @@ const SignupPage = () => {
         {/* Back to Home */}
         <div className="text-center mt-6">
           <button
-            onClick={() => window.location.href = '/'}
+            onClick={() => navigate('/')}
             className="text-gray-400 hover:text-white transition-colors"
           >
             ← Back to Home
