@@ -142,12 +142,6 @@ const FacultyProfile = ({onBack}) => {
               <span className="text-2xl font-bold bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent">
                 LearnSphere AI
               </span>
-              <button
-              onClick={onBack}
-              className="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition-colors"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </button>
               <span className="text-gray-400">|</span>
               <span className="text-lg font-medium">Faculty Profile</span>
             </div>
@@ -196,7 +190,12 @@ const FacultyProfile = ({onBack}) => {
             <span className="text-green-400">{success}</span>
           </div>
         )}
-
+<div className='flex items- justify between mb-3'><button
+              onClick={onBack}
+              className="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition-colors"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </button></div>
         {/* Profile Header */}
         <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-6 border border-white/10 mb-8">
           <div className="flex items-center justify-between mb-6">
