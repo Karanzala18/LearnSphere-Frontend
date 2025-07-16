@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { authService } from '../../services/authService';
+import StudentProfile from '../Profile/studentProfile';
 import { 
   Brain, 
   BookOpen, 
@@ -32,6 +33,7 @@ import {
 const StudentDashboard = () => {
   const [activeTab, setActiveTab] = useState('overview');
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
+  const [showProfile, setShowProfile] = useState(false);
   const [joinCode, setJoinCode] = useState('');
   const [showJoinModal, setShowJoinModal] = useState(false);
   const [notifications, setNotifications] = useState([]);
@@ -273,6 +275,10 @@ const StudentDashboard = () => {
     );
   }
 
+  if (showProfile) {
+    return <StudentProfile onBack={() => setShowProfile(false)} />;
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 text-white">
       {/* Animated Background */}
@@ -353,7 +359,10 @@ const StudentDashboard = () => {
                 <p className="text-sm font-medium">{authService.getCurrentUser()?.name || 'User'}</p>
                 <p className="text-xs text-gray-400">{authService.getCurrentUser()?.email || 'email'}</p>
               </div>
-              <button className="w-full px-4 py-2 text-left hover:bg-white/10 transition-colors flex items-center space-x-2">
+              <button 
+                onClick={() => setShowProfile(true)}
+                className="w-full px-4 py-2 text-left hover:bg-white/10 transition-colors flex items-center space-x-2"
+              >
                 <User className="w-4 h-4" />
                 <span>Profile</span>
               </button>

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { authService } from '../../services/authService';
+import FacultyProfile from '../Profile/FacultyProfile';
 import { 
   Brain, 
   Plus, 
@@ -31,6 +32,7 @@ import {
 const FacultyDashboard = () => {
   const [activeTab, setActiveTab] = useState('overview');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [showProfile, setShowProfile] = useState(false);
   const [subjects, setSubjects] = useState([]);
   const [quizzes, setQuizzes] = useState([]);
   const [assignments, setAssignments] = useState([]);
@@ -163,6 +165,10 @@ const FacultyDashboard = () => {
     );
   }
 
+  if (showProfile) {
+      return <FacultyProfile onBack={() => setShowProfile(false)} />;
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 text-white">
       {/* Header */}
@@ -191,10 +197,13 @@ const FacultyDashboard = () => {
                 </button>
                 {isMenuOpen && (
                   <div className="absolute right-0 mt-2 w-48 bg-white/10 backdrop-blur-sm rounded-lg shadow-lg border border-white/10 z-50">
-                    <a href="/profile" className="flex items-center space-x-2 px-4 py-2 text-gray-300 hover:bg-white/20">
+                    <button 
+                      onClick={() => setShowProfile(true)}
+                      className="w-full px-4 py-2 text-left hover:bg-white/10 transition-colors flex items-center space-x-2"
+                    >
                       <User className="w-4 h-4" />
                       <span>Profile</span>
-                    </a>
+                    </button>
                     <a href="/settings" className="flex items-center space-x-2 px-4 py-2 text-gray-300 hover:bg-white/20">
                       <Settings className="w-4 h-4" />
                       <span>Settings</span>

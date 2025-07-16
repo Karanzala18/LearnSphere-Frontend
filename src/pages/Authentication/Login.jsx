@@ -152,29 +152,6 @@ const LoginPage = () => {
             )}
           </div>
 
-          {/* Role Selection */}
-          <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              I am a:
-            </label>
-            <div className="grid grid-cols-3 gap-2">
-              {['student', 'faculty', 'admin'].map((role) => (
-                <button
-                  key={role}
-                  type="button"
-                  onClick={() => setFormData(prev => ({ ...prev, role }))}
-                  className={`p-3 rounded-lg text-sm font-medium transition-all duration-200 ${
-                    formData.role === role
-                      ? 'bg-gradient-to-r from-cyan-500 to-purple-500 text-white'
-                      : 'bg-white/5 text-gray-300 hover:bg-white/10'
-                  }`}
-                >
-                  {role.charAt(0).toUpperCase() + role.slice(1)}
-                </button>
-              ))}
-            </div>
-          </div>
-
           {/* Login Form */}
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Email Input */}

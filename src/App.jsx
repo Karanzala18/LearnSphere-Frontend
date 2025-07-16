@@ -13,9 +13,14 @@ import StudentDashboard from './pages/Dashboard/StudentDashboard';
 import FacultyDashboard from './pages/Dashboard/FacultyDashboard';
 import AdminDashboard from './pages/Dashboard/AdminDashboard';
 
+// Profile components
+import StudentProfile from './pages/Profile/StudentProfile';
+import FacultyProfile from './pages/Profile/FacultyProfile';
+
 // Protection components
 import ProtectedRoute from './components/ProtectedRoute';
 import AuthRoute from './components/AuthRoute';
+
 
 function App() {
   return (
@@ -52,50 +57,36 @@ function App() {
           />
           
           {/* Protected Dashboard Routes - Role-based access */}
-          <Route 
-            path="/student/dashboard" 
+          <Route path="/student/*" 
             element={
               <ProtectedRoute allowedRoles={['student']}>
-                <StudentDashboard />
+                <Routes>
+                  <Route path="dashboard" element={<StudentDashboard />} />
+                  <Route path="profile" element={<StudentProfile />} />
+                </Routes>
               </ProtectedRoute>
             } 
           />
-          <Route 
-            path="/faculty/dashboard" 
+          
+          <Route path="/faculty/*" 
             element={
               <ProtectedRoute allowedRoles={['faculty']}>
-                <FacultyDashboard />
+                <Routes>
+                  <Route path="dashboard" element={<FacultyDashboard />} />
+                  <Route path="profile" element={<FacultyProfile />} />
+                  {/* Add other faculty routes */}
+                </Routes>
               </ProtectedRoute>
             } 
           />
-          <Route 
-            path="/admin/dashboard" 
+          <Route path="/admin/*" 
             element={
               <ProtectedRoute allowedRoles={['admin']}>
-                <AdminDashboard />
-              </ProtectedRoute>
-            } 
-          />
-          
-          {/* You can add more protected routes as needed */}
-          {/* Example: Admin-only routes */}
-          <Route 
-            path="/admin/*" 
-            element={
-              <ProtectedRoute allowedRoles={['admin']}>
-                {/* Admin sub-routes would go here */}
-                <div>Admin Section</div>
-              </ProtectedRoute>
-            } 
-          />
-          
-          {/* Example: Faculty and Admin routes */}
-          <Route 
-            path="/faculty/*" 
-            element={
-              <ProtectedRoute allowedRoles={['faculty', 'admin']}>
-                {/* Faculty sub-routes would go here */}
-                <div>Faculty Section</div>
+                <Routes>
+                  <Route path="dashboard" element={<AdminDashboard />} />
+                  
+                  {/* Add other admin routes */}
+                </Routes>
               </ProtectedRoute>
             } 
           />
