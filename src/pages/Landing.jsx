@@ -13,20 +13,17 @@ const LandingPage = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // TODO: Replace with actual navigation to login/signup pages
+  // Navigation handlers
   const handleLogin = () => {
-    navigate('/login');
-    // window.location.href = '/login';
+   navigate('/login'); 
   };
 
   const handleSignup = () => {
-    navigate('/signup');
-    // window.location.href = '/signup';
+    navigate('/signup'); 
   };
 
   const handleGetStarted = () => {
     navigate('/signup');
-    // window.location.href = '/signup';
   };
 
   const features = [
@@ -81,41 +78,41 @@ const LandingPage = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 text-white overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 text-white overflow-hidden">
       {/* Animated Background */}
-      <div className="fixed inset-0 opacity-20">
-        <div className="absolute inset-0 bg-gradient-to-r from-purple-500 via-pink-500 to-blue-500 animate-pulse"></div>
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(120,119,198,0.3),rgba(255,255,255,0))]"></div>
+      <div className="fixed inset-0 opacity-30">
+        <div className="absolute inset-0 bg-gradient-to-r from-cyan-400 via-violet-600 to-cyan-400 animate-pulse"></div>
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(0,212,255,0.1),rgba(124,58,237,0.1),rgba(0,0,0,0.9))]"></div>
       </div>
 
       {/* Header */}
       <nav className={`fixed w-full z-50 transition-all duration-300 ${
-        scrollY > 50 ? 'bg-black/20 backdrop-blur-md' : 'bg-transparent'
+        scrollY > 50 ? 'bg-slate-950/80 backdrop-blur-xl border-b border-slate-800/50' : 'bg-transparent'
       }`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
             <div className="flex items-center space-x-2">
               <Brain className="w-8 h-8 text-cyan-400" />
-              <span className="text-2xl font-bold bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent">
+              <span className="text-2xl font-bold bg-gradient-to-r from-cyan-400 to-violet-400 bg-clip-text text-transparent">
                 LearnSphere AI
               </span>
             </div>
 
             {/* Desktop Navigation */}
             <div className="hidden md:flex items-center space-x-8">
-              <a href="#features" className="hover:text-cyan-400 transition-colors">Features</a>
-              <a href="#roles" className="hover:text-cyan-400 transition-colors">Roles</a>
-              <a href="#about" className="hover:text-cyan-400 transition-colors">About</a>
+              <a href="#features" className="text-gray-300 hover:text-cyan-400 transition-colors">Features</a>
+              <a href="#roles" className="text-gray-300 hover:text-cyan-400 transition-colors">Roles</a>
+              <a href="#about" className="text-gray-300 hover:text-cyan-400 transition-colors">About</a>
               <div className="flex items-center space-x-4">
                 <button
                   onClick={handleLogin}
-                  className="px-4 py-2 text-white border border-white/30 rounded-full hover:bg-white/10 transition-all duration-300"
+                  className="px-4 py-2 text-gray-300 border border-slate-600 rounded-full hover:bg-slate-800/50 hover:border-cyan-400 hover:text-cyan-400 transition-all duration-300"
                 >
                   Login
                 </button>
                 <button
                   onClick={handleSignup}
-                  className="px-6 py-2 bg-gradient-to-r from-cyan-500 to-purple-500 rounded-full hover:from-cyan-600 hover:to-purple-600 transition-all duration-300 transform hover:scale-105"
+                  className="px-6 py-2 bg-gradient-to-r from-cyan-400 to-violet-600 text-white rounded-full hover:from-cyan-500 hover:to-violet-700 transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-cyan-500/25"
                 >
                   Sign Up
                 </button>
@@ -125,7 +122,7 @@ const LandingPage = () => {
             {/* Mobile menu button */}
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className="md:hidden p-2"
+              className="md:hidden p-2 text-gray-300 hover:text-cyan-400 transition-colors"
             >
               {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
             </button>
@@ -133,21 +130,21 @@ const LandingPage = () => {
 
           {/* Mobile Navigation */}
           {isMenuOpen && (
-            <div className="md:hidden bg-black/20 backdrop-blur-md rounded-lg mt-2 p-4">
+            <div className="md:hidden bg-slate-950/90 backdrop-blur-xl rounded-lg mt-2 p-4 border border-slate-800">
               <div className="flex flex-col space-y-4">
-                <a href="#features" className="hover:text-cyan-400 transition-colors">Features</a>
-                <a href="#roles" className="hover:text-cyan-400 transition-colors">Roles</a>
-                <a href="#about" className="hover:text-cyan-400 transition-colors">About</a>
-                <div className="flex flex-col space-y-2 pt-4 border-t border-white/20">
+                <a href="#features" className="text-gray-300 hover:text-cyan-400 transition-colors">Features</a>
+                <a href="#roles" className="text-gray-300 hover:text-cyan-400 transition-colors">Roles</a>
+                <a href="#about" className="text-gray-300 hover:text-cyan-400 transition-colors">About</a>
+                <div className="flex flex-col space-y-2 pt-4 border-t border-slate-800">
                   <button
                     onClick={handleLogin}
-                    className="px-4 py-2 text-white border border-white/30 rounded-full hover:bg-white/10 transition-all duration-300"
+                    className="px-4 py-2 text-gray-300 border border-slate-600 rounded-full hover:bg-slate-800/50 hover:border-cyan-400 hover:text-cyan-400 transition-all duration-300"
                   >
                     Login
                   </button>
                   <button
                     onClick={handleSignup}
-                    className="px-6 py-2 bg-gradient-to-r from-cyan-500 to-purple-500 rounded-full hover:from-cyan-600 hover:to-purple-600 transition-all duration-300"
+                    className="px-6 py-2 bg-gradient-to-r from-cyan-400 to-violet-600 text-white rounded-full hover:from-cyan-500 hover:to-violet-700 transition-all duration-300"
                   >
                     Sign Up
                   </button>
@@ -164,7 +161,7 @@ const LandingPage = () => {
           <div className="animate-fade-in-up">
             <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold mb-6 leading-tight">
               The Smart Academic
-              <span className="block bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
+              <span className="block bg-gradient-to-r from-cyan-400 via-violet-400 to-cyan-400 bg-clip-text text-transparent">
                 Companion
               </span>
             </h1>
@@ -175,12 +172,12 @@ const LandingPage = () => {
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
               <button
                 onClick={handleGetStarted}
-                className="group px-8 py-4 bg-gradient-to-r from-cyan-500 to-purple-500 rounded-full text-lg font-semibold hover:from-cyan-600 hover:to-purple-600 transition-all duration-300 transform hover:scale-105 flex items-center space-x-2"
+                className="group px-8 py-4 bg-gradient-to-r from-cyan-400 to-violet-600 text-white rounded-full text-lg font-semibold hover:from-cyan-500 hover:to-violet-700 transition-all duration-300 transform hover:scale-105 flex items-center space-x-2 shadow-lg hover:shadow-cyan-500/25"
               >
                 <span>Get Started Free</span>
                 <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
               </button>
-              <button className="px-8 py-4 border-2 border-white/30 rounded-full text-lg font-semibold hover:bg-white/10 transition-all duration-300">
+              <button className="px-8 py-4 border-2 border-slate-600 text-gray-300 rounded-full text-lg font-semibold hover:bg-slate-800/50 hover:border-cyan-400 hover:text-cyan-400 transition-all duration-300">
                 Watch Demo
               </button>
             </div>
@@ -189,10 +186,10 @@ const LandingPage = () => {
 
         {/* Floating Elements */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-20 left-10 w-20 h-20 bg-cyan-500/20 rounded-full animate-bounce"></div>
-          <div className="absolute top-40 right-20 w-16 h-16 bg-purple-500/20 rounded-full animate-pulse"></div>
-          <div className="absolute bottom-40 left-20 w-24 h-24 bg-pink-500/20 rounded-full animate-bounce delay-1000"></div>
-          <div className="absolute bottom-20 right-10 w-12 h-12 bg-blue-500/20 rounded-full animate-pulse delay-500"></div>
+          <div className="absolute top-20 left-10 w-20 h-20 bg-cyan-400/20 rounded-full animate-bounce"></div>
+          <div className="absolute top-40 right-20 w-16 h-16 bg-violet-500/20 rounded-full animate-pulse"></div>
+          <div className="absolute bottom-40 left-20 w-24 h-24 bg-cyan-500/20 rounded-full animate-bounce delay-1000"></div>
+          <div className="absolute bottom-20 right-10 w-12 h-12 bg-violet-400/20 rounded-full animate-pulse delay-500"></div>
         </div>
       </section>
 
@@ -200,7 +197,7 @@ const LandingPage = () => {
       <section id="features" className="py-20 px-4 sm:px-6 lg:px-8 relative">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
-            <h2 className="text-4xl md:text-5xl font-bold mb-6 bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent">
+            <h2 className="text-4xl md:text-5xl font-bold mb-6 bg-gradient-to-r from-cyan-400 to-violet-400 bg-clip-text text-transparent">
               Powerful Features
             </h2>
             <p className="text-xl text-gray-300 max-w-3xl mx-auto">
@@ -212,7 +209,7 @@ const LandingPage = () => {
             {features.map((feature, index) => (
               <div
                 key={index}
-                className="group p-6 bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 hover:bg-white/10 transition-all duration-300 transform hover:scale-105 hover:shadow-2xl"
+                className="group p-6 bg-slate-900/50 backdrop-blur-sm rounded-2xl border border-slate-800 hover:bg-slate-800/50 hover:border-cyan-400/50 transition-all duration-300 transform hover:scale-105 hover:shadow-xl hover:shadow-cyan-500/10"
               >
                 <div className="text-cyan-400 mb-4 group-hover:scale-110 transition-transform duration-300">
                   {feature.icon}
@@ -226,10 +223,10 @@ const LandingPage = () => {
       </section>
 
       {/* Roles Section */}
-      <section id="roles" className="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-r from-purple-900/50 to-blue-900/50">
+      <section id="roles" className="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-r from-slate-900/50 to-indigo-950/50">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
-            <h2 className="text-4xl md:text-5xl font-bold mb-6">
+            <h2 className="text-4xl md:text-5xl font-bold mb-6 text-white">
               Built for Everyone
             </h2>
             <p className="text-xl text-gray-300 max-w-3xl mx-auto">
@@ -241,7 +238,7 @@ const LandingPage = () => {
             {roles.map((role, index) => (
               <div
                 key={index}
-                className="group text-center p-8 bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 hover:bg-white/10 transition-all duration-300 transform hover:scale-105"
+                className="group text-center p-8 bg-slate-900/50 backdrop-blur-sm rounded-2xl border border-slate-800 hover:bg-slate-800/50 hover:border-violet-400/50 transition-all duration-300 transform hover:scale-105 hover:shadow-xl hover:shadow-violet-500/10"
               >
                 <div className="text-6xl mb-6 group-hover:scale-110 transition-transform duration-300">
                   {role.icon}
@@ -255,9 +252,9 @@ const LandingPage = () => {
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-r from-cyan-600/20 to-purple-600/20">
+      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-r from-cyan-500/10 to-violet-600/10">
         <div className="max-w-4xl mx-auto text-center">
-          <h2 className="text-4xl md:text-5xl font-bold mb-6">
+          <h2 className="text-4xl md:text-5xl font-bold mb-6 text-white">
             Ready to Transform Your Academic Experience?
           </h2>
           <p className="text-xl text-gray-300 mb-8 max-w-2xl mx-auto">
@@ -266,12 +263,12 @@ const LandingPage = () => {
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <button
               onClick={handleGetStarted}
-              className="group px-8 py-4 bg-gradient-to-r from-cyan-500 to-purple-500 rounded-full text-lg font-semibold hover:from-cyan-600 hover:to-purple-600 transition-all duration-300 transform hover:scale-105 flex items-center justify-center space-x-2"
+              className="group px-8 py-4 bg-gradient-to-r from-cyan-400 to-violet-600 text-white rounded-full text-lg font-semibold hover:from-cyan-500 hover:to-violet-700 transition-all duration-300 transform hover:scale-105 flex items-center justify-center space-x-2 shadow-lg hover:shadow-cyan-500/25"
             >
               <span>Start Free Trial</span>
               <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
             </button>
-            <button className="px-8 py-4 border-2 border-white/30 rounded-full text-lg font-semibold hover:bg-white/10 transition-all duration-300">
+            <button className="px-8 py-4 border-2 border-slate-600 text-gray-300 rounded-full text-lg font-semibold hover:bg-slate-800/50 hover:border-cyan-400 hover:text-cyan-400 transition-all duration-300">
               Contact Sales
             </button>
           </div>
@@ -279,12 +276,12 @@ const LandingPage = () => {
       </section>
 
       {/* Footer */}
-      <footer className="py-12 px-4 sm:px-6 lg:px-8 bg-black/20 backdrop-blur-sm">
+      <footer className="py-12 px-4 sm:px-6 lg:px-8 bg-slate-950/50 backdrop-blur-sm border-t border-slate-800">
         <div className="max-w-7xl mx-auto">
           <div className="flex flex-col md:flex-row justify-between items-center">
             <div className="flex items-center space-x-2 mb-4 md:mb-0">
               <Brain className="w-8 h-8 text-cyan-400" />
-              <span className="text-2xl font-bold bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent">
+              <span className="text-2xl font-bold bg-gradient-to-r from-cyan-400 to-violet-400 bg-clip-text text-transparent">
                 LearnSphere AI
               </span>
             </div>
@@ -294,7 +291,7 @@ const LandingPage = () => {
               <a href="#" className="hover:text-cyan-400 transition-colors">Support</a>
             </div>
           </div>
-          <div className="mt-8 pt-8 border-t border-white/10 text-center text-gray-400">
+          <div className="mt-8 pt-8 border-t border-slate-800 text-center text-gray-400">
             <p>&copy; 2024 LearnSphere AI. All rights reserved.</p>
           </div>
         </div>
