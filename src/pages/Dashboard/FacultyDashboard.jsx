@@ -428,10 +428,7 @@ const handleCopyTeamCode = async (teamCode) => {
       </div>
       
       <div className="space-y-2 mb-4">
-        <p className="text-gray-300 text-sm">
-          <Users className="w-4 h-4 inline mr-1" />
-          {subject.students_count || 0} students
-        </p>
+        
   <p className="text-gray-300 text-sm">
     <Calendar className="w-4 h-4 inline mr-1" />
     {getSemesterText(subject.semester)}
