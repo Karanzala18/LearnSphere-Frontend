@@ -15,7 +15,9 @@ import StudentProfile from './pages/Profile/StudentProfile';
 import FacultyProfile from './pages/Profile/FacultyProfile';
 //Subject components
 // FIX: Corrected the typo in the import path
-import CourseDetails from './pages/Subject/CourseDetails'; 
+import CourseDetails from './pages/Subject/CourseDetails';
+import SubjectDetailsView from './pages/Subject/SubjectDetailsView';
+
 
 // Protection components
 import ProtectedRoute from './components/ProtectedRoute';
@@ -77,6 +79,7 @@ function App() {
                 <Routes>
                   <Route path="dashboard" element={<FacultyDashboard />} />
                   <Route path="profile" element={<FacultyProfile />} />
+                  <Route path="subjects/:subjectId" element={<SubjectDetailsView />} />
                   {/* Redirect /faculty to /faculty/dashboard */}
                   <Route path="" element={<Navigate to="dashboard" replace />} />
                   {/* Add other faculty routes */}

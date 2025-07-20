@@ -1,4 +1,6 @@
   import React, { useState, useEffect } from 'react';
+  import { useNavigate } from 'react-router-dom';
+
   import { authService } from '../../services/authService';
   import FacultyProfile from '../Profile/FacultyProfile';
   // Add this import after the authService import
@@ -48,6 +50,7 @@
 
 
   const FacultyDashboard = () => {
+    const navigate = useNavigate();
     const [activeTab, setActiveTab] = useState('overview');
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [showProfile, setShowProfile] = useState(false);
@@ -59,7 +62,7 @@
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [createModalType, setCreateModalType] = useState('');
     const [notification, setNotification] = useState(null);
-
+    
     useEffect(() => {
       fetchDashboardData();
     }, []);
@@ -139,14 +142,24 @@
   };
 
   // ADD these new functions:
-const handleViewSubjectDetails = async (subjectId) => {
+const handleViewSubjectDetails = (subjectId) => {
+  navigate(`/faculty/subjects/${subjectId}`);
+};
+
+const handleCopyTeamCode = async (teamCode) => {
   try {
-    const details = await subjectService.getFacultySubjectDetails(subjectId);
-    // Handle showing details (you can create a modal or navigate to details page)
-    console.log('Subject details:', details);
+    await navigator.clipboard.writeText(teamCode);
+    showNotification('Team code copied to clipboard!', 'success');
   } catch (error) {
-    console.error('Error fetching subject details:', error);
-    alert('Error fetching subject details: ' + (error.message || 'Unknown error'));
+    console.error('Failed to copy team code:', error);
+    // Fallback for older browsers
+    const textArea = document.createElement('textarea');
+    textArea.value = teamCode;
+    document.body.appendChild(textArea);
+    textArea.select();
+    document.execCommand('copy');
+    document.body.removeChild(textArea);
+    showNotification('Team code copied to clipboard!', 'success');
   }
 };
 
@@ -216,6 +229,7 @@ const handleViewSubjectDetails = async (subjectId) => {
       return <FacultyProfile onBack={() => setShowProfile(false)} />;
     }
 
+    
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 text-white">
         {/* Header */}
@@ -255,7 +269,13 @@ const handleViewSubjectDetails = async (subjectId) => {
                         <Settings className="w-4 h-4" />
                         <span>Settings</span>
                       </a>
-                      <button onClick={authService.logout} className="flex items-center space-x-2 w-full px-4 py-2 text-gray-300 hover:bg-white/20">
+                      <button 
+                        onClick={() => {
+                          authService.logout();
+                          navigate('/');
+                        }} 
+                        className="flex items-center space-x-2 w-full px-4 py-2 text-gray-300 hover:bg-white/20"
+                      >
                         <LogOut className="w-4 h-4" />
                         <span>Logout</span>
                       </button>
@@ -436,11 +456,12 @@ const handleViewSubjectDetails = async (subjectId) => {
           View Details
         </button>
         <button 
-          onClick={() => navigator.clipboard.writeText(subject.team_code)}
+          onClick={() => handleCopyTeamCode(subject.team_code)}
           className="flex items-center space-x-1 bg-cyan-500/20 hover:bg-cyan-500/30 px-3 py-2 rounded-lg text-sm transition-all"
+          disabled={!subject.team_code}
         >
           <Copy className="w-3 h-3" />
-          <span>Code</span>
+          <span>Copy Code</span>
         </button>
       </div>
     </div>
