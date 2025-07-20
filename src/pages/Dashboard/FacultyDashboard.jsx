@@ -53,7 +53,6 @@
     const navigate = useNavigate();
     const [activeTab, setActiveTab] = useState('overview');
     const [isMenuOpen, setIsMenuOpen] = useState(false);
-    const [showProfile, setShowProfile] = useState(false);
     const [subjects, setSubjects] = useState([]);
     const [quizzes, setQuizzes] = useState([]);
     const [assignments, setAssignments] = useState([]);
@@ -224,11 +223,6 @@ const handleCopyTeamCode = async (teamCode) => {
     };
 
     
-
-    if (showProfile) {
-      return <FacultyProfile onBack={() => setShowProfile(false)} />;
-    }
-
     
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 text-white">
@@ -259,7 +253,10 @@ const handleCopyTeamCode = async (teamCode) => {
                   {isMenuOpen && (
                     <div className="absolute right-0 mt-2 w-48 bg-white/10 backdrop-blur-sm rounded-lg shadow-lg border border-white/10 z-50">
                       <button 
-                        onClick={() => setShowProfile(true)}
+                        onClick={() => {
+                          navigate('/faculty/profile');
+                          setIsMenuOpen(false); // Close the dropdown menu
+                        }}
                         className="w-full px-4 py-2 text-left hover:bg-white/10 transition-colors flex items-center space-x-2"
                       >
                         <User className="w-4 h-4" />

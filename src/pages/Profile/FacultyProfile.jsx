@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { facultyProfileService } from '../../services/facultyProfileService';
 import { authService } from '../../services/authService';
 import { 
@@ -23,10 +24,12 @@ import {
   Bell,
   LogOut,
   RefreshCw,
-  ArrowLeft
+  ArrowLeft,
+  ImageOff
 } from 'lucide-react';
 
 const FacultyProfile = ({onBack}) => {
+  const navigate = useNavigate();
   const [profile, setProfile] = useState(null);
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -120,6 +123,10 @@ const FacultyProfile = ({onBack}) => {
     setSuccess('');
   };
 
+  const handleBackToDashboard = () => {
+    navigate('/faculty/dashboard');
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 flex items-center justify-center">
@@ -190,12 +197,15 @@ const FacultyProfile = ({onBack}) => {
             <span className="text-green-400">{success}</span>
           </div>
         )}
-<div className='flex items- justify between mb-3'><button
-              onClick={onBack}
-              className="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition-colors"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </button></div>
+      <div className='flex items- justify between mb-3'>
+        <button 
+          onClick={handleBackToDashboard}
+          className="flex items-center space-x-2 text-cyan-400 hover:text-cyan-300"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          <span>Back to Dashboard</span>
+        </button>
+      </div>
         {/* Profile Header */}
         <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-6 border border-white/10 mb-8">
           <div className="flex items-center justify-between mb-6">
