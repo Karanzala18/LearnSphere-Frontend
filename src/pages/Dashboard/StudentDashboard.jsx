@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { authService } from '../../services/authService';
-import StudentProfile from '../Profile/studentProfile';
 import { 
   Brain, 
   BookOpen, 
@@ -32,9 +32,9 @@ import {
 import { subjectService } from '../../services/subjectService';
 
 const StudentDashboard = () => {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('overview');
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
-  const [showProfile, setShowProfile] = useState(false);
   const [joinCode, setJoinCode] = useState('');
   const [showJoinModal, setShowJoinModal] = useState(false);
   const [enrolledSubjects, setEnrolledSubjects] = useState([]);
@@ -42,6 +42,7 @@ const StudentDashboard = () => {
   const [enrollmentError, setEnrollmentError] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  
 
   // Get current user
   const currentUser = authService.getCurrentUser();
@@ -54,7 +55,7 @@ const StudentDashboard = () => {
     try {
       setLoading(true);
       setError('');
-      // await fetchEnrolledSubjects();
+      await fetchEnrolledSubjects();
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
       setError('Failed to load dashboard data');
@@ -65,11 +66,12 @@ const StudentDashboard = () => {
 
   const fetchEnrolledSubjects = async () => {
     try {
-      const response = await subjectService.getEnrolledSubjects();
-      setEnrolledSubjects(response.subjects || []);
-    } catch (error) {
-      console.error('Error fetching enrolled subjects:', error);
-      setError('Failed to load enrolled subjects');
+        const response = await subjectService.getEnrolledSubjects();
+        console.log('Enrolled subjects response:', response); // Debug log
+        setEnrolledSubjects(response.data || response.subjects || []);
+      } catch (error) {
+        console.error('Error fetching enrolled subjects:', error);
+        setEnrollmentError('Failed to load enrolled subjects');
     }
   };
 
@@ -86,7 +88,7 @@ const StudentDashboard = () => {
       const response = await subjectService.enrollInSubject(joinCode);
       
       // Show success message
-      alert(`Successfully enrolled in ${response.subject.name}!`);
+      alert(`Successfully enrolled in ${response.data?.subject?.name || response.subject?.name || 'the course'}!`);
       
       // Refresh enrolled subjects
       await fetchEnrolledSubjects();
@@ -96,11 +98,11 @@ const StudentDashboard = () => {
       setJoinCode('');
       
     } catch (error) {
-      console.error('Error joining course:', error);
-      setEnrollmentError(error.message || 'Failed to join course');
-    } finally {
-      setEnrollmentLoading(false);
-    }
+        console.error('Error joining course:', error);
+        setEnrollmentError(error.message || error.error || 'Failed to join course');
+      } finally {
+          setEnrollmentLoading(false);
+        }
   };
 
   const getRandomColor = () => {
@@ -114,6 +116,7 @@ const StudentDashboard = () => {
     ];
     return colors[Math.floor(Math.random() * colors.length)];
   };
+  
 
   const StatCard = ({ icon: Icon, title, value, change, color }) => (
     <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-6 border border-white/10 hover:bg-white/10 transition-all duration-300">
@@ -134,41 +137,56 @@ const StudentDashboard = () => {
     </div>
   );
 
-  const CourseCard = ({ course }) => (
-    <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-6 border border-white/10 hover:bg-white/10 transition-all duration-300 group">
-      <div className="flex items-start justify-between mb-4">
-        <div>
-          <h3 className="text-xl font-semibold text-white">{course.name}</h3>
-          <p className="text-gray-300 text-sm">{course.code} • {course.faculty?.name || 'Unknown Faculty'}</p>
+  const CourseCard = ({ course }) => {
+    // Debug log for individual course data
+    console.log('Course data for card:', course);
+    
+    return (
+      <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-6 border border-white/10 hover:bg-white/10 transition-all duration-300 group">
+        <div className="flex items-start justify-between mb-4">
+          <div>
+            <h3 className="text-xl font-semibold text-white">{course.name || course.subject_name || 'Course Name'}</h3>
+            <p className="text-gray-300 text-sm">
+              {course.code || course.subject_code || 'N/A'} • {course.faculty?.name || course.faculty_name || course.instructor || 'Unknown Faculty'}
+            </p>
+          </div>
+          <div className={`w-3 h-3 rounded-full bg-gradient-to-r ${getRandomColor()}`}></div>
         </div>
-        <div className={`w-3 h-3 rounded-full bg-gradient-to-r ${getRandomColor()}`}></div>
-      </div>
-      
-      <div className="space-y-2 mb-4">
-        <p className="text-gray-300 text-sm">
-          <Users className="w-4 h-4 inline mr-1" />
-          {course.students_count || 0} students
-        </p>
-        <p className="text-gray-300 text-sm">
-          <Calendar className="w-4 h-4 inline mr-1" />
-          {course.semester}
-        </p>
-        <p className="text-gray-300 text-sm">
-          Credits: {course.credits}
-        </p>
-      </div>
+        
+        <div className="space-y-2 mb-4">
+          <p className="text-gray-300 text-sm">
+            <Calendar className="w-4 h-4 inline mr-1" />
+            {course.semester || course.term || 'Current Semester'}
+          </p>
+          <p className="text-gray-300 text-sm">
+            Credits: {course.credits || course.credit_hours || course.units || 'N/A'}
+          </p>
+          {course.department && (
+            <p className="text-gray-300 text-sm">
+              Dept: {course.department}
+            </p>
+          )}
+        </div>
 
-      <div className="flex space-x-2">
-        <button className="flex-1 bg-white/10 hover:bg-white/20 px-3 py-2 rounded-lg text-sm transition-all">
-          View Details
-        </button>
-        <button className="flex items-center space-x-1 bg-cyan-500/20 hover:bg-cyan-500/30 px-3 py-2 rounded-lg text-sm transition-all">
-          <FileText className="w-3 h-3" />
-          <span>Notes</span>
-        </button>
+        <div className="flex space-x-2">
+          <button 
+            onClick={() => {
+              console.log('Navigate to course:', course.id || course.subject_id);
+              // Navigate to course details with course ID as URL parameter
+              navigate(`/student/subjects/${course.id || course.subject_id}`);
+            }}
+            className="flex-1 bg-white/10 hover:bg-white/20 px-3 py-2 rounded-lg text-sm transition-all"
+          >
+            View Details
+          </button>
+          <button className="flex items-center space-x-1 bg-cyan-500/20 hover:bg-cyan-500/30 px-3 py-2 rounded-lg text-sm transition-all">
+            <FileText className="w-3 h-3" />
+            <span>Notes</span>
+          </button>
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   if (loading) {
     return (
@@ -179,10 +197,6 @@ const StudentDashboard = () => {
         </div>
       </div>
     );
-  }
-
-  if (showProfile) {
-    return <StudentProfile onBack={() => setShowProfile(false)} />;
   }
 
   if (error) {
@@ -282,7 +296,10 @@ const StudentDashboard = () => {
                       <p className="text-xs text-gray-400">{currentUser?.email || 'email'}</p>
                     </div>
                     <button 
-                      onClick={() => setShowProfile(true)}
+                      onClick={() => {
+                        setIsProfileDropdownOpen(false);
+                        navigate('/student/profile');
+                      }}
                       className="w-full px-4 py-2 text-left hover:bg-white/10 transition-colors flex items-center space-x-2"
                     >
                       <User className="w-4 h-4" />
@@ -368,7 +385,7 @@ const StudentDashboard = () => {
                   ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {enrolledSubjects.slice(0, 4).map((course) => (
-                        <CourseCard key={course.id} course={course} />
+                        <CourseCard key={course.id || course.subject_id} course={course} />
                       ))}
                     </div>
                   )}
@@ -447,7 +464,7 @@ const StudentDashboard = () => {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {enrolledSubjects.map((subject) => (
-                  <CourseCard key={subject.id} course={subject} />
+                  <CourseCard key={subject.id || subject.subject_id} course={subject} />
                 ))}
               </div>
             )}

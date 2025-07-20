@@ -1,26 +1,25 @@
 // App.jsx
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-
 // Import your components
 import Landing from './pages/Landing';
 import LoginPage from './pages/Authentication/Login';
 import SignUpPage from './pages/Authentication/SignUp';
 import ForgotPassword from './pages/Authentication/ForgotPassword';
-
 // Dashboard components
 import StudentDashboard from './pages/Dashboard/StudentDashboard';
 import FacultyDashboard from './pages/Dashboard/FacultyDashboard';
 import AdminDashboard from './pages/Dashboard/AdminDashboard';
-
 // Profile components
 import StudentProfile from './pages/Profile/StudentProfile';
 import FacultyProfile from './pages/Profile/FacultyProfile';
+//Subject components
+// FIX: Corrected the typo in the import path
+import CourseDetails from './pages/Subject/CourseDetails'; 
 
 // Protection components
 import ProtectedRoute from './components/ProtectedRoute';
 import AuthRoute from './components/AuthRoute';
-
 
 function App() {
   return (
@@ -63,6 +62,10 @@ function App() {
                 <Routes>
                   <Route path="dashboard" element={<StudentDashboard />} />
                   <Route path="profile" element={<StudentProfile />} />
+                  {/* Course details with ID parameter */}
+                  <Route path="subjects/:courseId" element={<CourseDetails />} />
+                  {/* Redirect /student to /student/dashboard */}
+                  <Route path="" element={<Navigate to="dashboard" replace />} />
                 </Routes>
               </ProtectedRoute>
             } 
@@ -74,6 +77,8 @@ function App() {
                 <Routes>
                   <Route path="dashboard" element={<FacultyDashboard />} />
                   <Route path="profile" element={<FacultyProfile />} />
+                  {/* Redirect /faculty to /faculty/dashboard */}
+                  <Route path="" element={<Navigate to="dashboard" replace />} />
                   {/* Add other faculty routes */}
                 </Routes>
               </ProtectedRoute>
@@ -84,7 +89,8 @@ function App() {
               <ProtectedRoute allowedRoles={['admin']}>
                 <Routes>
                   <Route path="dashboard" element={<AdminDashboard />} />
-                  
+                  {/* Redirect /admin to /admin/dashboard */}
+                  <Route path="" element={<Navigate to="dashboard" replace />} />
                   {/* Add other admin routes */}
                 </Routes>
               </ProtectedRoute>

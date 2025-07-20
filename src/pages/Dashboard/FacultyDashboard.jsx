@@ -58,10 +58,16 @@
     const [loading, setLoading] = useState(true);
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [createModalType, setCreateModalType] = useState('');
+    const [notification, setNotification] = useState(null);
 
     useEffect(() => {
       fetchDashboardData();
     }, []);
+
+    const showNotification = (message, type = 'success') => {
+      setNotification({ message, type });
+      setTimeout(() => setNotification(null), 3000);
+    };
 
     const fetchDashboardData = async () => {
     try {
@@ -107,8 +113,7 @@
     try {
       const response = await subjectService.createSubject(subjectData);
       
-      // Show success message (you can add a toast notification here)
-      console.log('Subject created successfully:', response);
+      showNotification('Subject created successfully!');
       
       setShowCreateModal(false);
       await fetchDashboardData();
@@ -124,12 +129,35 @@
     if (window.confirm('Are you sure you want to delete this subject? This action cannot be undone.')) {
       try {
         await subjectService.deleteSubject(subjectId);
-        console.log('Subject deleted successfully');
+        showNotification('Subject deleted successfully!');
         await fetchDashboardData();
       } catch (error) {
         console.error('Error deleting subject:', error);
         alert('Error deleting subject: ' + (error.message || 'Unknown error'));
       }
+    }
+  };
+
+  // ADD these new functions:
+const handleViewSubjectDetails = async (subjectId) => {
+  try {
+    const details = await subjectService.getFacultySubjectDetails(subjectId);
+    // Handle showing details (you can create a modal or navigate to details page)
+    console.log('Subject details:', details);
+  } catch (error) {
+    console.error('Error fetching subject details:', error);
+    alert('Error fetching subject details: ' + (error.message || 'Unknown error'));
+  }
+};
+
+  const handleEditSubject = async (subjectId, updatedData) => {
+    try {
+      // You'll need to add updateSubject method to subjectService
+      await subjectService.updateSubject(subjectId, updatedData);
+      await fetchDashboardData();
+    } catch (error) {
+      console.error('Error updating subject:', error);
+      alert('Error updating subject: ' + (error.message || 'Unknown error'));
     }
   };
 
@@ -182,13 +210,7 @@
       setShowCreateModal(true);
     };
 
-    if (loading) {
-      return (
-        <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 flex items-center justify-center">
-          <div className="text-white text-xl">Loading...</div>
-        </div>
-      );
-    }
+    
 
     if (showProfile) {
       return <FacultyProfile onBack={() => setShowProfile(false)} />;
@@ -251,16 +273,6 @@
             <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-6 border border-white/10">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-gray-300 text-sm">Total Students</p>
-                  <p className="text-3xl font-bold text-cyan-400">{analytics.totalStudents}</p>
-                </div>
-                <Users className="w-8 h-8 text-cyan-400/60" />
-              </div>
-            </div>
-            
-            <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-6 border border-white/10">
-              <div className="flex items-center justify-between">
-                <div>
                   <p className="text-gray-300 text-sm">Active Quizzes</p>
                   <p className="text-3xl font-bold text-purple-400">{analytics.activeQuizzes}</p>
                 </div>
@@ -275,16 +287,6 @@
                   <p className="text-3xl font-bold text-orange-400">{analytics.pendingGrading}</p>
                 </div>
                 <FileText className="w-8 h-8 text-orange-400/60" />
-              </div>
-            </div>
-            
-            <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-6 border border-white/10">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-gray-300 text-sm">Avg Performance</p>
-                  <p className="text-3xl font-bold text-green-400">{analytics.avgPerformance}%</p>
-                </div>
-                <TrendingUp className="w-8 h-8 text-green-400/60" />
               </div>
             </div>
           </div>
@@ -427,7 +429,10 @@
       </div>
       
       <div className="flex space-x-2">
-        <button className="flex-1 bg-white/10 hover:bg-white/20 px-3 py-2 rounded-lg text-sm transition-all">
+        <button 
+          onClick={() => handleViewSubjectDetails(subject.id)}
+          className="flex-1 bg-white/10 hover:bg-white/20 px-3 py-2 rounded-lg text-sm transition-all"
+        >
           View Details
         </button>
         <button 
@@ -499,7 +504,10 @@
                                 <button className="text-cyan-400 hover:text-cyan-300">
                                   <Eye className="w-4 h-4" />
                                 </button>
-                                <button className="text-gray-400 hover:text-white">
+                                <button 
+                                  onClick={() => handleEditSubject(subject.id)}
+                                  className="text-gray-400 hover:text-cyan-400"
+                                >
                                   <Edit className="w-4 h-4" />
                                 </button>
                                 <button className="text-gray-400 hover:text-red-400">
