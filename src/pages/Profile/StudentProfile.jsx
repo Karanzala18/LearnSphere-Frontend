@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   ArrowLeft,
   RefreshCw,
@@ -82,7 +83,8 @@ const ProfileField = ({ icon: Icon, label, value, color = "text-cyan-400" }) => 
   </div>
 );
 
-const StudentProfile = ({ onBack }) => {
+const StudentProfile = () => {
+  const Navigate = useNavigate();
   const [profile, setProfile] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -182,6 +184,10 @@ const StudentProfile = ({ onBack }) => {
     setMessage({ type: "", text: "" });
   };
 
+  const handleBackToDashboard = () => {
+  Navigate('/student/dashboard');
+}
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 flex items-center justify-center">
@@ -199,7 +205,7 @@ const StudentProfile = ({ onBack }) => {
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center space-x-4">
             <button
-              onClick={onBack}
+              onClick={handleBackToDashboard}
               className="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition-colors"
             >
               <ArrowLeft className="w-5 h-5" />

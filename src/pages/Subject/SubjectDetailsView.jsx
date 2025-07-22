@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { subjectService } from '../../services/subjectService';
+import quizService from '../../services/quizService';
 import { 
   ArrowLeft, 
   Users, 
@@ -28,11 +29,22 @@ const SubjectDetailsView = () => {
   const [deleteLoading, setDeleteLoading] = useState(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
   const [debugInfo, setDebugInfo] = useState(null);
+  const [quizzes, setQuizzes] = useState([]);
+  const [quizzesLoading, setQuizzesLoading] = useState(false);
+  const [quizzesError, setQuizzesError] = useState(null);
 
   useEffect(() => {
-    console.log('SubjectDetailsView mounted with subjectId:', subjectId);
-    fetchSubjectDetails();
-  }, [subjectId]);
+  console.log('SubjectDetailsView mounted with subjectId:', subjectId);
+  const initializeData = async () => {
+    await fetchSubjectDetails();
+    // Only fetch quizzes if subject details loaded successfully
+    if (!error) {
+      await fetchQuizzes();
+    }
+  };
+  
+  initializeData();
+}, [subjectId]);
 
   const fetchSubjectDetails = async () => {
     try {
@@ -70,6 +82,24 @@ const SubjectDetailsView = () => {
       setLoading(false);
     }
   };
+
+  const fetchQuizzes = async () => {
+  try {
+    setQuizzesLoading(true);
+    setQuizzesError(null);
+    console.log('Fetching quizzes for subject:', subjectId);
+    
+    const quizzesData = await quizService.getQuizzes(subjectId);
+    console.log('Quizzes received:', quizzesData);
+    setQuizzes(quizzesData.quizzes || []);
+  } catch (error) {
+    console.error('Error fetching quizzes:', error);
+    setQuizzesError(error.message || 'Failed to fetch quizzes');
+  } finally {
+    setQuizzesLoading(false);
+  }
+};
+
 
   const handleCopyTeamCode = async (teamCode) => {
     try {
@@ -119,6 +149,47 @@ const SubjectDetailsView = () => {
   const cancelDelete = () => {
     setShowDeleteConfirm(null);
   };
+
+  const handleCreateQuiz = () => {
+  // Navigate to quiz creation page or open modal
+  navigate(`/faculty/subjects/${subjectId}/quizzes/create`);
+};
+
+const handleViewQuizzes = () => {
+  // Navigate to quizzes list page
+  navigate(`/faculty/subjects/${subjectId}/quizzes`);
+};
+
+const handleQuizAction = (quizId, action) => {
+  switch (action) {
+    case 'view':
+      navigate(`/faculty/subjects/${subjectId}/quizzes/${quizId}`);
+      break;
+    case 'edit':
+      navigate(`/faculty/subjects/${subjectId}/quizzes/${quizId}/edit`);
+      break;
+    case 'delete':
+      // Handle quiz deletion
+      handleDeleteQuiz(quizId);
+      break;
+    default:
+      break;
+  }
+};
+
+const handleDeleteQuiz = async (quizId) => {
+  if (window.confirm('Are you sure you want to delete this quiz? This action cannot be undone.')) {
+    try {
+      await quizService.deleteQuiz(subjectId, quizId);
+      // Remove quiz from local state
+      setQuizzes(prev => prev.filter(quiz => quiz.id !== quizId));
+      alert('Quiz deleted successfully');
+    } catch (error) {
+      console.error('Error deleting quiz:', error);
+      alert(error.message || 'Failed to delete quiz');
+    }
+  }
+};
 
   if (loading) {
     return (
@@ -188,13 +259,16 @@ const SubjectDetailsView = () => {
             
             <div className="flex justify-center space-x-4">
               <button 
-                onClick={fetchSubjectDetails}
-                disabled={loading}
-                className="flex items-center space-x-2 bg-cyan-500 hover:bg-cyan-600 disabled:bg-cyan-500/50 px-6 py-3 rounded-lg transition-all"
-              >
-                <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-                <span>Retry</span>
-              </button>
+  onClick={() => {
+    fetchSubjectDetails();
+    if (!error) fetchQuizzes();
+  }}
+  disabled={loading}
+  className="flex items-center space-x-2 bg-cyan-500 hover:bg-cyan-600 disabled:bg-cyan-500/50 px-6 py-3 rounded-lg transition-all"
+>
+  <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+  <span>Retry</span>
+</button>
               
               <button 
                 onClick={handleGoBack}
@@ -273,16 +347,6 @@ const SubjectDetailsView = () => {
               </div>
               <p className="text-white font-semibold">{subjectDetails?.students?.length || 0}</p>
             </div>
-            <div className="bg-white/5 rounded-lg p-3">
-              <div className="flex items-center space-x-2 text-orange-400 mb-1">
-                <Clock className="w-4 h-4" />
-                <span className="text-sm">Created</span>
-              </div>
-              <p className="text-white font-semibold">
-                {subjectDetails?.created_at ? 
-                  new Date(subjectDetails.created_at).toLocaleDateString() : 'N/A'}
-              </p>
-            </div>
           </div>
         </div>
 
@@ -343,30 +407,102 @@ const SubjectDetailsView = () => {
         </div>
 
         {/* Quick Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-6 border border-white/10">
-            <h3 className="text-lg font-semibold text-white mb-4 flex items-center space-x-2">
-              <FileText className="w-5 h-5" />
-              <span>Quizzes</span>
-            </h3>
-            <p className="text-gray-400 mb-4">Create and manage quizzes for this subject</p>
-            <button className="bg-purple-500/20 hover:bg-purple-500/30 text-purple-400 px-4 py-2 rounded-lg transition-all">
-              Create Quiz
-            </button>
-          </div>
-          
-          <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-6 border border-white/10">
-            <h3 className="text-lg font-semibold text-white mb-4 flex items-center space-x-2">
-              <Award className="w-5 h-5" />
-              <span>Assignments</span>
-            </h3>
-            <p className="text-gray-400 mb-4">Create and manage assignments for this subject</p>
-            <button className="bg-orange-500/20 hover:bg-orange-500/30 text-orange-400 px-4 py-2 rounded-lg transition-all">
-              Create Assignment
-            </button>
-          </div>
-        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+  {/* Quizzes Card */}
+  <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-6 border border-white/10">
+    <div className="flex items-center justify-between mb-4">
+      <h3 className="text-lg font-semibold text-white flex items-center space-x-2">
+        <FileText className="w-5 h-5" />
+        <span>Quizzes ({quizzes.length})</span>
+      </h3>
+      {quizzesLoading && (
+        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-cyan-400"></div>
+      )}
+    </div>
+
+    {quizzesError ? (
+      <div className="text-red-400 text-sm mb-4">
+        <p>Error loading quizzes: {quizzesError}</p>
+        <button 
+          onClick={fetchQuizzes}
+          className="text-cyan-400 hover:text-cyan-300 underline mt-1"
+        >
+          Retry
+        </button>
       </div>
+    ) : (
+      <>
+        {quizzes.length > 0 && (
+          <div className="mb-4 space-y-2">
+            {quizzes.slice(0, 3).map((quiz) => (
+              <div key={quiz.id} className="bg-white/5 rounded-lg p-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="text-white text-sm font-medium truncate">{quiz.title}</h4>
+                    <p className="text-gray-400 text-xs">
+                      {quiz.question_count || 0} questions • {quiz.total_marks} marks
+                    </p>
+                  </div>
+                  <div className="flex items-center space-x-1">
+                    <span className={`px-2 py-1 text-xs rounded-full ${
+                      quiz.is_active 
+                        ? 'bg-green-500/20 text-green-400' 
+                        : 'bg-gray-500/20 text-gray-400'
+                    }`}>
+                      {quiz.is_active ? 'Active' : 'Inactive'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            ))}
+            {quizzes.length > 3 && (
+              <p className="text-gray-400 text-xs text-center">
+                +{quizzes.length - 3} more quizzes
+              </p>
+            )}
+          </div>
+        )}
+        
+        <p className="text-gray-400 mb-4 text-sm">
+          {quizzes.length === 0 
+            ? 'No quizzes created yet' 
+            : `Manage ${quizzes.length} quiz${quizzes.length === 1 ? '' : 'es'} for this subject`
+          }
+        </p>
+      </>
+    )}
+
+    <div className="flex space-x-2">
+      <button 
+        onClick={handleCreateQuiz}
+        className="flex-1 bg-purple-500/20 hover:bg-purple-500/30 text-purple-400 px-4 py-2 rounded-lg transition-all text-sm"
+      >
+        Create Quiz
+      </button>
+      {quizzes.length > 0 && (
+        <button 
+          onClick={handleViewQuizzes}
+          className="bg-white/10 hover:bg-white/20 text-white px-4 py-2 rounded-lg transition-all text-sm"
+        >
+          View All
+        </button>
+      )}
+    </div>
+  </div>
+  
+  {/* Assignments Card - Keep existing */}
+  <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-6 border border-white/10">
+    <h3 className="text-lg font-semibold text-white mb-4 flex items-center space-x-2">
+      <Award className="w-5 h-5" />
+      <span>Assignments</span>
+    </h3>
+    <p className="text-gray-400 mb-4">Create and manage assignments for this subject</p>
+    <button className="bg-orange-500/20 hover:bg-orange-500/30 text-orange-400 px-4 py-2 rounded-lg transition-all">
+      Create Assignment
+    </button>
+  </div>
+</div>
+</div>
 
       {/* Delete Confirmation Modal */}
       {showDeleteConfirm && (

@@ -18,10 +18,19 @@ import FacultyProfile from './pages/Profile/FacultyProfile';
 import CourseDetails from './pages/Subject/CourseDetails';
 import SubjectDetailsView from './pages/Subject/SubjectDetailsView';
 
+// Quiz components
+import CreateQuizPage from './pages/Quiz/CreateQuizPage';
+import QuizListPage from './pages/Quiz/QuizListPage';
+import QuizViewPage from './pages/Quiz/QuizViewPage';
+import EditQuizPage from './pages/Quiz/EditQuizPage';
+import CreateQuestionPage from './pages/Quiz/CreateQuestionPage'; 
+
 
 // Protection components
 import ProtectedRoute from './components/ProtectedRoute';
 import AuthRoute from './components/AuthRoute';
+
+
 
 function App() {
   return (
@@ -66,6 +75,7 @@ function App() {
                   <Route path="profile" element={<StudentProfile />} />
                   {/* Course details with ID parameter */}
                   <Route path="subjects/:courseId" element={<CourseDetails />} />
+                  
                   {/* Redirect /student to /student/dashboard */}
                   <Route path="" element={<Navigate to="dashboard" replace />} />
                 </Routes>
@@ -80,6 +90,11 @@ function App() {
                   <Route path="dashboard" element={<FacultyDashboard />} />
                   <Route path="profile" element={<FacultyProfile />} />
                   <Route path="subjects/:subjectId" element={<SubjectDetailsView />} />
+                  <Route path="subjects/:subjectId/quizzes/create" element={<CreateQuizPage />} />
+                  <Route path="subjects/:subjectId/quizzes" element={<QuizListPage />} />
+                  <Route path="subjects/:subjectId/quizzes/:quizId" element={<QuizViewPage />} />
+                  <Route path="subjects/:subjectId/quizzes/:quizId/edit" element={<EditQuizPage />} />
+                  <Route path="subjects/:subjectId/quizzes/:quizId/questions/create" element={<CreateQuestionPage />} />
                   {/* Redirect /faculty to /faculty/dashboard */}
                   <Route path="" element={<Navigate to="dashboard" replace />} />
                   {/* Add other faculty routes */}

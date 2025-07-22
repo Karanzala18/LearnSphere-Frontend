@@ -28,7 +28,7 @@ import {
   ImageOff
 } from 'lucide-react';
 
-const FacultyProfile = ({onBack}) => {
+const FacultyProfile = () => {
   const navigate = useNavigate();
   const [profile, setProfile] = useState(null);
   const [user, setUser] = useState(null);
