@@ -17,6 +17,7 @@ import FacultyProfile from './pages/Profile/FacultyProfile';
 // FIX: Corrected the typo in the import path
 import CourseDetails from './pages/Subject/CourseDetails';
 import SubjectDetailsView from './pages/Subject/SubjectDetailsView';
+import EnrolledStudentsView from './pages/Subject/EnrolledStudentsView';
 
 // Quiz components
 import CreateQuizPage from './pages/Quiz/CreateQuizPage';
@@ -95,6 +96,7 @@ function App() {
                   <Route path="subjects/:subjectId/quizzes/:quizId" element={<QuizViewPage />} />
                   <Route path="subjects/:subjectId/quizzes/:quizId/edit" element={<EditQuizPage />} />
                   <Route path="subjects/:subjectId/quizzes/:quizId/questions/create" element={<CreateQuestionPage />} />
+                  <Route path="subjects/:subjectId/students" element={<EnrolledStudentsView />} />
                   {/* Redirect /faculty to /faculty/dashboard */}
                   <Route path="" element={<Navigate to="dashboard" replace />} />
                   {/* Add other faculty routes */}

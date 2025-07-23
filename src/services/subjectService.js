@@ -1,10 +1,8 @@
-// services/subjectService.js
 import api from './api';
 
 export const subjectService = {
   // ========== STUDENT ENDPOINTS ==========
   
-  // Student: Enroll in a subject using team code
   enrollInSubject: async (teamCode) => {
     try {
       const response = await api.post('/student/subjects/enroll', {
@@ -16,7 +14,6 @@ export const subjectService = {
     }
   },
 
-  // Student: Get all enrolled subjects (dashboard view)
   getEnrolledSubjects: async () => {
     try {
       const response = await api.get('/student/subjects');
@@ -26,7 +23,6 @@ export const subjectService = {
     }
   },
 
-  // Student: Get detailed view of a specific enrolled subject (with quizzes & assignments)
   getSubjectDetails: async (subjectId) => {
     try {
       const response = await api.get(`/student/subjects/${subjectId}`);
@@ -38,7 +34,6 @@ export const subjectService = {
 
   // ========== FACULTY ENDPOINTS ==========
   
-  // Faculty: Create a new subject
   createSubject: async (subjectData) => {
     try {
       const response = await api.post('/faculty/subjects', {
@@ -55,7 +50,6 @@ export const subjectService = {
     }
   },
 
-  // Faculty: Get all subjects created by the faculty member
   getFacultySubjects: async () => {
     try {
       const response = await api.get('/faculty/subjects');
@@ -65,17 +59,39 @@ export const subjectService = {
     }
   },
 
-  // Faculty: Get detailed view of a specific subject they created
   getFacultySubjectDetails: async (subjectId) => {
     try {
-      const response = await api.get(`/faculty/subjects/${subjectId}`);
-      return response.data;
+      // Fetch subject details
+      const subjectResponse = await api.get(`/faculty/subjects/${subjectId}`);
+      // Fetch students separately to get users.id
+      const studentsResponse = await api.get(`/faculty/subjects/${subjectId}/students`);
+      
+      // Merge data
+      const subjectData = subjectResponse.data;
+      const studentsData = studentsResponse.data.students || [];
+      
+      // Map students to include all necessary fields
+      const mergedStudents = studentsData.map(student => ({
+        id: student.id, // From /students endpoint (users.id)
+        student_id: subjectData.students.find(s => s.email === student.email)?.student_id || null, // Match by email
+        name: student.name,
+        email: student.email
+      }));
+
+      return {
+        ...subjectData,
+        students: mergedStudents
+      };
     } catch (error) {
-      throw error.response?.data || error.message;
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to fetch subject details';
+      console.error('getFacultySubjectDetails error:', {
+        subjectId,
+        error: errorMessage
+      });
+      throw new Error(errorMessage);
     }
   },
 
-  // Faculty: Get students enrolled in a specific subject
   getSubjectStudents: async (subjectId) => {
     try {
       const response = await api.get(`/faculty/subjects/${subjectId}/students`);
@@ -85,7 +101,6 @@ export const subjectService = {
     }
   },
 
-  // Faculty: Delete a subject
   deleteSubject: async (subjectId) => {
     try {
       const response = await api.delete(`/faculty/subjects/${subjectId}`);
@@ -95,28 +110,19 @@ export const subjectService = {
     }
   },
 
-  // Faculty: Remove student from subject
   removeStudentFromSubject: async (subjectId, studentId) => {
     try {
       const response = await api.delete(`/faculty/subjects/${subjectId}/students/${studentId}`);
       return response.data;
     } catch (error) {
-      throw error.response?.data || error.message;
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to remove student';
+      console.error('removeStudentFromSubject error:', {
+        subjectId,
+        studentId,
+        status: error.response?.status,
+        error: errorMessage
+      });
+      throw new Error(errorMessage);
     }
   }
 };
-
-// Usage examples:
-
-// For Students:
-// const enrolledSubjects = await subjectService.getEnrolledSubjects();
-// const subjectDetails = await subjectService.getSubjectDetails(subjectId);
-// const enrollResult = await subjectService.enrollInSubject('ABC12345');
-
-// For Faculty:
-// const facultySubjects = await subjectService.getFacultySubjects();
-// const subjectDetails = await subjectService.getFacultySubjectDetails(subjectId);
-// const students = await subjectService.getSubjectStudents(subjectId);
-// const createResult = await subjectService.createSubject(subjectData);
-// await subjectService.deleteSubject(subjectId);
-// await subjectService.removeStudentFromSubject(subjectId, studentId);

@@ -1,8 +1,7 @@
 // components/Dashboard/SubjectDetailsView.jsx
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { subjectService } from '../../services/subjectService';
-import quizService from '../../services/quizService';
+import {subjectService} from '../../services/subjectService';
 import { 
   ArrowLeft, 
   Users, 
@@ -17,7 +16,8 @@ import {
   Trash2,
   AlertTriangle,
   RefreshCw,
-  AlertCircle
+  AlertCircle,
+  ChevronRight
 } from 'lucide-react';
 
 const SubjectDetailsView = () => {
@@ -29,22 +29,11 @@ const SubjectDetailsView = () => {
   const [deleteLoading, setDeleteLoading] = useState(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
   const [debugInfo, setDebugInfo] = useState(null);
-  const [quizzes, setQuizzes] = useState([]);
-  const [quizzesLoading, setQuizzesLoading] = useState(false);
-  const [quizzesError, setQuizzesError] = useState(null);
 
   useEffect(() => {
-  console.log('SubjectDetailsView mounted with subjectId:', subjectId);
-  const initializeData = async () => {
-    await fetchSubjectDetails();
-    // Only fetch quizzes if subject details loaded successfully
-    if (!error) {
-      await fetchQuizzes();
-    }
-  };
-  
-  initializeData();
-}, [subjectId]);
+    console.log('SubjectDetailsView mounted with subjectId:', subjectId);
+    fetchSubjectDetails();
+  }, [subjectId]);
 
   const fetchSubjectDetails = async () => {
     try {
@@ -83,29 +72,9 @@ const SubjectDetailsView = () => {
     }
   };
 
-  const fetchQuizzes = async () => {
-  try {
-    setQuizzesLoading(true);
-    setQuizzesError(null);
-    console.log('Fetching quizzes for subject:', subjectId);
-    
-    const quizzesData = await quizService.getQuizzes(subjectId);
-    console.log('Quizzes received:', quizzesData);
-    setQuizzes(quizzesData.quizzes || []);
-  } catch (error) {
-    console.error('Error fetching quizzes:', error);
-    setQuizzesError(error.message || 'Failed to fetch quizzes');
-  } finally {
-    setQuizzesLoading(false);
-  }
-};
-
-
   const handleCopyTeamCode = async (teamCode) => {
     try {
       await navigator.clipboard.writeText(teamCode);
-      // Replace alert with a more user-friendly notification
-      // You might want to implement a toast notification system
       console.log('Team code copied:', teamCode);
       alert('Team code copied to clipboard!');
     } catch (error) {
@@ -114,82 +83,22 @@ const SubjectDetailsView = () => {
     }
   };
 
-  const handleDeleteStudent = async (studentId, studentName) => {
-    try {
-      setDeleteLoading(studentId);
-      console.log('Removing student:', studentId, 'from subject:', subjectId);
-      
-      await subjectService.removeStudentFromSubject(subjectId, studentId);
-      
-      // Update local state to remove the student
-      setSubjectDetails(prev => ({
-        ...prev,
-        students: prev.students.filter(student => student.id !== studentId)
-      }));
-      
-      console.log(`Successfully removed ${studentName} from the subject`);
-      alert(`Successfully removed ${studentName} from the subject`);
-    } catch (error) {
-      console.error('Error removing student:', error);
-      alert(error.message || 'Failed to remove student');
-    } finally {
-      setDeleteLoading(null);
-      setShowDeleteConfirm(null);
-    }
-  };
-
-  const confirmDeleteStudent = (student) => {
-    setShowDeleteConfirm(student);
-  };
-
   const handleGoBack = () => {
     navigate('/faculty/dashboard');
   };
 
-  const cancelDelete = () => {
-    setShowDeleteConfirm(null);
+  // Navigation handlers for Quiz, Assignment, and Students sections
+  const handleViewQuizzes = () => {
+    navigate(`/faculty/subjects/${subjectId}/quizzes`);
   };
 
-  const handleCreateQuiz = () => {
-  // Navigate to quiz creation page or open modal
-  navigate(`/faculty/subjects/${subjectId}/quizzes/create`);
-};
+  const handleViewAssignments = () => {
+    navigate(`/faculty/subjects/${subjectId}/assignments`);
+  };
 
-const handleViewQuizzes = () => {
-  // Navigate to quizzes list page
-  navigate(`/faculty/subjects/${subjectId}/quizzes`);
-};
-
-const handleQuizAction = (quizId, action) => {
-  switch (action) {
-    case 'view':
-      navigate(`/faculty/subjects/${subjectId}/quizzes/${quizId}`);
-      break;
-    case 'edit':
-      navigate(`/faculty/subjects/${subjectId}/quizzes/${quizId}/edit`);
-      break;
-    case 'delete':
-      // Handle quiz deletion
-      handleDeleteQuiz(quizId);
-      break;
-    default:
-      break;
-  }
-};
-
-const handleDeleteQuiz = async (quizId) => {
-  if (window.confirm('Are you sure you want to delete this quiz? This action cannot be undone.')) {
-    try {
-      await quizService.deleteQuiz(subjectId, quizId);
-      // Remove quiz from local state
-      setQuizzes(prev => prev.filter(quiz => quiz.id !== quizId));
-      alert('Quiz deleted successfully');
-    } catch (error) {
-      console.error('Error deleting quiz:', error);
-      alert(error.message || 'Failed to delete quiz');
-    }
-  }
-};
+  const handleViewStudents = () => {
+    navigate(`/faculty/subjects/${subjectId}/students`);
+  };
 
   if (loading) {
     return (
@@ -212,7 +121,7 @@ const handleDeleteQuiz = async (quizId) => {
         <div className="bg-black/20 backdrop-blur-md border-b border-white/10 p-4">
           <div className="max-w-7xl mx-auto flex items-center space-x-4">
             <button 
-              onClick={onBack}
+              onClick={handleGoBack}
               className="flex items-center space-x-2 text-gray-300 hover:text-white transition-all"
             >
               <ArrowLeft className="w-5 h-5" />
@@ -259,16 +168,13 @@ const handleDeleteQuiz = async (quizId) => {
             
             <div className="flex justify-center space-x-4">
               <button 
-  onClick={() => {
-    fetchSubjectDetails();
-    if (!error) fetchQuizzes();
-  }}
-  disabled={loading}
-  className="flex items-center space-x-2 bg-cyan-500 hover:bg-cyan-600 disabled:bg-cyan-500/50 px-6 py-3 rounded-lg transition-all"
->
-  <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-  <span>Retry</span>
-</button>
+                onClick={fetchSubjectDetails}
+                disabled={loading}
+                className="flex items-center space-x-2 bg-cyan-500 hover:bg-cyan-600 disabled:bg-cyan-500/50 px-6 py-3 rounded-lg transition-all"
+              >
+                <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+                <span>Retry</span>
+              </button>
               
               <button 
                 onClick={handleGoBack}
@@ -283,7 +189,6 @@ const handleDeleteQuiz = async (quizId) => {
     );
   }
 
-  // Rest of the component remains the same...
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 text-white">
       {/* Header */}
@@ -350,159 +255,66 @@ const handleDeleteQuiz = async (quizId) => {
           </div>
         </div>
 
-        {/* Enrolled Students */}
-        <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-6 border border-white/10 mb-8">
-          <h3 className="text-xl font-semibold text-cyan-400 mb-4 flex items-center space-x-2">
-            <Users className="w-5 h-5" />
-            <span>Enrolled Students ({subjectDetails?.students?.length || 0})</span>
-          </h3>
-          
-          {subjectDetails?.students && subjectDetails.students.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {subjectDetails.students.map((student, index) => (
-                <div key={student.id || index} className="bg-white/5 rounded-lg p-4 border border-white/10 relative">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3 flex-1">
-                      <div className="w-10 h-10 bg-gradient-to-r from-cyan-500 to-purple-500 rounded-full flex items-center justify-center">
-                        <User className="w-5 h-5 text-white" />
-                      </div>
-                      <div className="flex-1">
-                        <h4 className="text-white font-medium">{student.name || 'Student Name'}</h4>
-                        <p className="text-gray-400 text-sm flex items-center space-x-1">
-                          <Mail className="w-3 h-3" />
-                          <span>{student.email || 'email@example.com'}</span>
-                        </p>
-                        {student.enrollment_date && (
-                          <p className="text-gray-400 text-xs mt-1">
-                            Enrolled: {new Date(student.enrollment_date).toLocaleDateString()}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                    
-                    {/* Delete Button */}
-                    <button
-                      onClick={() => confirmDeleteStudent(student)}
-                      disabled={deleteLoading === student.id}
-                      className="p-2 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                      title="Remove student from subject"
-                    >
-                      {deleteLoading === student.id ? (
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-400"></div>
-                      ) : (
-                        <Trash2 className="w-4 h-4" />
-                      )}
-                    </button>
-                  </div>
+        {/* Navigation Buttons */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          {/* Enrolled Students Button */}
+          <button 
+            onClick={handleViewStudents}
+            className="bg-white/5 backdrop-blur-sm rounded-2xl p-6 border border-white/10 hover:bg-white/10 transition-all group text-left"
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-4">
+                <div className="w-12 h-12 bg-gradient-to-r from-green-500 to-teal-500 rounded-xl flex items-center justify-center">
+                  <Users className="w-6 h-6 text-white" />
                 </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-8 text-gray-400">
-              <Users className="w-12 h-12 mx-auto mb-3 opacity-50" />
-              <p>No students enrolled yet</p>
-              <p className="text-sm mt-1">Share the team code with students to get them enrolled</p>
-            </div>
-          )}
-        </div>
-
-        {/* Quick Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-  {/* Quizzes Card */}
-  <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-6 border border-white/10">
-    <div className="flex items-center justify-between mb-4">
-      <h3 className="text-lg font-semibold text-white flex items-center space-x-2">
-        <FileText className="w-5 h-5" />
-        <span>Quizzes ({quizzes.length})</span>
-      </h3>
-      {quizzesLoading && (
-        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-cyan-400"></div>
-      )}
-    </div>
-
-    {quizzesError ? (
-      <div className="text-red-400 text-sm mb-4">
-        <p>Error loading quizzes: {quizzesError}</p>
-        <button 
-          onClick={fetchQuizzes}
-          className="text-cyan-400 hover:text-cyan-300 underline mt-1"
-        >
-          Retry
-        </button>
-      </div>
-    ) : (
-      <>
-        {quizzes.length > 0 && (
-          <div className="mb-4 space-y-2">
-            {quizzes.slice(0, 3).map((quiz) => (
-              <div key={quiz.id} className="bg-white/5 rounded-lg p-3">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h4 className="text-white text-sm font-medium truncate">{quiz.title}</h4>
-                    <p className="text-gray-400 text-xs">
-                      {quiz.question_count || 0} questions • {quiz.total_marks} marks
-                    </p>
-                  </div>
-                  <div className="flex items-center space-x-1">
-                    <span className={`px-2 py-1 text-xs rounded-full ${
-                      quiz.is_active 
-                        ? 'bg-green-500/20 text-green-400' 
-                        : 'bg-gray-500/20 text-gray-400'
-                    }`}>
-                      {quiz.is_active ? 'Active' : 'Inactive'}
-                    </span>
-                  </div>
+                <div>
+                  <h3 className="text-xl font-semibold text-white mb-1">Students</h3>
+                  <p className="text-gray-400">View and manage enrolled students</p>
                 </div>
               </div>
-            ))}
-            {quizzes.length > 3 && (
-              <p className="text-gray-400 text-xs text-center">
-                +{quizzes.length - 3} more quizzes
-              </p>
-            )}
-          </div>
-        )}
-        
-        <p className="text-gray-400 mb-4 text-sm">
-          {quizzes.length === 0 
-            ? 'No quizzes created yet' 
-            : `Manage ${quizzes.length} quiz${quizzes.length === 1 ? '' : 'es'} for this subject`
-          }
-        </p>
-      </>
-    )}
+              <ChevronRight className="w-6 h-6 text-gray-400 group-hover:text-white transition-colors" />
+            </div>
+          </button>
 
-    <div className="flex space-x-2">
-      <button 
-        onClick={handleCreateQuiz}
-        className="flex-1 bg-purple-500/20 hover:bg-purple-500/30 text-purple-400 px-4 py-2 rounded-lg transition-all text-sm"
-      >
-        Create Quiz
-      </button>
-      {quizzes.length > 0 && (
-        <button 
-          onClick={handleViewQuizzes}
-          className="bg-white/10 hover:bg-white/20 text-white px-4 py-2 rounded-lg transition-all text-sm"
-        >
-          View All
-        </button>
-      )}
-    </div>
-  </div>
-  
-  {/* Assignments Card - Keep existing */}
-  <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-6 border border-white/10">
-    <h3 className="text-lg font-semibold text-white mb-4 flex items-center space-x-2">
-      <Award className="w-5 h-5" />
-      <span>Assignments</span>
-    </h3>
-    <p className="text-gray-400 mb-4">Create and manage assignments for this subject</p>
-    <button className="bg-orange-500/20 hover:bg-orange-500/30 text-orange-400 px-4 py-2 rounded-lg transition-all">
-      Create Assignment
-    </button>
-  </div>
-</div>
-</div>
+          {/* Quizzes Button */}
+          <button 
+            onClick={handleViewQuizzes}
+            className="bg-white/5 backdrop-blur-sm rounded-2xl p-6 border border-white/10 hover:bg-white/10 transition-all group text-left"
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-4">
+                <div className="w-12 h-12 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl flex items-center justify-center">
+                  <FileText className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-semibold text-white mb-1">Quizzes</h3>
+                  <p className="text-gray-400">Create and manage quizzes for this subject</p>
+                </div>
+              </div>
+              <ChevronRight className="w-6 h-6 text-gray-400 group-hover:text-white transition-colors" />
+            </div>
+          </button>
+
+          {/* Assignments Button */}
+          <button 
+            onClick={handleViewAssignments}
+            className="bg-white/5 backdrop-blur-sm rounded-2xl p-6 border border-white/10 hover:bg-white/10 transition-all group text-left"
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-4">
+                <div className="w-12 h-12 bg-gradient-to-r from-orange-500 to-red-500 rounded-xl flex items-center justify-center">
+                  <Award className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-semibold text-white mb-1">Assignments</h3>
+                  <p className="text-gray-400">Create and manage assignments for this subject</p>
+                </div>
+              </div>
+              <ChevronRight className="w-6 h-6 text-gray-400 group-hover:text-white transition-colors" />
+            </div>
+          </button>
+        </div>
+      </div>
 
       {/* Delete Confirmation Modal */}
       {showDeleteConfirm && (
