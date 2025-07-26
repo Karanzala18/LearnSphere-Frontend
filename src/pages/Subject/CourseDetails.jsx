@@ -19,7 +19,7 @@ import {
   XCircle
 } from 'lucide-react';
 import { subjectService } from '../../services/subjectService';
-import quizService from '../../services/quizService';
+import studentQuizService from '../../services/studentQuizService'; // Updated import
 
 const CourseDetails = () => {
   const { courseId } = useParams();
@@ -33,9 +33,14 @@ const CourseDetails = () => {
   const [quizError, setQuizError] = useState('');
 
   useEffect(() => {
+    console.log('CourseDetails mounted with courseId:', courseId);
     if (courseId) {
       fetchCourseDetails();
       fetchStudentQuizzes();
+    } else {
+      console.error('No courseId provided');
+      setError('No course ID provided');
+      setLoading(false);
     }
   }, [courseId]);
 
@@ -43,11 +48,13 @@ const CourseDetails = () => {
     try {
       setLoading(true);
       setError('');
+      console.log('Fetching course details for ID:', courseId);
       const response = await subjectService.getSubjectDetails(courseId);
+      console.log('Course details response:', response);
       setCourse(response.data || response);
     } catch (error) {
       console.error('Error fetching course details:', error);
-      setError('Failed to load course details');
+      setError(error.message || 'Failed to load course details');
     } finally {
       setLoading(false);
     }
@@ -57,12 +64,30 @@ const CourseDetails = () => {
     try {
       setQuizzesLoading(true);
       setQuizError('');
-      const response = await quizService.getStudentQuizzes(courseId);
-      console.log('Quizzes API Response:', response); // Debug log
-      setQuizzes(response.data?.quizzes || response.quizzes || response.data || []);
+      console.log('Fetching quizzes for course:', courseId);
+      
+      // Use the new studentQuizService
+      const response = await studentQuizService.getQuizzes(courseId);
+      console.log('Quizzes API Response:', response);
+      
+      if (!response.success) {
+        throw new Error(response.message);
+      }
+      
+      // Extract quizzes from the response
+      let quizzesData = [];
+      if (response.quizzes) {
+        quizzesData = response.quizzes;
+      } else if (response.data?.quizzes) {
+        quizzesData = response.data.quizzes;
+      } else if (response.data && Array.isArray(response.data)) {
+        quizzesData = response.data;
+      }
+      
+      setQuizzes(quizzesData);
     } catch (error) {
       console.error('Error fetching quizzes:', error);
-      setQuizError('Failed to load quizzes');
+      setQuizError(error.message || 'Failed to load quizzes');
     } finally {
       setQuizzesLoading(false);
     }
@@ -71,16 +96,31 @@ const CourseDetails = () => {
   const handleStartQuiz = async (quizId) => {
     try {
       const quiz = quizzes.find(q => q.id === quizId);
-      if (!quizService.isQuizAvailable(quiz)) {
+      if (!isQuizAvailable(quiz)) {
         alert('This quiz is not currently available');
         return;
       }
 
-      const response = await quizService.startQuizAttempt(quizId);
-      navigate(`/student/quiz/${quizId}/attempt/${response.data.attempt_id || response.attempt_id}`);
+      console.log('Starting quiz:', quizId);
+      const response = await studentQuizService.startQuiz(quizId);
+      
+      if (!response.success) {
+        throw new Error(response.message);
+      }
+
+      // Navigate to quiz attempt page
+      const attemptId = response.attempt?.id || response.data?.attempt?.id || response.data?.id;
+      console.log('Quiz started, attempt ID:', attemptId);
+      
+      if (attemptId) {
+        navigate(`/student/quiz-attempts/${attemptId}`);
+      } else {
+        throw new Error('No attempt ID received from server');
+      }
+      
     } catch (error) {
       console.error('Error starting quiz:', error);
-      alert('Failed to start quiz. Please try again.');
+      alert('Failed to start quiz: ' + error.message);
     }
   };
 
@@ -88,8 +128,18 @@ const CourseDetails = () => {
     navigate('/student/dashboard');
   };
 
+  const isQuizAvailable = (quiz) => {
+    if (!quiz || !quiz.is_active) return false;
+    
+    const now = new Date();
+    const startTime = new Date(quiz.start_time);
+    const endTime = new Date(quiz.end_time);
+    
+    return now >= startTime && now <= endTime;
+  };
+
   const formatQuizStatus = (quiz) => {
-    const isAvailable = quizService.isQuizAvailable(quiz);
+    const isAvailable = isQuizAvailable(quiz);
     const now = new Date();
     const startTime = new Date(quiz.start_time);
     const endTime = new Date(quiz.end_time);
@@ -126,27 +176,22 @@ const CourseDetails = () => {
     );
   }
 
-  if (error || quizError) {
+  if (error && !course) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="flex items-center justify-center py-20">
             <div className="text-center">
               <AlertCircle className="w-16 h-16 text-red-400 mx-auto mb-4" />
-              <h2 className="text-2xl font-bold mb-2">Error Loading Course or Quizzes</h2>
-              <p className="text-gray-300 mb-6">{error || quizError}</p>
+              <h2 className="text-2xl font-bold mb-2">Error Loading Course</h2>
+              <p className="text-gray-300 mb-2">Course ID: {courseId}</p>
+              <p className="text-gray-300 mb-6">{error}</p>
               <div className="space-x-4">
                 <button
                   onClick={fetchCourseDetails}
                   className="bg-gradient-to-r from-cyan-500 to-purple-500 px-6 py-3 rounded-xl hover:from-cyan-600 hover:to-purple-600 transition-all"
                 >
-                  Retry Course
-                </button>
-                <button
-                  onClick={fetchStudentQuizzes}
-                  className="bg-gradient-to-r from-cyan-500 to-purple-500 px-6 py-3 rounded-xl hover:from-cyan-600 hover:to-purple-600 transition-all"
-                >
-                  Retry Quizzes
+                  Retry
                 </button>
                 <button
                   onClick={handleGoBack}
@@ -244,132 +289,34 @@ const CourseDetails = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-6 border border-white/10">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold flex items-center">
-                <Brain className="w-5 h-5 mr-2 text-cyan-400" />
-                Quizzes
-              </h2>
-              {quizzesLoading && (
-                <RefreshCw className="w-4 h-4 text-cyan-400 animate-spin" />
-              )}
+        {/* Action Buttons */}
+        <div className="flex space-x-4">
+          <button
+            onClick={() => navigate(`/student/course/${courseId}/quizzes`)}
+            className="flex-1 bg-blue-900 text-white p-4 rounded-lg flex items-center justify-center space-x-2 hover:bg-blue-800 transition-colors"
+          >
+            <span className="w-6 h-6 bg-gradient-to-br from-pink-500 to-purple-500 rounded flex items-center justify-center">
+              <FileText className="w-6 h-6 text-white" />
+            </span>
+            <div>
+              <h3 className="text-lg font-semibold">All Quizzes</h3>
+              <p className="text-sm text-gray-300">View and manage all quizzes</p>
             </div>
-            
-            {!quizzesLoading && (quizzes?.length > 0 ? (
-              <div className="space-y-3 max-h-96 overflow-y-auto">
-                {quizzes.map((quiz, index) => {
-                  const statusInfo = formatQuizStatus(quiz);
-                  const StatusIcon = statusInfo.icon;
-                  const isAvailable = quizService.isQuizAvailable(quiz);
-                  const timeRemaining = quizService.getQuizTimeRemaining(quiz);
-
-                  return (
-                    <div key={quiz.id || index} className="bg-white/10 p-4 rounded-lg hover:bg-white/15 transition-all">
-                      <div className="flex justify-between items-start mb-2">
-                        <h3 className="font-semibold text-lg">{quiz.title || `Quiz ${index + 1}`}</h3>
-                        <div className="flex items-center space-x-2">
-                          <StatusIcon className={`w-4 h-4 ${statusInfo.color}`} />
-                          <span className={`text-xs ${statusInfo.color}`}>{statusInfo.status}</span>
-                        </div>
-                      </div>
-                      
-                      <p className="text-sm text-gray-300 mb-3">{quiz.description || 'No description'}</p>
-                      
-                      <div className="grid grid-cols-2 gap-4 mb-3">
-                        <div className="text-xs">
-                          <span className="text-gray-400">Questions: </span>
-                          <span className="text-white">{quiz.questions_count || quiz.question_count || 0}</span>
-                        </div>
-                        <div className="text-xs">
-                          <span className="text-gray-400">Duration: </span>
-                          <span className="text-white">{quiz.duration_minutes || 0} min</span>
-                        </div>
-                        <div className="text-xs">
-                          <span className="text-gray-400">Total Marks: </span>
-                          <span className="text-white">{quiz.total_marks || 0}</span>
-                        </div>
-                        <div className="text-xs">
-                          <span className="text-gray-400">Attempts: </span>
-                          <span className="text-white">{quiz.attempt_count || 0}</span>
-                        </div>
-                      </div>
-
-                      {quiz.start_time && quiz.end_time && (
-                        <div className="text-xs text-gray-400 mb-3">
-                          <div>Start: {new Date(quiz.start_time).toLocaleString()}</div>
-                          <div>End: {new Date(quiz.end_time).toLocaleString()}</div>
-                          {isAvailable && !timeRemaining.expired && (
-                            <div className="text-yellow-300 mt-1">
-                              <Timer className="w-3 h-3 inline mr-1" />
-                              Time remaining: {timeRemaining.formatted}
-                            </div>
-                          )}
-                        </div>
-                      )}
-
-                      <div className="flex justify-between items-center">
-                        <div className="text-xs">
-                          {quiz.max_attempts && (
-                            <span className="text-gray-400">
-                              Max attempts: {quiz.max_attempts}
-                            </span>
-                          )}
-                        </div>
-                        <button
-                          onClick={() => handleStartQuiz(quiz.id)}
-                          disabled={!isAvailable}
-                          className={`flex items-center space-x-1 px-3 py-1 rounded-lg text-sm transition-all ${
-                            isAvailable
-                              ? 'bg-cyan-500 hover:bg-cyan-600 text-white'
-                              : 'bg-gray-600 text-gray-400 cursor-not-allowed'
-                          }`}
-                        >
-                          <Play className="w-4 h-4" />
-                          <span>{isAvailable ? 'Start Quiz' : 'Not Available'}</span>
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <div className="text-center py-8">
-                <Brain className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-                <p className="text-gray-400">No quizzes available</p>
-              </div>
-            ))}
-          </div>
-
-          <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-6 border border-white/10">
-            <h2 className="text-xl font-bold mb-4 flex items-center">
-              <FileText className="w-5 h-5 mr-2 text-purple-400" />
-              Assignments
-            </h2>
-            {course.assignments && course.assignments.length > 0 ? (
-              <div className="space-y-3">
-                {course.assignments.slice(0, 3).map((assignment, index) => (
-                  <div key={assignment.id || index} className="bg-white/10 p-4 rounded-lg">
-                    <h3 className="font-semibold">{assignment.title || `Assignment ${index + 1}`}</h3>
-                    <p className="text-sm text-gray-300">{assignment.description || 'No description'}</p>
-                    <div className="flex justify-between items-center mt-2">
-                      <span className="text-xs text-gray-400">
-                        Due: {assignment.due_date || 'No due date'}
-                      </span>
-                      <button className="text-purple-400 hover:text-purple-300 transition-colors">
-                        <Eye className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-8">
-                <FileText className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-                <p className="text-gray-400">No assignments available</p>
-              </div>
-            )}
-          </div>
+          </button>
+          <button
+            onClick={() => navigate(`/student/course/${courseId}/assignments`)}
+            className="flex-1 bg-blue-900 text-white p-4 rounded-lg flex items-center justify-center space-x-2 hover:bg-blue-800 transition-colors"
+          >
+            <span className="w-6 h-6 bg-orange-500 rounded flex items-center justify-center">
+              <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-1 16H6c-.55 0-1-.45-1-1V6c0-.55.45-1 1-1h12c.55 0 1 .45 1 1v12c0 .55-.45 1-1 1z"/>
+              </svg>
+            </span>
+            <div>
+              <h3 className="text-lg font-semibold">Assignments</h3>
+              <p className="text-sm text-gray-300">View and manage assignments</p>
+            </div>
+          </button>
         </div>
       </div>
     </div>

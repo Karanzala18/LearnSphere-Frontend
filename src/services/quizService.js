@@ -284,32 +284,136 @@ createQuizQuestionsBulk: async (subjectId, quizId, questionsData) => {
   // Student Quiz Functions
 
   /**
-   * Get available quizzes for a student in a subject
+ * Get available quizzes for a student in a subject - Enhanced version
+ * @param {number} subjectId - The subject ID
+ * @returns {Promise} API response with available quizzes and attempts
+ */
+/**
+   * Get available quizzes for a student in a subject - Enhanced version
    * @param {number} subjectId - The subject ID
-   * @returns {Promise} API response with available quizzes
+   * @returns {Promise} API response with available quizzes and attempts
    */
-  getStudentQuizzes: async (subjectId) => {
-    try {
-      const response = await api.get(`/student/subjects/${subjectId}/quizzes`);
-      return response.data;
-    } catch (error) {
-      throw error.response?.data || error.message;
+  // quizService.js (partial)
+getStudentQuizzes: async (subjectId) => {
+  try {
+    console.log('Fetching student quizzes for subject:', subjectId);
+    const response = await api.get(`/student/subjects/${subjectId}/quizzes`);
+    console.log('Student quizzes response:', response.data);
+    let quizzes = [];
+    let attempts = [];
+    if (response.data) {
+      if (response.data.quizzes) quizzes = response.data.quizzes;
+      else if (Array.isArray(response.data)) quizzes = response.data;
+      if (response.data.attempts) attempts = response.data.attempts;
     }
-  },
+    return { quizzes, attempts, data: response.data };
+  } catch (error) {
+    console.error('Error fetching student quizzes:', error);
+    throw error.response?.data || error.message;
+  }
+},
+
 
   /**
-   * Start a quiz attempt for a student
+   * Enhanced start quiz attempt with better error handling and end_time
    * @param {number} quizId - The quiz ID
-   * @returns {Promise} API response with quiz attempt data
+   * @returns {Promise} API response with quiz attempt data including end_time
    */
-  startQuizAttempt: async (quizId) => {
-    try {
-      const response = await api.post(`/student/quizzes/${quizId}/start`);
-      return response.data;
-    } catch (error) {
-      throw error.response?.data || error.message;
+  // quizService.js (partial update to startQuizAttempt)
+startQuizAttempt: async (quizId) => {
+  try {
+    console.log('Starting quiz attempt for quiz ID:', quizId);
+    
+    const response = await api.post(`/student/quizzes/${quizId}/start`, {}, {
+      headers: { 'Accept': 'application/json' }
+    });
+    
+    console.log('Start quiz attempt response:', response);
+    console.log('Response data:', response.data);
+    
+    let attemptData = null;
+    
+    if (response.data) {
+      if (response.data.attempt) {
+        attemptData = {
+          attempt_id: response.data.attempt.id,
+          end_time: response.data.attempt.end_time,
+          ...response.data.attempt
+        };
+      } else if (response.data.attempt_id || response.data.id) {
+        attemptData = {
+          attempt_id: response.data.attempt_id || response.data.id,
+          end_time: response.data.end_time,
+          ...response.data
+        };
+      } else if (response.data.data && (response.data.data.attempt_id || response.data.data.id)) {
+        attemptData = {
+          attempt_id: response.data.data.attempt_id || response.data.data.id,
+          end_time: response.data.data.end_time,
+          ...response.data.data
+        };
+      } else {
+        console.warn('Unexpected response structure:', response.data);
+        attemptData = response.data;
+      }
     }
-  },
+    
+    if (!attemptData || !attemptData.attempt_id) {
+      throw new Error('Invalid response structure from server');
+    }
+    
+    if (!attemptData.end_time) {
+      console.warn('End time not found in response, using fallback duration');
+      const now = new Date();
+      const durationMinutes = response.data.duration_minutes || 60;
+      attemptData.end_time = new Date(now.getTime() + durationMinutes * 60000).toISOString();
+    }
+    
+    console.log('Processed attempt data:', attemptData);
+    
+    return attemptData;
+    
+  } catch (error) {
+    console.error('Start quiz attempt error details:', {
+      message: error.message,
+      response: error.response,
+      responseData: error.response?.data,
+      status: error.response?.status,
+      details: error.response?.data?.message || 'No additional details'
+    });
+    
+    let errorMessage = 'Failed to start quiz attempt';
+    
+    if (error.response) {
+      const status = error.response.status;
+      const data = error.response.data;
+      
+      switch (status) {
+        case 409:
+          errorMessage = 'You have already attempted this quiz';
+          break;
+        case 403:
+          errorMessage = data.message || 'Quiz not available or access denied';
+          break;
+        case 404:
+          errorMessage = 'Quiz not found';
+          break;
+        case 422:
+          errorMessage = 'Invalid quiz data';
+          break;
+        case 500:
+          errorMessage = `Server error: ${data.message || 'Internal server error'}`;
+          break;
+        default:
+          errorMessage = data.message || `Server error: ${status}`;
+      }
+    } else if (error.message) {
+      errorMessage = error.message;
+    }
+    
+    throw new Error(errorMessage);
+  }
+},
 
   /**
    * Fetch quiz questions for an active attempt
@@ -318,9 +422,26 @@ createQuizQuestionsBulk: async (subjectId, quizId, questionsData) => {
    */
   fetchQuizQuestions: async (attemptId) => {
     try {
+      console.log('Fetching quiz questions for attemptId:', attemptId);
       const response = await api.get(`/student/quiz-attempts/${attemptId}/questions`);
+      console.log('Fetch quiz questions response:', response.data);
+      
+      // Validate and log end_time
+      if (response.data.end_time) {
+        const endTime = new Date(response.data.end_time);
+        console.log('Received end_time:', endTime.toISOString());
+        if (isNaN(endTime.getTime())) {
+          console.warn('Invalid end_time format, using fallback');
+          response.data.end_time = new Date().toISOString(); // Fallback
+        }
+      } else {
+        console.warn('No end_time in response, using fallback');
+        response.data.end_time = new Date(Date.now() + 3600000).toISOString(); // Default 1 hour
+      }
+      
       return response.data;
     } catch (error) {
+      console.error('Error fetching quiz questions:', error);
       throw error.response?.data || error.message;
     }
   },
@@ -329,13 +450,22 @@ createQuizQuestionsBulk: async (subjectId, quizId, questionsData) => {
    * Submit a quiz attempt with answers
    * @param {number} attemptId - The quiz attempt ID
    * @param {Array} answers - Array of student's answers
+   * @param {Object} headers - Additional headers (e.g., X-Timer-Expired)
    * @returns {Promise} API response with submission result
    */
-  submitQuizAttempt: async (attemptId, answers) => {
+  submitQuizAttempt: async (attemptId, answers, headers = {}) => {
     try {
-      const response = await api.post(`/student/quiz-attempts/${attemptId}/submit`, { answers });
+      console.log('Submitting quiz attempt for attemptId:', attemptId, 'with answers:', answers, 'headers:', headers);
+      const response = await api.post(`/student/quiz-attempts/${attemptId}/submit`, { answers }, { headers });
+      console.log('Submit quiz attempt response:', response.data);
       return response.data;
     } catch (error) {
+      console.error('Submit quiz attempt error details:', {
+        message: error.message,
+        response: error.response,
+        responseData: error.response?.data,
+        status: error.response?.status
+      });
       throw error.response?.data || error.message;
     }
   },
@@ -588,18 +718,213 @@ createQuizQuestionsBulk: async (subjectId, quizId, questionsData) => {
     return quiz.is_active && now >= startTime && now <= endTime;
   },
 
+  // Add these functions to your quizService object
+
+/**
+ * Get quiz attempt history for a student
+ * @param {number} subjectId - The subject ID
+ * @returns {Promise} API response with quiz attempts
+ */
+/**
+ * Get quiz attempt history for a student - Enhanced version
+ * @param {number} subjectId - The subject ID
+ * @returns {Promise} API response with quiz attempts
+ */
+/**
+ * Get quiz attempt history for a student - Enhanced version with better error handling
+ * @param {number} subjectId - The subject ID
+ * @returns {Promise} API response with quiz attempts
+ */
+getStudentQuizAttempts: async (subjectId) => {
+  try {
+    console.log('Fetching quiz attempts for subject:', subjectId);
+    const response = await api.get(`/student/subjects/${subjectId}/quiz-attempts`);
+    
+    console.log('Quiz attempts response:', response.data);
+    
+    // Handle different response structures
+    let attempts = [];
+    if (response.data) {
+      if (response.data.attempts) {
+        attempts = response.data.attempts;
+      } else if (Array.isArray(response.data)) {
+        attempts = response.data;
+      } else if (response.data.data && Array.isArray(response.data.data)) {
+        attempts = response.data.data;
+      }
+    }
+    
+    console.log('Processed attempts:', attempts);
+    return { attempts };
+  } catch (error) {
+    console.error('Error fetching quiz attempts:', error);
+    // Return empty array if endpoint doesn't exist or fails
+    return { attempts: [] };
+  }
+},
+
+/**
+ * Enhanced calculate quiz statistics
+ * @param {Array} quizzes - Array of quizzes
+ * @param {Array} attempts - Array of quiz attempts
+ * @returns {Object} Quiz statistics
+ */
+calculateQuizStats: (quizzes, attempts = []) => {
+  const now = new Date();
+  
+  const stats = {
+    total: quizzes.length,
+    available: 0,
+    completed: 0,
+    missed: 0
+  };
+  
+  quizzes.forEach(quiz => {
+    const startTime = new Date(quiz.start_time);
+    const endTime = new Date(quiz.end_time);
+    const isActive = quiz.is_active;
+    
+    // Check if student has attempted this quiz
+    const hasAttempted = attempts.some(attempt => 
+      attempt.quiz_id === quiz.id || attempt.quiz_id == quiz.id
+    );
+    
+    if (hasAttempted) {
+      stats.completed++;
+    } else if (isActive && now >= startTime && now <= endTime) {
+      stats.available++;
+    } else if (now > endTime) {
+      stats.missed++;
+    }
+  });
+  
+  return stats;
+},
+
+/**
+ * Enhanced quiz status checker that considers attempts
+ * @param {Object} quiz - Quiz object
+ * @param {Array} attempts - Array of quiz attempts
+ * @returns {Object} Quiz status information
+ */
+getQuizStatus: (quiz, attempts = []) => {
+  const now = new Date();
+  const startTime = new Date(quiz.start_time);
+  const endTime = new Date(quiz.end_time);
+  
+  // Check if student has attempted this quiz - more robust checking
+  const hasAttempted = attempts.some(attempt => {
+    return (attempt.quiz_id === quiz.id || 
+            attempt.quiz_id == quiz.id || 
+            (attempt.quiz && (attempt.quiz.id === quiz.id || attempt.quiz.id == quiz.id)));
+  });
+  
+  console.log(`Quiz ${quiz.id} status check:`, {
+    hasAttempted,
+    isActive: quiz.is_active,
+    now: now.toISOString(),
+    startTime: startTime.toISOString(),
+    endTime: endTime.toISOString(),
+    attempts: attempts.map(a => ({ id: a.id, quiz_id: a.quiz_id }))
+  });
+  
+  if (hasAttempted) {
+    return {
+      status: 'Completed',
+      color: 'text-green-400',
+      bgColor: 'bg-green-500/10',
+      icon: 'CheckCircle'
+    };
+  } else if (!quiz.is_active) {
+    return {
+      status: 'Inactive',
+      color: 'text-gray-400',
+      bgColor: 'bg-gray-500/10',
+      icon: 'XCircle'
+    };
+  } else if (now < startTime) {
+    return {
+      status: 'Upcoming',
+      color: 'text-blue-400',
+      bgColor: 'bg-blue-500/10',
+      icon: 'Clock'
+    };
+  } else if (now > endTime) {
+    return {
+      status: 'Missed',
+      color: 'text-red-400',
+      bgColor: 'bg-red-500/10',
+      icon: 'XCircle'
+    };
+  } else {
+    return {
+      status: 'Available',
+      color: 'text-green-400',
+      bgColor: 'bg-green-500/10',
+      icon: 'Play'
+    };
+  }
+},
+
+
+/**
+ * Check if student has already attempted a quiz - Enhanced version
+ * @param {number} quizId - Quiz ID
+ * @param {Array} attempts - Array of quiz attempts
+ * @returns {Boolean} Whether quiz has been attempted
+ */
+hasAttemptedQuiz: (quizId, attempts = []) => {
+  const attempted = attempts.some(attempt => {
+    return (attempt.quiz_id === quizId || 
+            attempt.quiz_id == quizId || 
+            (attempt.quiz && (attempt.quiz.id === quizId || attempt.quiz.id == quizId)));
+  });
+  
+  console.log(`Checking if quiz ${quizId} has been attempted:`, {
+    attempted,
+    attempts: attempts.map(a => ({ id: a.id, quiz_id: a.quiz_id }))
+  });
+  
+  return attempted;
+},
+
+/**
+ * Get specific quiz attempt by quiz ID
+ * @param {number} quizId - Quiz ID
+ * @param {Array} attempts - Array of quiz attempts
+ * @returns {Object|null} Quiz attempt object or null
+ */
+getQuizAttempt: (quizId, attempts = []) => {
+  return attempts.find(attempt => 
+    attempt.quiz_id === quizId || attempt.quiz_id == quizId
+  ) || null;
+},
+
   /**
-   * Calculate remaining time for a quiz
+   * Calculate remaining time for a quiz with timezone adjustment
    * @param {Object} quiz - Quiz object
    * @returns {Object} Remaining time information
    */
   getQuizTimeRemaining: (quiz) => {
-    const now = new Date();
+    const now = new Date(); // Local time (IST if client is set to IST)
     const endTime = new Date(quiz.end_time);
-    const timeDiff = endTime - now;
+    // Adjust for IST offset if server returns UTC
+    const istOffset = 5.5 * 60 * 60 * 1000; // 5 hours 30 minutes in milliseconds
+    const serverNow = new Date(Date.now() - istOffset); // Approximate server UTC time
+    const adjustedEndTime = new Date(endTime.getTime() + istOffset); // Convert UTC end_time to IST
+
+    console.log('Time calculation:', {
+      clientNow: now.toISOString(),
+      serverNow: serverNow.toISOString(),
+      endTimeUTC: endTime.toISOString(),
+      adjustedEndTime: adjustedEndTime.toISOString(),
+      timeDiff: adjustedEndTime - now
+    });
+
+    const timeDiff = adjustedEndTime - now;
 
     if (timeDiff <= 0) {
-      return { expired: true, remaining: 0 };
+      return { expired: true, remaining: 0, formatted: '0s' };
     }
 
     const hours = Math.floor(timeDiff / (1000 * 60 * 60));
