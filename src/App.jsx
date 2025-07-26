@@ -34,6 +34,7 @@
   import AuthRoute from './components/AuthRoute';
 import QuizAttemptPage from './pages/Quiz/QuizAttemptPage';
 import QuizResultPage from './pages/Quiz/QuizResultPage';
+import QuizScorecardPage from './pages/Quiz/QuizScorecardPage';
 
 
 
@@ -105,6 +106,7 @@ import QuizResultPage from './pages/Quiz/QuizResultPage';
                     <Route path="subjects/:subjectId/quizzes/:quizId/edit" element={<EditQuizPage />} />
                     <Route path="subjects/:subjectId/quizzes/:quizId/questions/create" element={<CreateQuestionPage />} />
                     <Route path="subjects/:subjectId/students" element={<EnrolledStudentsView />} />
+                    <Route path='quizzes/:quizId/scorecard' element={<QuizScorecardPage />} />
                     {/* Redirect /faculty to /faculty/dashboard */}
                     <Route path="" element={<Navigate to="dashboard" replace />} />
                     {/* Add other faculty routes */}

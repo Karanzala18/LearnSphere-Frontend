@@ -139,38 +139,32 @@ const fetchQuizData = async () => {
 
   // Get quiz availability status with null checks
   const getQuizStatus = () => {
-    if (!quiz) return { status: 'unknown', color: 'gray', text: 'Unknown' };
-    
-    // If no time data is available, just check if active
-    if (!quiz.start_time || !quiz.end_time) {
-      return quiz.is_active 
-        ? { status: 'active', color: 'green', text: 'Active' }
-        : { status: 'inactive', color: 'gray', text: 'Inactive' };
-    }
-    
-    const isAvailable = quizService.isQuizAvailable(quiz);
-    const now = new Date();
-    const startTime = new Date(quiz.start_time);
-    const endTime = new Date(quiz.end_time);
-    
-    if (!quiz.is_active) {
-      return { status: 'inactive', color: 'gray', text: 'Inactive' };
-    }
-    
-    if (now < startTime) {
-      return { status: 'upcoming', color: 'blue', text: 'Upcoming' };
-    }
-    
-    if (now > endTime) {
-      return { status: 'expired', color: 'red', text: 'Expired' };
-    }
-    
-    if (isAvailable) {
-      return { status: 'active', color: 'green', text: 'Active' };
-    }
-    
-    return { status: 'unknown', color: 'gray', text: 'Unknown' };
-  };
+  if (!quiz) return { status: 'unknown', color: 'gray', text: 'Unknown' };
+  
+  // Use the fixed service method
+  const isAvailable = quizService.isQuizAvailable(quiz);
+  const now = new Date(); // UTC time
+  const startTime = new Date(quiz.start_time); // UTC from database
+  const endTime = new Date(quiz.end_time); // UTC from database
+  
+  if (!quiz.is_active) {
+    return { status: 'inactive', color: 'gray', text: 'Inactive' };
+  }
+  
+  if (now < startTime) {
+    return { status: 'upcoming', color: 'blue', text: 'Upcoming' };
+  }
+  
+  if (now > endTime) {
+    return { status: 'expired', color: 'red', text: 'Expired' };
+  }
+  
+  if (isAvailable) {
+    return { status: 'active', color: 'green', text: 'Active' };
+  }
+  
+  return { status: 'unknown', color: 'gray', text: 'Unknown' };
+};  
 
   // Safe date formatting function
   const formatDate = (dateString) => {
@@ -178,11 +172,12 @@ const fetchQuizData = async () => {
     try {
       const date = new Date(dateString);
       if (isNaN(date.getTime())) return 'Invalid date';
-      return date.toLocaleDateString('en-US', {
+      return date.toLocaleDateString('en-IN', {
         weekday: 'long',
         year: 'numeric',
         month: 'long',
-        day: 'numeric'
+        day: 'numeric',
+        timeZone: 'Asia/Kolkata'
       });
     } catch (error) {
       return 'Invalid date';
@@ -195,10 +190,11 @@ const fetchQuizData = async () => {
     try {
       const date = new Date(dateString);
       if (isNaN(date.getTime())) return 'Invalid time';
-      return date.toLocaleTimeString('en-US', {
+      return date.toLocaleTimeString('en-IN', {
         hour: '2-digit',
         minute: '2-digit',
-        hour12: true
+        hour12: true,
+        timeZone: 'Asia/Kolkata'
       });
     } catch (error) {
       return 'Invalid time';
@@ -266,6 +262,14 @@ const fetchQuizData = async () => {
             <h1 className="text-xl font-semibold">Quiz Details</h1>
           </div>
           <div className="flex space-x-2">
+            <button
+              onClick={() => navigate(`/faculty/quizzes/${quizId}/scorecard`)}
+              className="flex items-center space-x-2 bg-green-500/20 hover:bg-green-500/30 text-green-400 px-4 py-2 rounded-lg transition-all"
+              aria-label="View scorecard"
+            >
+              <Users className="w-4 h-4" />
+              <span>Scorecard</span>
+            </button>
             <button
               onClick={() => navigate(`/faculty/subjects/${subjectId}/quizzes/${quizId}/edit`)}
               className="flex items-center space-x-2 bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-400 px-4 py-2 rounded-lg transition-all"

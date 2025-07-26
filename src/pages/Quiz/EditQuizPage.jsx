@@ -54,13 +54,6 @@ const EditQuizPage = () => {
       setLoading(true);
       setError(null);
 
-      // Convert UTC times to local time (IST) for form display
-      const convertToLocalTime = (utcDateStr) => {
-        if (!utcDateStr) return '';
-        const date = new Date(utcDateStr);
-        return new Date(date.getTime() + (330 * 60000)).toISOString().slice(0, 16); // Add 5h 30m for IST
-      };
-
       // Fetch quiz data
       const quizData = await quizService.getQuiz(subjectId, quizId);
       
@@ -80,6 +73,19 @@ const EditQuizPage = () => {
       if (!quiz || !quiz.id) {
         throw new Error('Invalid or missing quiz data - no quiz ID found');
       }
+
+      const convertUTCToLocal = (utcDateStr) => {
+        if (!utcDateStr) return '';
+        const date = new Date(utcDateStr);
+        // Use the browser's built-in timezone handling
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        const hours = String(date.getHours()).padStart(2, '0');
+        const minutes = String(date.getMinutes()).padStart(2, '0');
+        
+        return `${year}-${month}-${day}T${hours}:${minutes}`;
+      };
       
       setFormData({
         title: quiz.title || '',
@@ -331,6 +337,15 @@ const EditQuizPage = () => {
 
     try {
       setLoading(true);
+
+      const formattedData = {
+      ...formData,
+      start_time: formData.start_time ? new Date(formData.start_time).toISOString() : null,
+      end_time: formData.end_time ? new Date(formData.end_time).toISOString() : null,
+      total_marks: parseInt(formData.total_marks),
+      duration_minutes: parseInt(formData.duration_minutes)
+    };
+    
       await quizService.updateQuiz(subjectId, quizId, formData);
       alert('Quiz updated successfully!');
       navigate(`/faculty/subjects/${subjectId}/quizzes`);

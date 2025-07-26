@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import quizService from '../../services/quizService';
+import timezoneUtils from '../../services/quizService';
 import { ArrowLeft, Save, FileText, Plus, Trash2, Edit3, Check, AlertCircle } from 'lucide-react';
 
 const CreateQuizPage = () => {
@@ -184,12 +185,14 @@ const CreateQuizPage = () => {
       
       // Format the datetime values to ensure compatibility
       const formattedQuizData = {
-        ...formData,
-        start_time: new Date(formData.start_time).toISOString(),
-        end_time: new Date(formData.end_time).toISOString(),
-        total_marks: parseInt(formData.total_marks),
-        duration_minutes: parseInt(formData.duration_minutes)
-      };
+      ...formData,
+      // datetime-local input values are already in local time
+      // Let the browser handle UTC conversion automatically
+      start_time: formData.start_time ? new Date(formData.start_time).toISOString() : null,
+      end_time: formData.end_time ? new Date(formData.end_time).toISOString() : null,
+      total_marks: parseInt(formData.total_marks),
+      duration_minutes: parseInt(formData.duration_minutes)
+    };
       
       console.log('Sending quiz data:', formattedQuizData);
       
