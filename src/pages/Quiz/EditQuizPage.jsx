@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import quizService from '../../services/quizService';
+import { timezoneUtils } from '../../services/quizService';
 import { 
   ArrowLeft, 
   Save, 
@@ -54,7 +55,6 @@ const EditQuizPage = () => {
       setLoading(true);
       setError(null);
 
-      // Fetch quiz data
       const quizData = await quizService.getQuiz(subjectId, quizId);
       
       let quiz = null;
@@ -74,17 +74,27 @@ const EditQuizPage = () => {
         throw new Error('Invalid or missing quiz data - no quiz ID found');
       }
 
-      const convertUTCToLocal = (utcDateStr) => {
-        if (!utcDateStr) return '';
-        const date = new Date(utcDateStr);
-        // Use the browser's built-in timezone handling
-        const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const day = String(date.getDate()).padStart(2, '0');
-        const hours = String(date.getHours()).padStart(2, '0');
-        const minutes = String(date.getMinutes()).padStart(2, '0');
+      console.log('Quiz data from API:', quiz);
+      
+      // Convert UTC times to local for form inputs
+      const convertUTCToLocalInput = (utcString) => {
+        if (!utcString) return '';
         
-        return `${year}-${month}-${day}T${hours}:${minutes}`;
+        console.log('Converting UTC to local input:', utcString);
+        
+        // Parse the UTC date
+        const utcDate = new Date(utcString);
+        
+        // Format for datetime-local input (browser will display in local timezone)
+        const year = utcDate.getFullYear();
+        const month = String(utcDate.getMonth() + 1).padStart(2, '0');
+        const day = String(utcDate.getDate()).padStart(2, '0');
+        const hours = String(utcDate.getHours()).padStart(2, '0');
+        const minutes = String(utcDate.getMinutes()).padStart(2, '0');
+        
+        const result = `${year}-${month}-${day}T${hours}:${minutes}`;
+        console.log('Converted to local input format:', result);
+        return result;
       };
       
       setFormData({
@@ -92,13 +102,17 @@ const EditQuizPage = () => {
         description: quiz.description || '',
         total_marks: quiz.total_marks || '',
         duration_minutes: quiz.duration_minutes || '',
-        start_time: convertToLocalTime(quiz.start_time), // Use the conversion function
-        end_time: convertToLocalTime(quiz.end_time),     // Use the conversion function
+        start_time: convertUTCToLocalInput(quiz.start_time),
+        end_time: convertUTCToLocalInput(quiz.end_time),
         is_active: quiz.is_active ?? true,
         instructions: quiz.instructions || ''
       });
 
-      // Fetch questions data
+      console.log('Form data set:', {
+        start_time: convertUTCToLocalInput(quiz.start_time),
+        end_time: convertUTCToLocalInput(quiz.end_time)
+      });
+
       const questionsData = await quizService.getQuizQuestions(subjectId, quizId);
       setQuestions(questionsData.questions || questionsData || []);
       
@@ -111,7 +125,7 @@ const EditQuizPage = () => {
   };
 
   fetchData();
-}, [subjectId, quizId]); 
+}, [subjectId, quizId]);
 
   const fetchQuizData = async () => {
   try {
@@ -327,34 +341,40 @@ const EditQuizPage = () => {
   };
 
   const handleSubmitQuiz = async (e) => {
-    e.preventDefault();
+  e.preventDefault();
 
-    const validation = quizService.validateQuizData(formData);
-    if (!validation.isValid) {
-      alert('Please fix the following errors:\n' + validation.errors.join('\n'));
-      return;
-    }
+  const validation = quizService.validateQuizData(formData);
+  if (!validation.isValid) {
+    alert('Please fix the following errors:\n' + validation.errors.join('\n'));
+    return;
+  }
 
-    try {
-      setLoading(true);
-
-      const formattedData = {
+  try {
+    setLoading(true);
+    
+    console.log('Submitting form data:', formData);
+    
+    // Send the datetime values as they are - let backend handle conversion
+    const formattedData = {
       ...formData,
-      start_time: formData.start_time ? new Date(formData.start_time).toISOString() : null,
-      end_time: formData.end_time ? new Date(formData.end_time).toISOString() : null,
+      start_time: formData.start_time,  // Keep as is
+      end_time: formData.end_time,      // Keep as is
       total_marks: parseInt(formData.total_marks),
       duration_minutes: parseInt(formData.duration_minutes)
     };
+
+    console.log('Formatted data for update:', formattedData);
     
-      await quizService.updateQuiz(subjectId, quizId, formData);
-      alert('Quiz updated successfully!');
-      navigate(`/faculty/subjects/${subjectId}/quizzes`);
-    } catch (error) {
-      alert(error.message || 'Failed to update quiz');
-    } finally {
-      setLoading(false);
-    }
-  };
+    await quizService.updateQuiz(subjectId, quizId, formattedData);
+    alert('Quiz updated successfully!');
+    navigate(`/faculty/subjects/${subjectId}/quizzes`);
+  } catch (error) {
+    console.error('Update error:', error);
+    alert(error.message || 'Failed to update quiz');
+  } finally {
+    setLoading(false);
+  }
+};
 
   if (loading && !questions.length) {
     return (

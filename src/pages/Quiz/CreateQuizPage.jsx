@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import quizService from '../../services/quizService';
-import timezoneUtils from '../../services/quizService';
+import { timezoneUtils } from '../../services/quizService';
 import { ArrowLeft, Save, FileText, Plus, Trash2, Edit3, Check, AlertCircle } from 'lucide-react';
 
 const CreateQuizPage = () => {
@@ -159,97 +159,75 @@ const CreateQuizPage = () => {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
+  e.preventDefault();
+  
+  if (loading) return;
+
+  const unsavedQuestions = questions.filter(q => !q.is_saved);
+  if (unsavedQuestions.length > 0) {
+    showNotification(`Please save ${unsavedQuestions.length} unsaved question(s) before submitting the quiz.`, 'error');
+    return;
+  }
+
+  const validation = quizService.validateQuizData(formData);
+  if (!validation.isValid) {
+    showNotification('Please fix the following errors:\n' + validation.errors.join('\n'), 'error');
+    return;
+  }
+
+  const savedQuestions = questions.filter(q => q.is_saved);
+
+  try {
+    setLoading(true);
     
-    // Prevent double submission
-    if (loading) return;
-
-    // Check if there are any unsaved questions
-    const unsavedQuestions = questions.filter(q => !q.is_saved);
-    if (unsavedQuestions.length > 0) {
-      showNotification(`Please save ${unsavedQuestions.length} unsaved question(s) before submitting the quiz.`, 'error');
-      return;
-    }
-
-    const validation = quizService.validateQuizData(formData);
-    if (!validation.isValid) {
-      showNotification('Please fix the following errors:\n' + validation.errors.join('\n'), 'error');
-      return;
-    }
-
-    // Only include saved questions
-    const savedQuestions = questions.filter(q => q.is_saved);
-
-    try {
-      setLoading(true);
-      
-      // Format the datetime values to ensure compatibility
-      const formattedQuizData = {
+    console.log('Form data before conversion:', formData);
+    
+    // Convert local datetime to UTC properly
+    const formattedQuizData = {
       ...formData,
-      // datetime-local input values are already in local time
-      // Let the browser handle UTC conversion automatically
-      start_time: formData.start_time ? new Date(formData.start_time).toISOString() : null,
-      end_time: formData.end_time ? new Date(formData.end_time).toISOString() : null,
+      start_time: formData.start_time,  // Keep as is - let backend handle conversion
+      end_time: formData.end_time,      // Keep as is - let backend handle conversion
       total_marks: parseInt(formData.total_marks),
       duration_minutes: parseInt(formData.duration_minutes)
     };
-      
-      console.log('Sending quiz data:', formattedQuizData);
-      
-      const quizResponse = await quizService.createQuiz(subjectId, formattedQuizData);
-      console.log('Quiz creation response:', quizResponse);
-      
-      // More flexible quiz ID extraction
-      let quizId = null;
-      if (quizResponse.quiz?.id) {
-        quizId = quizResponse.quiz.id;
-      } else if (quizResponse.id) {
-        quizId = quizResponse.id;
-      } else if (quizResponse.data?.id) {
-        quizId = quizResponse.data.id;
-      }
-      
-      console.log('Extracted quiz ID:', quizId);
-      
-      // Only try to create questions if we have saved questions and a valid quiz ID
-      if (savedQuestions.length > 0 && quizId) {
-        console.log('Creating questions for quiz ID:', quizId);
-        try {
-          // Remove the id and is_saved fields from questions before sending to API
-          const questionsForAPI = savedQuestions.map(({ id, is_saved, ...question }) => question);
-          await quizService.createQuizQuestionsBulk(subjectId, quizId, questionsForAPI);
-          console.log('Questions created successfully');
-        } catch (questionError) {
-          console.error('Error creating questions:', questionError);
-          showNotification(`Quiz created successfully, but there was an issue with questions: ${questionError.message}`, 'error');
-          return; // Don't navigate away if there was an error
-        }
-      } else if (savedQuestions.length > 0 && !quizId) {
-        console.warn('Quiz created but no ID returned, cannot create questions');
-        showNotification('Quiz created successfully, but questions could not be added due to missing quiz ID', 'error');
-        return; // Don't navigate away if there was an error
-      }
-      
-      showNotification('Quiz created successfully!', 'success');
-      
-      // Navigate after a short delay to show the success message
-      setTimeout(() => {
-        navigate(`/faculty/subjects/${subjectId}/quizzes`);
-      }, 1500);
-      
-    } catch (error) {
-      console.error('Error creating quiz:', error);
-      
-      let errorMessage = 'Failed to create quiz';
-      if (error.message) {
-        errorMessage = error.message;
-      }
-      
-      showNotification(errorMessage, 'error');
-    } finally {
-      setLoading(false);
+    
+    console.log('Formatted quiz data:', formattedQuizData);
+    
+    const quizResponse = await quizService.createQuiz(subjectId, formattedQuizData);
+    
+    let quizId = null;
+    if (quizResponse.quiz?.id) {
+      quizId = quizResponse.quiz.id;
+    } else if (quizResponse.id) {
+      quizId = quizResponse.id;
+    } else if (quizResponse.data?.id) {
+      quizId = quizResponse.data.id;
     }
-  };
+    
+    if (savedQuestions.length > 0 && quizId) {
+      try {
+        const questionsForAPI = savedQuestions.map(({ id, is_saved, ...question }) => question);
+        await quizService.createQuizQuestionsBulk(subjectId, quizId, questionsForAPI);
+      } catch (questionError) {
+        console.error('Error creating questions:', questionError);
+        showNotification(`Quiz created successfully, but there was an issue with questions: ${questionError.message}`, 'error');
+        return;
+      }
+    }
+    
+    showNotification('Quiz created successfully!', 'success');
+    
+    setTimeout(() => {
+      navigate(`/faculty/subjects/${subjectId}/quizzes`);
+    }, 1500);
+    
+  } catch (error) {
+    console.error('Error creating quiz:', error);
+    showNotification(error.message || 'Failed to create quiz', 'error');
+  } finally {
+    setLoading(false);
+  }
+};
 
   const renderQuestionForm = (question) => {
     const isEditing = editingQuestionId === question.id;

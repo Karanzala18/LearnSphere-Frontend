@@ -1,572 +1,641 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import quizService from '../../services/quizService';
-import { ArrowLeft, Edit, Trash2, FileText, Clock, Calendar, Award, Plus, Users, CheckCircle, XCircle, AlertCircle, Timer } from 'lucide-react';
+import { 
+  ArrowLeft, 
+  BookOpen, 
+  Clock, 
+  FileText,
+  Play,
+  Eye,
+  AlertCircle,
+  RefreshCw,
+  Timer,
+  CheckCircle,
+  XCircle,
+  Award,
+  Calendar,
+  Users,
+  Zap,
+  TrendingUp,
+  Star,
+  BarChart3,
+  Target,
 
-const QuizViewPage = () => {
-  const { subjectId, quizId } = useParams();
+  CheckSquare
+} from 'lucide-react';
+import studentQuizService from '../../services/studentQuizService';
+import { subjectService } from '../../services/subjectService';
+
+const StudentQuizView = () => {
+  const { courseId } = useParams();
   const navigate = useNavigate();
-  const [quiz, setQuiz] = useState(null);
-  const [questions, setQuestions] = useState([]);
+  
+  const [course, setCourse] = useState(null);
+  const [quizzes, setQuizzes] = useState([]);
+  const [attemptedQuizzes, setAttemptedQuizzes] = useState(new Set());
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [formattedQuiz, setFormattedQuiz] = useState(null);
-  const [timeRemaining, setTimeRemaining] = useState(null);
+  const [quizzesLoading, setQuizzesLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [quizError, setQuizError] = useState('');
+  const [startingQuiz, setStartingQuiz] = useState(null);
+  const [activeFilter, setActiveFilter] = useState('all');
 
   useEffect(() => {
-    fetchQuizData();
-  }, [subjectId, quizId]);
+    console.log('StudentQuizView mounted with courseId:', courseId);
+    if (courseId) {
+      fetchCourseDetails();
+      fetchStudentQuizzes();
+      loadAttemptedQuizzes();
+    } else {
+      console.error('No courseId provided');
+      setError('No course ID provided');
+      setLoading(false);
+    }
+  }, [courseId]);
 
-  // Update time remaining every second for active quizzes
-  useEffect(() => {
-    let interval;
-    if (quiz && quiz.is_active && quiz.start_time && quiz.end_time) {
-      interval = setInterval(() => {
-        const remaining = quizService.getQuizTimeRemaining(quiz);
-        setTimeRemaining(remaining);
-      }, 1000);
+  const loadAttemptedQuizzes = () => {
+    // Load attempted quiz IDs from localStorage or any other storage
+    // Since we can't modify backend, we'll track this on frontend
+    const attempted = localStorage.getItem(`attempted_quizzes_${courseId}`);
+    if (attempted) {
+      setAttemptedQuizzes(new Set(JSON.parse(attempted)));
     }
-    return () => {
-      if (interval) clearInterval(interval);
-    };
-  }, [quiz]);
+  };
 
-    // Add this debugging code to your fetchQuizData function
-const fetchQuizData = async () => {
-  try {
-    setLoading(true);
-    setError(null);
-    
-    console.log('Fetching quiz with subjectId:', subjectId, 'quizId:', quizId);
-    
-    // First, fetch the quiz data
-    const quizData = await quizService.getQuiz(subjectId, quizId);
-    console.log('Quiz data response:', quizData);
-    
-    // Extract quiz from response - handle different response structures
-    let rawQuiz = null;
-    if (quizData.quiz) {
-      rawQuiz = quizData.quiz;
-    } else if (quizData.data && quizData.data.quiz) {
-      rawQuiz = quizData.data.quiz;
-    } else if (quizData.data) {
-      rawQuiz = quizData.data;
-    } else if (quizData.id) {
-      rawQuiz = quizData;
-    }
-    
-    if (!rawQuiz) {
-      throw new Error('Quiz data not found in API response');
-    }
-    
-    console.log('Extracted quiz:', rawQuiz);
-    setQuiz(rawQuiz);
-    
-    // Now fetch questions separately with better error handling
+  const saveAttemptedQuiz = (quizId) => {
+    const newAttempted = new Set([...attemptedQuizzes, quizId]);
+    setAttemptedQuizzes(newAttempted);
+    localStorage.setItem(`attempted_quizzes_${courseId}`, JSON.stringify([...newAttempted]));
+  };
+
+  const fetchCourseDetails = async () => {
     try {
-      console.log('Fetching questions for quiz:', quizId);
-      const questionsData = await quizService.getQuizQuestions(subjectId, quizId);
-      console.log('Questions data response:', questionsData);
+      setLoading(true);
+      setError('');
+      console.log('Fetching course details for ID:', courseId);
+      const response = await subjectService.getSubjectDetails(courseId);
+      console.log('Course details response:', response);
+      setCourse(response.data || response);
+    } catch (error) {
+      console.error('Error fetching course details:', error);
+      setError(error.message || 'Failed to load course details');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchStudentQuizzes = async () => {
+    try {
+      setQuizzesLoading(true);
+      setQuizError('');
+      console.log('Fetching quizzes for course:', courseId);
       
-      // Handle different possible response structures for questions
-      let questions = [];
-      if (questionsData.questions && Array.isArray(questionsData.questions)) {
-        questions = questionsData.questions;
-      } else if (questionsData.data && Array.isArray(questionsData.data.questions)) {
-        questions = questionsData.data.questions;
-      } else if (questionsData.data && Array.isArray(questionsData.data)) {
-        questions = questionsData.data;
-      } else if (Array.isArray(questionsData)) {
-        questions = questionsData;
-      } else {
-        console.warn('Questions not found in expected format:', questionsData);
-        questions = [];
+      const response = await studentQuizService.getQuizzes(courseId);
+      console.log('Quizzes API Response:', response);
+      
+      if (!response.success) {
+        throw new Error(response.message);
       }
       
-      console.log('Extracted questions:', questions);
-      setQuestions(questions);
+      // Extract quizzes from the response
+      let quizzesData = [];
+      if (response.quizzes) {
+        quizzesData = response.quizzes;
+      } else if (response.data?.quizzes) {
+        quizzesData = response.data.quizzes;
+      } else if (response.data && Array.isArray(response.data)) {
+        quizzesData = response.data;
+      }
       
-    } catch (questionsError) {
-      console.error('Failed to fetch questions:', questionsError);
-      // Don't fail the entire page if questions fail - just show empty questions
-      setQuestions([]);
-      // Optionally show a warning to the user
-      console.warn('Questions could not be loaded, but quiz data is available');
+      setQuizzes(quizzesData);
+    } catch (error) {
+      console.error('Error fetching quizzes:', error);
+      setQuizError(error.message || 'Failed to load quizzes');
+    } finally {
+      setQuizzesLoading(false);
     }
+  };
+
+  const handleStartQuiz = async (quizId) => {
+    try {
+      setStartingQuiz(quizId);
+      const response = await studentQuizService.startQuiz(quizId);
+      if (response.success && response.attempt) {
+        const attemptId = response.attempt.id;
+        console.log('Quiz started, attempt ID:', attemptId);
+        
+        // Mark this quiz as attempted
+        saveAttemptedQuiz(quizId);
+        
+        // Debug: Check current location
+        console.log('Current location before navigation:', window.location.href);
+        
+        // Try navigation
+        const targetPath = `/student/quiz-attempts/${attemptId}`;
+        console.log('Navigating to:', targetPath);
+        
+        navigate(targetPath);
+        
+        // Debug: Check if navigation worked (with a small delay)
+        setTimeout(() => {
+          console.log('Current location after navigation:', window.location.href);
+        }, 100);
+      }
+    } catch (error) {
+      console.error('Error starting quiz:', error);
+    } finally {
+      setStartingQuiz(null);
+    }
+  };
+
+  const handleGoBack = () => {
+    navigate(`/student/subjects/${courseId}`);
+  };
+
+  const isQuizAvailable = (quiz) => {
+    if (!quiz || !quiz.is_active) return false;
     
-  } catch (error) {
-    console.error('Detailed error information:', {
-      message: error.message,
-      stack: error.stack,
-      response: error.response,
-      subjectId,
-      quizId
+    const now = new Date();
+    const startTime = new Date(quiz.start_time);
+    const endTime = new Date(quiz.end_time);
+    
+    return now >= startTime && now <= endTime;
+  };
+
+  const isQuizAttempted = (quiz) => {
+    return attemptedQuizzes.has(quiz.id);
+  };
+
+  const getQuizStats = () => {
+    const now = new Date();
+    let available = 0;
+    let attempted = 0;
+    let missed = 0;
+    let upcoming = 0;
+
+    quizzes.forEach(quiz => {
+      const startTime = new Date(quiz.start_time);
+      const endTime = new Date(quiz.end_time);
+      const isAttempted = isQuizAttempted(quiz);
+
+      if (isAttempted) {
+        attempted++;
+      } else if (!quiz.is_active) {
+        // Inactive quizzes - don't count these
+        return;
+      } else if (now < startTime) {
+        upcoming++;
+      } else if (now > endTime) {
+        missed++;
+      } else if (now >= startTime && now <= endTime) {
+        available++;
+      }
     });
-    setError(error.message || 'Failed to fetch quiz data');
-  } finally {
-    setLoading(false);
-  }
-};
 
-  const handleDeleteQuiz = async () => {
-    if (window.confirm('Are you sure you want to delete this quiz? This action cannot be undone.')) {
-      try {
-        await quizService.deleteQuiz(subjectId, quizId);
-        alert('Quiz deleted successfully');
-        navigate(`/faculty/subjects/${subjectId}/quizzes`);
-      } catch (error) {
-        alert(error.message || 'Failed to delete quiz');
-      }
+    return { available, attempted, missed, upcoming };
+  };
+
+  const getFilteredQuizzes = () => {
+    const now = new Date();
+    
+    switch (activeFilter) {
+      case 'available':
+        return quizzes.filter(quiz => {
+          const startTime = new Date(quiz.start_time);
+          const endTime = new Date(quiz.end_time);
+          const isAttempted = isQuizAttempted(quiz);
+          return quiz.is_active && !isAttempted && now >= startTime && now <= endTime;
+        });
+      case 'attempted':
+        return quizzes.filter(quiz => isQuizAttempted(quiz));
+      case 'missed':
+        return quizzes.filter(quiz => {
+          const endTime = new Date(quiz.end_time);
+          const isAttempted = isQuizAttempted(quiz);
+          return quiz.is_active && !isAttempted && now > endTime;
+        });
+      case 'upcoming':
+        return quizzes.filter(quiz => {
+          const startTime = new Date(quiz.start_time);
+          const isAttempted = isQuizAttempted(quiz);
+          return quiz.is_active && !isAttempted && now < startTime;
+        });
+      default:
+        return quizzes;
     }
   };
 
-  const handleDeleteQuestion = async (questionId) => {
-    if (window.confirm('Are you sure you want to delete this question?')) {
-      try {
-        await quizService.deleteQuizQuestion(subjectId, quizId, questionId);
-        setQuestions(prev => prev.filter(q => q.id !== questionId));
-        alert('Question deleted successfully');
-      } catch (error) {
-        alert(error.message || 'Failed to delete question');
-      }
+  const handleFilterChange = (filter) => {
+    setActiveFilter(filter);
+  };
+
+  const formatQuizStatus = (quiz) => {
+    const isAvailable = isQuizAvailable(quiz);
+    const isAttempted = isQuizAttempted(quiz);
+    const now = new Date();
+    const startTime = new Date(quiz.start_time);
+    const endTime = new Date(quiz.end_time);
+
+    if (isAttempted) {
+      return { status: 'Completed', color: 'text-blue-400', bgColor: 'bg-blue-500/20', icon: CheckSquare };
+    }
+
+    if (!quiz.is_active) {
+      return { status: 'Inactive', color: 'text-gray-400', bgColor: 'bg-gray-500/20', icon: XCircle };
+    }
+    
+    if (now < startTime) {
+      return { status: 'Upcoming', color: 'text-yellow-400', bgColor: 'bg-yellow-500/20', icon: Clock };
+    }
+    
+    if (now > endTime) {
+      return { status: 'Missed', color: 'text-red-400', bgColor: 'bg-red-500/20', icon: XCircle };
+    }
+    
+    if (isAvailable) {
+      return { status: 'Available', color: 'text-green-400', bgColor: 'bg-green-500/20', icon: CheckCircle };
+    }
+    
+    return { status: 'Unavailable', color: 'text-gray-400', bgColor: 'bg-gray-500/20', icon: XCircle };
+  };
+
+  const formatDateTime = (dateString) => {
+    if (!dateString) return 'Not specified';
+    const date = new Date(dateString);
+    return date.toLocaleString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  const calculateDuration = (startTime, endTime) => {
+    if (!startTime || !endTime) return 'Not specified';
+    const start = new Date(startTime);
+    const end = new Date(endTime);
+    const diffMinutes = Math.floor((end - start) / (1000 * 60));
+    
+    if (diffMinutes < 60) {
+      return `${diffMinutes} minutes`;
+    }
+    
+    const hours = Math.floor(diffMinutes / 60);
+    const minutes = diffMinutes % 60;
+    return minutes > 0 ? `${hours}h ${minutes}m` : `${hours}h`;
+  };
+
+  const getQuizTypeIcon = (type) => {
+    switch (type?.toLowerCase()) {
+      case 'practice':
+        return <Zap className="w-4 h-4" />;
+      case 'assessment':
+        return <Award className="w-4 h-4" />;
+      case 'midterm':
+        return <TrendingUp className="w-4 h-4" />;
+      case 'final':
+        return <Star className="w-4 h-4" />;
+      default:
+        return <FileText className="w-4 h-4" />;
     }
   };
 
-  // Calculate total marks from questions
-  const calculateTotalMarksFromQuestions = () => {
-    return questions.reduce((total, question) => total + (parseInt(question.marks) || 0), 0);
+  // Function to clear attempted quizzes (for testing purposes)
+  const clearAttemptedQuizzes = () => {
+    setAttemptedQuizzes(new Set());
+    localStorage.removeItem(`attempted_quizzes_${courseId}`);
   };
-
-  // Get quiz availability status with null checks
-  const getQuizStatus = () => {
-  if (!quiz) return { status: 'unknown', color: 'gray', text: 'Unknown' };
-  
-  // Use the fixed service method
-  const isAvailable = quizService.isQuizAvailable(quiz);
-  const now = new Date(); // UTC time
-  const startTime = new Date(quiz.start_time); // UTC from database
-  const endTime = new Date(quiz.end_time); // UTC from database
-  
-  if (!quiz.is_active) {
-    return { status: 'inactive', color: 'gray', text: 'Inactive' };
-  }
-  
-  if (now < startTime) {
-    return { status: 'upcoming', color: 'blue', text: 'Upcoming' };
-  }
-  
-  if (now > endTime) {
-    return { status: 'expired', color: 'red', text: 'Expired' };
-  }
-  
-  if (isAvailable) {
-    return { status: 'active', color: 'green', text: 'Active' };
-  }
-  
-  return { status: 'unknown', color: 'gray', text: 'Unknown' };
-};  
-
-  // Safe date formatting function
-  const formatDate = (dateString) => {
-    if (!dateString) return 'Not set';
-    try {
-      const date = new Date(dateString);
-      if (isNaN(date.getTime())) return 'Invalid date';
-      return date.toLocaleDateString('en-IN', {
-        weekday: 'long',
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-        timeZone: 'Asia/Kolkata'
-      });
-    } catch (error) {
-      return 'Invalid date';
-    }
-  };
-
-  // Safe time formatting function
-  const formatTime = (dateString) => {
-    if (!dateString) return '';
-    try {
-      const date = new Date(dateString);
-      if (isNaN(date.getTime())) return 'Invalid time';
-      return date.toLocaleTimeString('en-IN', {
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: true,
-        timeZone: 'Asia/Kolkata'
-      });
-    } catch (error) {
-      return 'Invalid time';
-    }
-  };
-
-  const quizStatus = getQuizStatus();
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 text-white flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-400 mx-auto mb-4"></div>
-          <p>Loading quiz...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
       <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 text-white">
-        <div className="max-w-4xl mx-auto px-4 py-8">
-          <div className="bg-red-500/20 border border-red-500/50 rounded-lg p-6 text-center">
-            <p className="text-red-300 mb-4">{error}</p>
-            <button 
-              onClick={fetchQuizData}
-              className="bg-red-500 hover:bg-red-600 px-4 py-2 rounded-lg transition-all"
-              aria-label="Retry loading quiz"
-            >
-              Retry
-            </button>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="flex items-center justify-center py-20">
+            <RefreshCw className="w-8 h-8 text-cyan-400 animate-spin mr-3" />
+            <span>Loading quizzes...</span>
           </div>
         </div>
       </div>
     );
   }
 
-  if (!quiz) {
+  if (error && !course) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 text-white">
-        <div className="max-w-4xl mx-auto px-4 py-8">
-          <div className="bg-yellow-500/20 border border-yellow-500/50 rounded-lg p-6 text-center">
-            <p className="text-yellow-300">Quiz not found</p>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="flex items-center justify-center py-20">
+            <div className="text-center">
+              <AlertCircle className="w-16 h-16 text-red-400 mx-auto mb-4" />
+              <h2 className="text-2xl font-bold mb-2">Error Loading Course</h2>
+              <p className="text-gray-300 mb-2">Course ID: {courseId}</p>
+              <p className="text-gray-300 mb-6">{error}</p>
+              <div className="space-x-4">
+                <button
+                  onClick={fetchCourseDetails}
+                  className="bg-gradient-to-r from-cyan-500 to-purple-500 px-6 py-3 rounded-xl hover:from-cyan-600 hover:to-purple-600 transition-all"
+                >
+                  Retry
+                </button>
+                <button
+                  onClick={handleGoBack}
+                  className="border border-white/30 px-6 py-3 rounded-xl hover:bg-white/10 transition-all"
+                >
+                  Go Back
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
     );
   }
+
+  const stats = getQuizStats();
+  const filteredQuizzes = getFilteredQuizzes();
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 text-white">
-      <div className="bg-black/20 backdrop-blur-md border-b border-white/10 p-4">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center space-x-4">
-            <button 
-              onClick={() => navigate(`/faculty/subjects/${subjectId}/quizzes`)}
-              className="flex items-center space-x-2 text-gray-300 hover:text-white transition-all"
-              aria-label="Back to quizzes"
-            >
-              <ArrowLeft className="w-5 h-5" />
-              <span>Back to Quizzes</span>
-            </button>
-            <div className="text-gray-400">|</div>
-            <h1 className="text-xl font-semibold">Quiz Details</h1>
-          </div>
-          <div className="flex space-x-2">
-            <button
-              onClick={() => navigate(`/faculty/quizzes/${quizId}/scorecard`)}
-              className="flex items-center space-x-2 bg-green-500/20 hover:bg-green-500/30 text-green-400 px-4 py-2 rounded-lg transition-all"
-              aria-label="View scorecard"
-            >
-              <Users className="w-4 h-4" />
-              <span>Scorecard</span>
-            </button>
-            <button
-              onClick={() => navigate(`/faculty/subjects/${subjectId}/quizzes/${quizId}/edit`)}
-              className="flex items-center space-x-2 bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-400 px-4 py-2 rounded-lg transition-all"
-              aria-label="Edit quiz"
-            >
-              <Edit className="w-4 h-4" />
-              <span>Edit</span>
-            </button>
-            <button
-              onClick={handleDeleteQuiz}
-              className="flex items-center space-x-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 px-4 py-2 rounded-lg transition-all"
-              aria-label="Delete quiz"
-            >
-              <Trash2 className="w-4 h-4" />
-              <span>Delete</span>
-            </button>
-          </div>
-        </div>
+      <div className="fixed inset-0 opacity-10">
+        <div className="absolute inset-0 bg-gradient-to-r from-purple-500 via-pink-500 to-blue-500 animate-pulse"></div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        {/* Quiz Header */}
-        <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-6 border border-white/10 mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-3xl font-bold">{quiz?.title || 'Untitled Quiz'}</h2>
-            <div className="flex items-center space-x-3">
-              <span className={`px-3 py-1 text-sm rounded-full flex items-center space-x-1 ${
-                quizStatus.color === 'green' ? 'bg-green-500/20 text-green-400' :
-                quizStatus.color === 'blue' ? 'bg-blue-500/20 text-blue-400' :
-                quizStatus.color === 'red' ? 'bg-red-500/20 text-red-400' :
-                'bg-gray-500/20 text-gray-400'
-              }`}>
-                {quizStatus.color === 'green' && <CheckCircle className="w-3 h-3" />}
-                {quizStatus.color === 'blue' && <Clock className="w-3 h-3" />}
-                {quizStatus.color === 'red' && <XCircle className="w-3 h-3" />}
-                {quizStatus.color === 'gray' && <AlertCircle className="w-3 h-3" />}
-                <span>{quizStatus.text}</span>
-              </span>
-              
-              {/* Time Remaining for Active Quizzes */}
-              {timeRemaining && !timeRemaining.expired && quiz?.is_active && (
-                <span className="px-3 py-1 text-sm rounded-full bg-orange-500/20 text-orange-400 flex items-center space-x-1">
-                  <Timer className="w-3 h-3" />
-                  <span>{timeRemaining.formatted}</span>
-                </span>
-              )}
-            </div>
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-8">
+          <button
+            onClick={handleGoBack}
+            className="flex items-center space-x-2 text-gray-300 hover:text-white transition-colors"
+          >
+            <ArrowLeft className="w-5 h-5" />
+            <span>Back to Course</span>
+          </button>
+          
+          {/* Refresh Button and Debug Button */}
+          <div className="flex space-x-4">
+            <button
+              onClick={clearAttemptedQuizzes}
+              className="bg-red-500/20 hover:bg-red-500/30 border border-red-500/30 px-4 py-2 rounded-xl text-sm transition-all"
+            >
+              Clear Attempted (Debug)
+            </button>
+            <button
+              onClick={fetchStudentQuizzes}
+              disabled={quizzesLoading}
+              className="bg-white/10 hover:bg-white/20 border border-white/20 px-6 py-3 rounded-xl flex items-center space-x-2 transition-all"
+            >
+              <RefreshCw className={`w-4 h-4 ${quizzesLoading ? 'animate-spin' : ''}`} />
+              <span>Refresh Quizzes</span>
+            </button>
           </div>
-
-          {quiz?.description && (
-            <p className="text-gray-300 mb-6">{quiz.description}</p>
-          )}
-
-          {/* Quiz Statistics Grid */}
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 mb-6">
-            <div className="bg-white/5 rounded-lg p-3">
-              <div className="flex items-center space-x-2 text-cyan-400 mb-1">
-                <FileText className="w-4 h-4" />
-                <span className="text-sm">Questions</span>
-              </div>
-              <p className="text-white font-semibold">{questions.length}</p>
-            </div>
-            
-            <div className="bg-white/5 rounded-lg p-3">
-              <div className="flex items-center space-x-2 text-purple-400 mb-1">
-                <Clock className="w-4 h-4" />
-                <span className="text-sm">Duration</span>
-              </div>
-              <p className="text-white font-semibold">{quiz?.duration_minutes || 0} min</p>
-            </div>
-            
-            <div className="bg-white/5 rounded-lg p-3">
-              <div className="flex items-center space-x-2 text-green-400 mb-1">
-                <Award className="w-4 h-4" />
-                <span className="text-sm">Set Marks</span>
-              </div>
-              <p className="text-white font-semibold">{quiz?.total_marks || 0}</p>
-            </div>
-            
-            <div className="bg-white/5 rounded-lg p-3">
-              <div className="flex items-center space-x-2 text-yellow-400 mb-1">
-                <Award className="w-4 h-4" />
-                <span className="text-sm">Calc. Marks</span>
-              </div>
-              <p className="text-white font-semibold">{calculateTotalMarksFromQuestions()}</p>
-            </div>
-            
-            <div className="bg-white/5 rounded-lg p-3">
-              <div className="flex items-center space-x-2 text-orange-400 mb-1">
-                <Calendar className="w-4 h-4" />
-                <span className="text-sm">Start Date</span>
-              </div>
-              <p className="text-white font-semibold text-xs">
-                {quiz?.start_time ? new Date(quiz.start_time).toLocaleDateString() : 'N/A'}
-              </p>
-            </div>
-            
-            <div className="bg-white/5 rounded-lg p-3">
-              <div className="flex items-center space-x-2 text-pink-400 mb-1">
-                <Calendar className="w-4 h-4" />
-                <span className="text-sm">End Date</span>
-              </div>
-              <p className="text-white font-semibold text-xs">
-                {quiz?.end_time ? new Date(quiz.end_time).toLocaleDateString() : 'N/A'}
-              </p>
-            </div>
-          </div>
-
-          {/* Date and Time Details */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-            <div className="bg-white/5 rounded-lg p-4">
-              <h4 className="text-cyan-400 font-medium mb-3 flex items-center space-x-2">
-                <Calendar className="w-4 h-4" />
-                <span>Start Time</span>
-              </h4>
-              <div className="space-y-1">
-                <p className="text-white font-medium">
-                  {formatDate(quiz?.start_time)}
-                </p>
-                <p className="text-gray-300 text-sm">
-                  {formatTime(quiz?.start_time)}
-                </p>
-              </div>
-            </div>
-            
-            <div className="bg-white/5 rounded-lg p-4">
-              <h4 className="text-pink-400 font-medium mb-3 flex items-center space-x-2">
-                <Calendar className="w-4 h-4" />
-                <span>End Time</span>
-              </h4>
-              <div className="space-y-1">
-                <p className="text-white font-medium">
-                  {formatDate(quiz?.end_time)}
-                </p>
-                <p className="text-gray-300 text-sm">
-                  {formatTime(quiz?.end_time)}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Quiz Instructions */}
-          {quiz?.instructions && (
-            <div className="bg-white/5 rounded-lg p-4">
-              <h4 className="text-cyan-400 font-medium mb-2 flex items-center space-x-2">
-                <FileText className="w-4 h-4" />
-                <span>Instructions</span>
-              </h4>
-              <p className="text-gray-300 leading-relaxed">{quiz.instructions}</p>
-            </div>
-          )}
         </div>
 
-        {/* Quiz Validation Status */}
-        {quiz && (
-          <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-6 border border-white/10 mb-8">
-            <h3 className="text-xl font-semibold text-cyan-400 mb-4 flex items-center space-x-2">
-              <CheckCircle className="w-5 h-5" />
-              <span>Quiz Validation</span>
-            </h3>
-            
-            {(() => {
-              const validation = quizService.validateQuizData(quiz);
-              const marksMatch = quiz.total_marks === calculateTotalMarksFromQuestions();
-              
-              return (
-                <div className="space-y-3">
-                  <div className={`flex items-center space-x-2 p-3 rounded-lg ${
-                    validation.isValid ? 'bg-green-500/20 text-green-300' : 'bg-red-500/20 text-red-300'
-                  }`}>
-                    {validation.isValid ? 
-                      <CheckCircle className="w-4 h-4" /> : 
-                      <XCircle className="w-4 h-4" />
-                    }
-                    <span className="font-medium">
-                      Quiz Data: {validation.isValid ? 'Valid' : 'Invalid'}
-                    </span>
-                  </div>
-                  
-                  <div className={`flex items-center space-x-2 p-3 rounded-lg ${
-                    marksMatch ? 'bg-green-500/20 text-green-300' : 'bg-yellow-500/20 text-yellow-300'
-                  }`}>
-                    {marksMatch ? 
-                      <CheckCircle className="w-4 h-4" /> : 
-                      <AlertCircle className="w-4 h-4" />
-                    }
-                    <span className="font-medium">
-                      Marks Distribution: {marksMatch ? 'Correct' : 'Mismatch'}
-                    </span>
-                    {!marksMatch && (
-                      <span className="text-sm">
-                        (Set: {quiz.total_marks}, Calculated: {calculateTotalMarksFromQuestions()})
-                      </span>
-                    )}
-                  </div>
-                  
-                  {!validation.isValid && (
-                    <div className="bg-red-500/10 rounded-lg p-3">
-                      <p className="text-red-300 font-medium mb-2">Validation Errors:</p>
-                      <ul className="text-red-200 text-sm space-y-1">
-                        {validation.errors.map((error, index) => (
-                          <li key={index}>• {error}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                </div>
-              );
-            })()}
+        {/* Course Info Header */}
+        <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-6 border border-white/10 mb-8">
+          <div className="flex items-center space-x-4">
+            <div className="w-12 h-12 bg-gradient-to-r from-cyan-500 to-purple-500 rounded-full flex items-center justify-center">
+              <BookOpen className="w-6 h-6" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold">{course?.name || 'Course Quizzes'}</h1>
+              <p className="text-gray-300">{course?.code || ''}</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Quiz Statistics Cards */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-8">
+          <button
+            onClick={() => handleFilterChange('available')}
+            className={`bg-green-500/10 backdrop-blur-sm rounded-xl p-6 border transition-all hover:bg-green-500/20 text-left ${
+              activeFilter === 'available' ? 'border-green-500/50 ring-2 ring-green-500/30' : 'border-green-500/20'
+            }`}
+          >
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 bg-green-500/20 rounded-full flex items-center justify-center">
+                <CheckCircle className="w-5 h-5 text-green-400" />
+              </div>
+              <div>
+                <p className="text-green-400 text-sm font-medium">Available</p>
+                <p className="text-2xl font-bold text-white">{stats.available}</p>
+              </div>
+            </div>
+          </button>
+
+          <button
+            onClick={() => handleFilterChange('attempted')}
+            className={`bg-blue-500/10 backdrop-blur-sm rounded-xl p-6 border transition-all hover:bg-blue-500/20 text-left ${
+              activeFilter === 'attempted' ? 'border-blue-500/50 ring-2 ring-blue-500/30' : 'border-blue-500/20'
+            }`}
+          >
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 bg-blue-500/20 rounded-full flex items-center justify-center">
+                <CheckSquare className="w-5 h-5 text-blue-400" />
+              </div>
+              <div>
+                <p className="text-blue-400 text-sm font-medium">Attempted</p>
+                <p className="text-2xl font-bold text-white">{stats.attempted}</p>
+              </div>
+            </div>
+          </button>
+
+          <button
+            onClick={() => handleFilterChange('missed')}
+            className={`bg-red-500/10 backdrop-blur-sm rounded-xl p-6 border transition-all hover:bg-red-500/20 text-left ${
+              activeFilter === 'missed' ? 'border-red-500/50 ring-2 ring-red-500/30' : 'border-red-500/20'
+            }`}
+          >
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 bg-red-500/20 rounded-full flex items-center justify-center">
+                <XCircle className="w-5 h-5 text-red-400" />
+              </div>
+              <div>
+                <p className="text-red-400 text-sm font-medium">Missed</p>
+                <p className="text-2xl font-bold text-white">{stats.missed}</p>
+              </div>
+            </div>
+          </button>
+
+          <button
+            onClick={() => handleFilterChange('upcoming')}
+            className={`bg-yellow-500/10 backdrop-blur-sm rounded-xl p-6 border transition-all hover:bg-yellow-500/20 text-left ${
+              activeFilter === 'upcoming' ? 'border-yellow-500/50 ring-2 ring-yellow-500/30' : 'border-yellow-500/20'
+            }`}
+          >
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 bg-yellow-500/20 rounded-full flex items-center justify-center">
+                <Clock className="w-5 h-5 text-yellow-400" />
+              </div>
+              <div>
+                <p className="text-yellow-400 text-sm font-medium">Upcoming</p>
+                <p className="text-2xl font-bold text-white">{stats.upcoming}</p>
+              </div>
+            </div>
+          </button>
+        </div>
+
+        {/* Filter Indicator */}
+        {activeFilter !== 'all' && (
+          <div className="mb-6 flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <span className="text-gray-300">Showing:</span>
+              <span className="text-white font-semibold capitalize">{activeFilter} Quizzes</span>
+              <span className="text-gray-400">({filteredQuizzes.length})</span>
+            </div>
+            <button
+              onClick={() => handleFilterChange('all')}
+              className="text-cyan-400 hover:text-cyan-300 text-sm underline"
+            >
+              Show All Quizzes
+            </button>
           </div>
         )}
 
-        {/* Questions Section */}
-        <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-6 border border-white/10">
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-xl font-semibold text-cyan-400">Questions ({questions.length})</h3>
-            <button 
-              onClick={() => navigate(`/faculty/subjects/${subjectId}/quizzes/${quizId}/questions/create`)}
-              className="flex items-center space-x-2 bg-cyan-500 hover:bg-cyan-600 px-4 py-2 rounded-lg transition-all"
-              aria-label="Add new question"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Add Question</span>
-            </button>
-          </div>
-
-          {questions.length === 0 ? (
-            <div className="text-center py-8">
-              <FileText className="w-12 h-12 mx-auto mb-3 text-gray-500" />
-              <p className="text-gray-400">No questions added yet</p>
+        {/* Quiz List */}
+        <div className="space-y-6">
+          {quizzesLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <RefreshCw className="w-6 h-6 text-cyan-400 animate-spin mr-3" />
+              <span>Loading quizzes...</span>
+            </div>
+          ) : quizError ? (
+            <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-6 text-center">
+              <AlertCircle className="w-8 h-8 text-red-400 mx-auto mb-3" />
+              <h3 className="text-lg font-semibold text-red-400 mb-2">Error Loading Quizzes</h3>
+              <p className="text-gray-300 mb-4">{quizError}</p>
+              <button
+                onClick={fetchStudentQuizzes}
+                className="bg-red-500/20 hover:bg-red-500/30 px-4 py-2 rounded-lg transition-colors"
+              >
+                Try Again
+              </button>
+            </div>
+          ) : quizzes.length === 0 ? (
+            <div className="bg-white/5 backdrop-blur-sm rounded-xl p-12 text-center border border-white/10">
+              <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-xl font-semibold mb-2">No Quizzes Available</h3>
+              <p className="text-gray-300 mb-6">There are no quizzes available for this course yet.</p>
+            </div>
+          ) : filteredQuizzes.length === 0 ? (
+            <div className="bg-white/5 backdrop-blur-sm rounded-xl p-12 text-center border border-white/10">
+              <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-xl font-semibold mb-2">No {activeFilter.charAt(0).toUpperCase() + activeFilter.slice(1)} Quizzes</h3>
+              <p className="text-gray-300 mb-6">There are no {activeFilter} quizzes at the moment.</p>
+              <button
+                onClick={() => handleFilterChange('all')}
+                className="bg-gradient-to-r from-cyan-500 to-purple-500 px-6 py-3 rounded-xl hover:from-cyan-600 hover:to-purple-600 transition-all"
+              >
+                Show All Quizzes
+              </button>
             </div>
           ) : (
-            <div className="space-y-4">
-              {questions.map((question, index) => {
-                const validation = quizService.validateQuestionData(question);
-                
-                return (
-                  <div key={question.id} className="bg-white/5 rounded-lg p-4 border border-white/10">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center space-x-2 mb-2">
-                          <span className="bg-cyan-500/20 text-cyan-400 px-2 py-1 text-sm rounded">
-                            Q{index + 1}
-                          </span>
-                          <span className="text-gray-400 text-sm">{question.marks || 0} marks</span>
-                          <span className="text-gray-400 text-sm capitalize">
-                            {question.question_type?.replace('_', ' ') || 'Unknown'}
-                          </span>
-                          {validation.isValid ? (
-                            <CheckCircle className="w-4 h-4 text-green-400" />
-                          ) : (
-                            <XCircle className="w-4 h-4 text-red-400" />
-                          )}
+            filteredQuizzes.map((quiz) => {
+              const statusInfo = formatQuizStatus(quiz);
+              const isAvailable = isQuizAvailable(quiz) && !isQuizAttempted(quiz);
+              const isAttempted = isQuizAttempted(quiz);
+              const isStarting = startingQuiz === quiz.id;
+              
+              return (
+                <div
+                  key={quiz.id}
+                  className="bg-white/5 backdrop-blur-sm rounded-xl p-6 border border-white/10 hover:bg-white/10 transition-all"
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center space-x-3 mb-3">
+                        <div className="flex items-center space-x-2">
+                          {getQuizTypeIcon(quiz.quiz_type)}
+                          <h3 className="text-xl font-semibold">{quiz.title}</h3>
                         </div>
-                        
-                        <p className="text-white font-medium mb-2">{question.question_text || 'No question text'}</p>
-                        
-                        {question.options && question.options.length > 0 && (
-                          <div className="space-y-1">
-                            {question.options.map((option) => (
-                              <div key={option.id} className={`text-sm p-2 rounded ${
-                                option.is_correct ? 'bg-green-500/20 text-green-300' : 'text-gray-400'
-                              }`}>
-                                {option.option_text} {option.is_correct && '✓'}
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                        
-                        {!validation.isValid && (
-                          <div className="mt-2 text-xs text-red-300">
-                            Issues: {validation.errors.join(', ')}
-                          </div>
-                        )}
+                        <div className={`px-2 py-1 rounded-full text-xs font-medium ${statusInfo.bgColor} ${statusInfo.color} flex items-center space-x-1`}>
+                          <statusInfo.icon className="w-3 h-3" />
+                          <span>{statusInfo.status}</span>
+                        </div>
                       </div>
                       
-                      <div className="flex space-x-2">
-                        <button 
-                          onClick={() => navigate(`/faculty/subjects/${subjectId}/quizzes/${quizId}/questions/${question.id}/edit`)}
-                          className="p-2 text-yellow-400 hover:text-yellow-300 hover:bg-yellow-500/10 rounded-lg transition-all"
-                          aria-label={`Edit question ${index + 1}`}
-                        >
-                          <Edit className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDeleteQuestion(question.id)}
-                          className="p-2 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition-all"
-                          aria-label={`Delete question ${index + 1}`}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                      {quiz.description && (
+                        <p className="text-gray-300 mb-4">{quiz.description}</p>
+                      )}
+                      
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                        <div className="flex items-center space-x-2 text-sm">
+                          <Calendar className="w-4 h-4 text-blue-400" />
+                          <div>
+                            <p className="text-gray-400">Start Time</p>
+                            <p className="text-white">{formatDateTime(quiz.start_time)}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-2 text-sm">
+                          <Clock className="w-4 h-4 text-orange-400" />
+                          <div>
+                            <p className="text-gray-400">End Time</p>
+                            <p className="text-white">{formatDateTime(quiz.end_time)}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-2 text-sm">
+                          <Timer className="w-4 h-4 text-green-400" />
+                          <div>
+                            <p className="text-gray-400">Duration</p>
+                            <p className="text-white">{quiz.duration_minutes ? `${quiz.duration_minutes} min` : calculateDuration(quiz.start_time, quiz.end_time)}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-2 text-sm">
+                          <BarChart3 className="w-4 h-4 text-purple-400" />
+                          <div>
+                            <p className="text-gray-400">Max Marks</p>
+                            <p className="text-white">{quiz.total_marks || 'N/A'}</p>
+                          </div>
+                        </div>
                       </div>
+
+                      {quiz.instructions && (
+                        <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3 mb-4">
+                          <h4 className="text-sm font-medium text-blue-400 mb-1">Instructions:</h4>
+                          <p className="text-sm text-gray-300">{quiz.instructions}</p>
+                        </div>
+                      )}
+                    </div>
+                    
+                    <div className="ml-6 flex flex-col space-y-2">
+                      {isAvailable ? (
+                        <button
+                          onClick={() => handleStartQuiz(quiz.id)}
+                          disabled={isStarting}
+                          className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 disabled:from-gray-500 disabled:to-gray-600 px-6 py-3 rounded-xl flex items-center space-x-2 transition-all min-w-[120px] justify-center"
+                        >
+                          {isStarting ? (
+                            <RefreshCw className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <>
+                              <Play className="w-4 h-4" />
+                              <span>Start Quiz</span>
+                            </>
+                          )}
+                        </button>
+                      ) : (
+                        <button
+                          disabled
+                          className="bg-gray-500/30 text-gray-400 px-6 py-3 rounded-xl flex items-center space-x-2 cursor-not-allowed min-w-[120px] justify-center"
+                        >
+                          <XCircle className="w-4 h-4" />
+                          <span>Unavailable</span>
+                        </button>
+                      )}
+                      
+                      {isAttempted && (
+                        <button
+                          onClick={() => navigate(`/student/quiz-results/${quiz.id}`)}
+                          className="bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 px-6 py-2 rounded-xl flex items-center space-x-2 transition-all text-sm"
+                        >
+                          <Eye className="w-4 h-4" />
+                          <span>View Result</span>
+                        </button>
+                      )}
                     </div>
                   </div>
-                );
-              })}
-            </div>
+                </div>
+              );
+            })
           )}
         </div>
       </div>
@@ -574,4 +643,4 @@ const fetchQuizData = async () => {
   );
 };
 
-export default QuizViewPage;
+export default StudentQuizView;

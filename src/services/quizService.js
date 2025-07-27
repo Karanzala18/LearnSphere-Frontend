@@ -2,41 +2,84 @@ import api from './api.js';
 
 
 const timezoneUtils = {
-  // Convert local datetime-local input to UTC for API
+  // Get IST offset in minutes (5 hours 30 minutes = 330 minutes)
+  IST_OFFSET_MINUTES: 330,
+  
+  // Convert datetime-local input to UTC string for API
   localToUTC: (localDateTimeString) => {
     if (!localDateTimeString) return null;
-    // datetime-local input is already in local timezone (IST)
-    // Just convert to ISO string which will be in UTC
-    return new Date(localDateTimeString).toISOString();
+    
+    console.log('Converting local to UTC:', localDateTimeString);
+    
+    // Create date object from local input (browser assumes local timezone)
+    const localDate = new Date(localDateTimeString);
+    console.log('Local date object:', localDate);
+    console.log('Local date ISO:', localDate.toISOString());
+    
+    // Return ISO string (automatically in UTC)
+    return localDate.toISOString();
   },
 
   // Convert UTC datetime from API to local datetime-local format for forms
   utcToLocal: (utcDateTimeString) => {
     if (!utcDateTimeString) return '';
-    // Create date object from UTC string and format for datetime-local input
-    const date = new Date(utcDateTimeString);
-    // Format as YYYY-MM-DDTHH:MM for datetime-local input
-    return new Date(date.getTime() - (date.getTimezoneOffset() * 60000))
-      .toISOString()
-      .slice(0, 16);
+    
+    console.log('Converting UTC to local:', utcDateTimeString);
+    
+    // Create date object from UTC string
+    const utcDate = new Date(utcDateTimeString);
+    console.log('UTC date object:', utcDate);
+    
+    // Get local time components (browser handles timezone conversion)
+    const year = utcDate.getFullYear();
+    const month = String(utcDate.getMonth() + 1).padStart(2, '0');
+    const day = String(utcDate.getDate()).padStart(2, '0');
+    const hours = String(utcDate.getHours()).padStart(2, '0');
+    const minutes = String(utcDate.getMinutes()).padStart(2, '0');
+    
+    const localString = `${year}-${month}-${day}T${hours}:${minutes}`;
+    console.log('Converted to local string:', localString);
+    
+    return localString;
   },
 
-  // Get current time in IST for display
-  getCurrentIST: () => {
-    const now = new Date();
-    const istOffset = 5.5 * 60 * 60 * 1000; // 5 hours 30 minutes in milliseconds
-    return new Date(now.getTime() + istOffset);
+  // Format UTC datetime for display in IST
+  formatDateTimeForDisplay: (utcDateTimeString, options = {}) => {
+    if (!utcDateTimeString) return 'Not set';
+    
+    try {
+      const date = new Date(utcDateTimeString);
+      if (isNaN(date.getTime())) return 'Invalid date';
+      
+      // Use Intl.DateTimeFormat with IST timezone
+      const formatter = new Intl.DateTimeFormat('en-IN', {
+        timeZone: 'Asia/Kolkata',
+        ...options
+      });
+      
+      return formatter.format(date);
+    } catch (error) {
+      console.error('Date formatting error:', error);
+      return 'Invalid date';
+    }
   },
 
-  // Check if quiz is currently available (handles timezone properly)
+  // Check if quiz is currently available
   isQuizAvailable: (quiz) => {
     if (!quiz || !quiz.is_active || !quiz.start_time || !quiz.end_time) {
       return false;
     }
     
-    const now = new Date(); // Current UTC time
+    const now = new Date(); // Current time in user's timezone
     const startTime = new Date(quiz.start_time); // UTC from database
     const endTime = new Date(quiz.end_time); // UTC from database
+    
+    console.log('Quiz availability check:', {
+      now: now.toISOString(),
+      startTime: startTime.toISOString(),
+      endTime: endTime.toISOString(),
+      isAvailable: now >= startTime && now <= endTime
+    });
     
     return now >= startTime && now <= endTime;
   },
@@ -47,9 +90,15 @@ const timezoneUtils = {
       return { expired: true, remaining: 0, formatted: '0s' };
     }
 
-    const now = new Date(); // Current UTC time
-    const endTime = new Date(quiz.end_time); // UTC from database
+    const now = new Date();
+    const endTime = new Date(quiz.end_time);
     const timeDiff = endTime - now;
+
+    console.log('Time remaining calculation:', {
+      now: now.toISOString(),
+      endTime: endTime.toISOString(),
+      timeDiff: timeDiff
+    });
 
     if (timeDiff <= 0) {
       return { expired: true, remaining: 0, formatted: '0s' };
