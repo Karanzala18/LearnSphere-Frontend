@@ -1,6 +1,5 @@
 import api from './api.js';
 
-
 const timezoneUtils = {
   // Get IST offset in minutes (5 hours 30 minutes = 330 minutes)
   IST_OFFSET_MINUTES: 330,
@@ -14,7 +13,7 @@ const timezoneUtils = {
     // Create date object from local input (browser assumes local timezone)
     const localDate = new Date(localDateTimeString);
     console.log('Local date object:', localDate);
-    console.log('Local date ISO:', localDate.toISOString());
+    console.log('Local date ISO (UTC):', localDate.toISOString());
     
     // Return ISO string (automatically in UTC)
     return localDate.toISOString();
@@ -30,7 +29,7 @@ const timezoneUtils = {
     const utcDate = new Date(utcDateTimeString);
     console.log('UTC date object:', utcDate);
     
-    // Get local time components (browser handles timezone conversion)
+    // Get local time components (browser handles timezone conversion automatically)
     const year = utcDate.getFullYear();
     const month = String(utcDate.getMonth() + 1).padStart(2, '0');
     const day = String(utcDate.getDate()).padStart(2, '0');
@@ -43,7 +42,40 @@ const timezoneUtils = {
     return localString;
   },
 
-  // Format UTC datetime for display in IST
+  // NEW: Convert UTC datetime to local datetime-local input format
+  utcToLocalInput: (utcDateTimeString) => {
+    if (!utcDateTimeString) return '';
+    
+    console.log('Converting UTC to local input format:', utcDateTimeString);
+    
+    // Create date object from UTC string
+    const utcDate = new Date(utcDateTimeString);
+    
+    // Check if date is valid
+    if (isNaN(utcDate.getTime())) {
+      console.warn('Invalid date:', utcDateTimeString);
+      return '';
+    }
+    
+    // The key here is that when we use getFullYear(), getMonth(), etc. on a Date object,
+    // JavaScript automatically converts to the user's local timezone
+    const year = utcDate.getFullYear();
+    const month = String(utcDate.getMonth() + 1).padStart(2, '0');
+    const day = String(utcDate.getDate()).padStart(2, '0');
+    const hours = String(utcDate.getHours()).padStart(2, '0');
+    const minutes = String(utcDate.getMinutes()).padStart(2, '0');
+    
+    const localInputString = `${year}-${month}-${day}T${hours}:${minutes}`;
+    console.log('UTC to local input conversion:', {
+      utc: utcDateTimeString,
+      localInput: localInputString,
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
+    });
+    
+    return localInputString;
+  },
+
+  // Format UTC datetime for display in user's local timezone
   formatDateTimeForDisplay: (utcDateTimeString, options = {}) => {
     if (!utcDateTimeString) return 'Not set';
     
@@ -51,9 +83,21 @@ const timezoneUtils = {
       const date = new Date(utcDateTimeString);
       if (isNaN(date.getTime())) return 'Invalid date';
       
-      // Use Intl.DateTimeFormat with IST timezone
-      const formatter = new Intl.DateTimeFormat('en-IN', {
-        timeZone: 'Asia/Kolkata',
+      // Use Intl.DateTimeFormat with user's local timezone
+      const defaultOptions = {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        timeZoneName: 'short'
+      };
+      
+      // Use user's local timezone instead of forcing IST
+      const formatter = new Intl.DateTimeFormat('en-US', {
+        timeZone: options.timeZone || Intl.DateTimeFormat().resolvedOptions().timeZone,
+        ...defaultOptions,
         ...options
       });
       
@@ -64,13 +108,68 @@ const timezoneUtils = {
     }
   },
 
+  // NEW: Format date only for display
+  formatDateForDisplay: (utcDateTimeString, options = {}) => {
+    if (!utcDateTimeString) return 'Not set';
+    
+    try {
+      const date = new Date(utcDateTimeString);
+      if (isNaN(date.getTime())) return 'Invalid date';
+      
+      const defaultOptions = {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      };
+      
+      const formatter = new Intl.DateTimeFormat('en-US', {
+        timeZone: options.timeZone || Intl.DateTimeFormat().resolvedOptions().timeZone,
+        ...defaultOptions,
+        ...options
+      });
+      
+      return formatter.format(date);
+    } catch (error) {
+      console.error('Date formatting error:', error);
+      return 'Invalid date';
+    }
+  },
+
+  // NEW: Format time only for display
+  formatTimeForDisplay: (utcDateTimeString, options = {}) => {
+    if (!utcDateTimeString) return 'Not set';
+    
+    try {
+      const date = new Date(utcDateTimeString);
+      if (isNaN(date.getTime())) return 'Invalid date';
+      
+      const defaultOptions = {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+      };
+      
+      const formatter = new Intl.DateTimeFormat('en-US', {
+        timeZone: options.timeZone || Intl.DateTimeFormat().resolvedOptions().timeZone,
+        ...defaultOptions,
+        ...options
+      });
+      
+      return formatter.format(date);
+    } catch (error) {
+      console.error('Time formatting error:', error);
+      return 'Invalid time';
+    }
+  },
+
   // Check if quiz is currently available
   isQuizAvailable: (quiz) => {
     if (!quiz || !quiz.is_active || !quiz.start_time || !quiz.end_time) {
       return false;
     }
     
-    const now = new Date(); // Current time in user's timezone
+    const now = new Date(); // Current time in UTC
     const startTime = new Date(quiz.start_time); // UTC from database
     const endTime = new Date(quiz.end_time); // UTC from database
     
@@ -90,8 +189,8 @@ const timezoneUtils = {
       return { expired: true, remaining: 0, formatted: '0s' };
     }
 
-    const now = new Date();
-    const endTime = new Date(quiz.end_time);
+    const now = new Date(); // Current time in UTC
+    const endTime = new Date(quiz.end_time); // UTC from database
     const timeDiff = endTime - now;
 
     console.log('Time remaining calculation:', {
@@ -116,6 +215,31 @@ const timezoneUtils = {
       minutes,
       seconds
     };
+  },
+
+  // NEW: Get user's timezone
+  getUserTimezone: () => {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone;
+  },
+
+  // NEW: Get timezone display name
+  getTimezoneDisplayName: () => {
+    const timezone = timezoneUtils.getUserTimezone();
+    const now = new Date();
+    
+    try {
+      const formatter = new Intl.DateTimeFormat('en-US', {
+        timeZone: timezone,
+        timeZoneName: 'long'
+      });
+      
+      const parts = formatter.formatToParts(now);
+      const timeZonePart = parts.find(part => part.type === 'timeZoneName');
+      
+      return timeZonePart ? timeZonePart.value : timezone;
+    } catch (error) {
+      return timezone;
+    }
   }
 };
 
@@ -147,7 +271,16 @@ const quizService = {
       console.log('Creating quiz with data:', quizData);
       console.log('Subject ID:', subjectId);
       
-      const response = await api.post(`/faculty/subjects/${subjectId}/quizzes`, quizData);
+      // Convert local datetime to UTC before sending to API
+      const processedQuizData = {
+        ...quizData,
+        start_time: timezoneUtils.localToUTC(quizData.start_time),
+        end_time: timezoneUtils.localToUTC(quizData.end_time)
+      };
+      
+      console.log('Processed quiz data with UTC times:', processedQuizData);
+      
+      const response = await api.post(`/faculty/subjects/${subjectId}/quizzes`, processedQuizData);
       
       console.log('Full response:', response);
       console.log('Response status:', response.status);
@@ -223,6 +356,31 @@ const quizService = {
   },
 
   /**
+   * Update a quiz
+   * @param {number} subjectId - The subject ID
+   * @param {number} quizId - The quiz ID
+   * @param {Object} quizData - Updated quiz data
+   * @returns {Promise} API response with updated quiz
+   */
+  updateQuiz: async (subjectId, quizId, quizData) => {
+    try {
+      // Convert local datetime to UTC before sending to API
+      const processedQuizData = {
+        ...quizData,
+        start_time: quizData.start_time ? timezoneUtils.localToUTC(quizData.start_time) : quizData.start_time,
+        end_time: quizData.end_time ? timezoneUtils.localToUTC(quizData.end_time) : quizData.end_time
+      };
+      
+      console.log('Updating quiz with UTC times:', processedQuizData);
+      
+      const response = await api.put(`/faculty/subjects/${subjectId}/quizzes/${quizId}`, processedQuizData);
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error.message;
+    }
+  },
+
+  /**
    * Create multiple questions for a quiz in bulk
    * @param {number} subjectId - The subject ID
    * @param {number} quizId - The quiz ID
@@ -280,22 +438,6 @@ const quizService = {
   getQuiz: async (subjectId, quizId) => {
     try {
       const response = await api.get(`/faculty/subjects/${subjectId}/quizzes/${quizId}`);
-      return response.data;
-    } catch (error) {
-      throw error.response?.data || error.message;
-    }
-  },
-
-  /**
-   * Update a quiz
-   * @param {number} subjectId - The subject ID
-   * @param {number} quizId - The quiz ID
-   * @param {Object} quizData - Updated quiz data
-   * @returns {Promise} API response with updated quiz
-   */
-  updateQuiz: async (subjectId, quizId, quizData) => {
-    try {
-      const response = await api.put(`/faculty/subjects/${subjectId}/quizzes/${quizId}`, quizData);
       return response.data;
     } catch (error) {
       throw error.response?.data || error.message;
@@ -383,91 +525,89 @@ const quizService = {
     }
   },
 
-  // Add these methods to your existing quizService object (around line 300+)
+  /**
+   * Get scorecard for a quiz - shows all enrolled students and their performance
+   * @param {number} quizId - The quiz ID
+   * @returns {Promise} API response with scorecard data
+   */
+  getQuizScorecard: async (quizId) => {
+    try {
+      const response = await api.get(`/faculty/quizzes/${quizId}/scorecard`);
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error.message;
+    }
+  },
 
-/**
- * Get scorecard for a quiz - shows all enrolled students and their performance
- * @param {number} quizId - The quiz ID
- * @returns {Promise} API response with scorecard data
- */
-getQuizScorecard: async (quizId) => {
-  try {
-    const response = await api.get(`/faculty/quizzes/${quizId}/scorecard`);
-    return response.data;
-  } catch (error) {
-    throw error.response?.data || error.message;
-  }
-},
+  /**
+   * Get detailed quiz attempt information for a specific student
+   * @param {number} quizId - The quiz ID
+   * @param {string} studentId - The student ID
+   * @returns {Promise} API response with student's detailed quiz attempt
+   */
+  getStudentQuizDetails: async (quizId, studentId) => {
+    try {
+      const response = await api.get(`/faculty/quizzes/${quizId}/students/${studentId}/details`);
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error.message;
+    }
+  },
 
-/**
- * Get detailed quiz attempt information for a specific student
- * @param {number} quizId - The quiz ID
- * @param {string} studentId - The student ID
- * @returns {Promise} API response with student's detailed quiz attempt
- */
-getStudentQuizDetails: async (quizId, studentId) => {
-  try {
-    const response = await api.get(`/faculty/quizzes/${quizId}/students/${studentId}/details`);
-    return response.data;
-  } catch (error) {
-    throw error.response?.data || error.message;
-  }
-},
+  /**
+   * Calculate grade based on percentage
+   * @param {number} percentage - The percentage score
+   * @returns {Object} Grade information
+   */
+  calculateGrade: (percentage) => {
+    if (percentage >= 90) return { grade: 'A+', color: 'text-green-400' };
+    if (percentage >= 80) return { grade: 'A', color: 'text-green-400' };
+    if (percentage >= 70) return { grade: 'B+', color: 'text-blue-400' };
+    if (percentage >= 60) return { grade: 'B', color: 'text-blue-400' };
+    if (percentage >= 50) return { grade: 'C+', color: 'text-yellow-400' };
+    if (percentage >= 40) return { grade: 'C', color: 'text-yellow-400' };
+    if (percentage >= 33) return { grade: 'D', color: 'text-orange-400' };
+    return { grade: 'F', color: 'text-red-400' };
+  },
 
-/**
- * Calculate grade based on percentage
- * @param {number} percentage - The percentage score
- * @returns {Object} Grade information
- */
-calculateGrade: (percentage) => {
-  if (percentage >= 90) return { grade: 'A+', color: 'text-green-400' };
-  if (percentage >= 80) return { grade: 'A', color: 'text-green-400' };
-  if (percentage >= 70) return { grade: 'B+', color: 'text-blue-400' };
-  if (percentage >= 60) return { grade: 'B', color: 'text-blue-400' };
-  if (percentage >= 50) return { grade: 'C+', color: 'text-yellow-400' };
-  if (percentage >= 40) return { grade: 'C', color: 'text-yellow-400' };
-  if (percentage >= 33) return { grade: 'D', color: 'text-orange-400' };
-  return { grade: 'F', color: 'text-red-400' };
-},
-
-/**
- * Get statistics from scorecard data
- * @param {Array} scorecardData - Array of student scorecard entries
- * @returns {Object} Statistics object
- */
-getQuizStatistics: (scorecardData) => {
-  const attempted = scorecardData.filter(student => student.attempted);
-  const notAttempted = scorecardData.filter(student => !student.attempted);
-  
-  if (attempted.length === 0) {
+  /**
+   * Get statistics from scorecard data
+   * @param {Array} scorecardData - Array of student scorecard entries
+   * @returns {Object} Statistics object
+   */
+  getQuizStatistics: (scorecardData) => {
+    const attempted = scorecardData.filter(student => student.attempted);
+    const notAttempted = scorecardData.filter(student => !student.attempted);
+    
+    if (attempted.length === 0) {
+      return {
+        totalStudents: scorecardData.length,
+        attemptedCount: 0,
+        notAttemptedCount: notAttempted.length,
+        averageScore: 0,
+        highestScore: 0,
+        lowestScore: 0,
+        passRate: 0
+      };
+    }
+    
+    const scores = attempted.map(student => student.percentage || 0);
+    const averageScore = scores.reduce((sum, score) => sum + score, 0) / scores.length;
+    const highestScore = Math.max(...scores);
+    const lowestScore = Math.min(...scores);
+    const passedStudents = attempted.filter(student => (student.percentage || 0) >= 40);
+    const passRate = (passedStudents.length / attempted.length) * 100;
+    
     return {
       totalStudents: scorecardData.length,
-      attemptedCount: 0,
+      attemptedCount: attempted.length,
       notAttemptedCount: notAttempted.length,
-      averageScore: 0,
-      highestScore: 0,
-      lowestScore: 0,
-      passRate: 0
+      averageScore: Math.round(averageScore * 100) / 100,
+      highestScore,
+      lowestScore,
+      passRate: Math.round(passRate * 100) / 100
     };
-  }
-  
-  const scores = attempted.map(student => student.percentage || 0);
-  const averageScore = scores.reduce((sum, score) => sum + score, 0) / scores.length;
-  const highestScore = Math.max(...scores);
-  const lowestScore = Math.min(...scores);
-  const passedStudents = attempted.filter(student => (student.percentage || 0) >= 40);
-  const passRate = (passedStudents.length / attempted.length) * 100;
-  
-  return {
-    totalStudents: scorecardData.length,
-    attemptedCount: attempted.length,
-    notAttemptedCount: notAttempted.length,
-    averageScore: Math.round(averageScore * 100) / 100,
-    highestScore,
-    lowestScore,
-    passRate: Math.round(passRate * 100) / 100
-  };
-},
+  },
 
   // Utility Functions
 
@@ -499,17 +639,29 @@ getQuizStatistics: (scorecardData) => {
       errors.push('End time is required');
     }
 
-    // Validate datetime format
-    if (quizData.start_time && isNaN(Date.parse(quizData.start_time))) {
-      errors.push('Start time has invalid format');
+    // Validate datetime format - check both local format and UTC format
+    if (quizData.start_time) {
+      const startDate = new Date(quizData.start_time);
+      if (isNaN(startDate.getTime())) {
+        errors.push('Start time has invalid format');
+      }
     }
 
-    if (quizData.end_time && isNaN(Date.parse(quizData.end_time))) {
-      errors.push('End time has invalid format');
+    if (quizData.end_time) {
+      const endDate = new Date(quizData.end_time);
+      if (isNaN(endDate.getTime())) {
+        errors.push('End time has invalid format');
+      }
     }
 
-    if (quizData.start_time && quizData.end_time && new Date(quizData.start_time) >= new Date(quizData.end_time)) {
-      errors.push('End time must be after start time');
+    // Compare times in UTC
+    if (quizData.start_time && quizData.end_time) {
+      const startUTC = timezoneUtils.localToUTC(quizData.start_time);
+      const endUTC = timezoneUtils.localToUTC(quizData.end_time);
+      
+      if (startUTC && endUTC && new Date(startUTC) >= new Date(endUTC)) {
+        errors.push('End time must be after start time');
+      }
     }
 
     return {
@@ -580,16 +732,16 @@ getQuizStatistics: (scorecardData) => {
    */
   isQuizAvailable: timezoneUtils.isQuizAvailable,
 
-  
-
   /**
    * Calculate remaining time for a quiz with timezone adjustment
    * @param {Object} quiz - Quiz object
    * @returns {Object} Remaining time information
    */
   getQuizTimeRemaining: timezoneUtils.getQuizTimeRemaining,
-};
 
+  // Helper methods for timezone conversion
+  timezoneUtils: timezoneUtils
+};
 
 export { timezoneUtils };
 export default quizService;

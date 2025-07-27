@@ -49,7 +49,7 @@ const EditQuizPage = () => {
     ]
   });
 
-  useEffect(() => {
+ useEffect(() => {
   const fetchData = async () => {
     try {
       setLoading(true);
@@ -75,42 +75,24 @@ const EditQuizPage = () => {
       }
 
       console.log('Quiz data from API:', quiz);
+      console.log('User timezone:', timezoneUtils.getUserTimezone());
       
-      // Convert UTC times to local for form inputs
-      const convertUTCToLocalInput = (utcString) => {
-        if (!utcString) return '';
-        
-        console.log('Converting UTC to local input:', utcString);
-        
-        // Parse the UTC date
-        const utcDate = new Date(utcString);
-        
-        // Format for datetime-local input (browser will display in local timezone)
-        const year = utcDate.getFullYear();
-        const month = String(utcDate.getMonth() + 1).padStart(2, '0');
-        const day = String(utcDate.getDate()).padStart(2, '0');
-        const hours = String(utcDate.getHours()).padStart(2, '0');
-        const minutes = String(utcDate.getMinutes()).padStart(2, '0');
-        
-        const result = `${year}-${month}-${day}T${hours}:${minutes}`;
-        console.log('Converted to local input format:', result);
-        return result;
-      };
-      
+      // Use the new utcToLocalInput function for proper conversion
       setFormData({
         title: quiz.title || '',
         description: quiz.description || '',
         total_marks: quiz.total_marks || '',
         duration_minutes: quiz.duration_minutes || '',
-        start_time: convertUTCToLocalInput(quiz.start_time),
-        end_time: convertUTCToLocalInput(quiz.end_time),
+        start_time: timezoneUtils.utcToLocalInput(quiz.start_time),
+        end_time: timezoneUtils.utcToLocalInput(quiz.end_time),
         is_active: quiz.is_active ?? true,
         instructions: quiz.instructions || ''
       });
 
-      console.log('Form data set:', {
-        start_time: convertUTCToLocalInput(quiz.start_time),
-        end_time: convertUTCToLocalInput(quiz.end_time)
+      console.log('Form data set with local times:', {
+        start_time: timezoneUtils.utcToLocalInput(quiz.start_time),
+        end_time: timezoneUtils.utcToLocalInput(quiz.end_time),
+        timezone: timezoneUtils.getUserTimezone()
       });
 
       const questionsData = await quizService.getQuizQuestions(subjectId, quizId);
@@ -151,20 +133,14 @@ const EditQuizPage = () => {
       throw new Error('Invalid or missing quiz data - no quiz ID found');
     }
     
-    // Convert UTC times to local time (IST) for form display
-    const convertToLocalTime = (utcDateStr) => {
-      if (!utcDateStr) return '';
-      const date = new Date(utcDateStr);
-      return new Date(date.getTime() + (330 * 60000)).toISOString().slice(0, 16); // Add 5h 30m for IST
-    };
-
+    // Use the new utcToLocalInput function
     setFormData({
       title: quiz.title || '',
       description: quiz.description || '',
       total_marks: quiz.total_marks || '',
       duration_minutes: quiz.duration_minutes || '',
-      start_time: convertToLocalTime(quiz.start_time),
-      end_time: convertToLocalTime(quiz.end_time),
+      start_time: timezoneUtils.utcToLocalInput(quiz.start_time),
+      end_time: timezoneUtils.utcToLocalInput(quiz.end_time),
       is_active: quiz.is_active ?? true,
       instructions: quiz.instructions || ''
     });
@@ -175,6 +151,7 @@ const EditQuizPage = () => {
     setLoading(false);
   }
 };
+
 
   const fetchQuestions = async () => {
     try {
@@ -352,13 +329,13 @@ const EditQuizPage = () => {
   try {
     setLoading(true);
     
-    console.log('Submitting form data:', formData);
+    console.log('Submitting form data (local times):', formData);
     
-    // Send the datetime values as they are - let backend handle conversion
+    // The datetime values will be converted to UTC by the quizService.updateQuiz method
     const formattedData = {
       ...formData,
-      start_time: formData.start_time,  // Keep as is
-      end_time: formData.end_time,      // Keep as is
+      start_time: formData.start_time,  // Will be converted to UTC in service
+      end_time: formData.end_time,      // Will be converted to UTC in service
       total_marks: parseInt(formData.total_marks),
       duration_minutes: parseInt(formData.duration_minutes)
     };

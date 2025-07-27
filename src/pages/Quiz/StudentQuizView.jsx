@@ -67,37 +67,55 @@ const StudentQuizView = () => {
     }
   };
 
-  const fetchStudentQuizzes = async () => {
-    try {
-      setQuizzesLoading(true);
-      setQuizError('');
-      console.log('Fetching quizzes for course:', courseId);
-      
-      const response = await studentQuizService.getQuizzes(courseId);
-      console.log('Quizzes API Response:', response);
-      
-      if (!response.success) {
-        throw new Error(response.message);
-      }
-      
-      // Extract quizzes from the response
-      let quizzesData = [];
-      if (response.quizzes) {
-        quizzesData = response.quizzes;
-      } else if (response.data?.quizzes) {
-        quizzesData = response.data.quizzes;
-      } else if (response.data && Array.isArray(response.data)) {
-        quizzesData = response.data;
-      }
-      
-      setQuizzes(quizzesData);
-    } catch (error) {
-      console.error('Error fetching quizzes:', error);
-      setQuizError(error.message || 'Failed to load quizzes');
-    } finally {
-      setQuizzesLoading(false);
+  // Replace the fetchStudentQuizzes function in StudentQuizView.jsx:
+
+const fetchStudentQuizzes = async () => {
+  try {
+    setQuizzesLoading(true);
+    setQuizError('');
+    console.log('Fetching quizzes for course:', courseId);
+    console.log('Course ID type:', typeof courseId);
+    
+    const response = await studentQuizService.getQuizzes(courseId);
+    console.log('Service response received:', response);
+    
+    if (!response.success) {
+      console.error('Service returned error:', response.message);
+      throw new Error(response.message);
     }
-  };
+    
+    const quizzesData = response.quizzes || [];
+    console.log('Setting quizzes data:', quizzesData);
+    console.log('Quizzes count:', quizzesData.length);
+    
+    // Additional validation
+    if (!Array.isArray(quizzesData)) {
+      console.error('Quizzes data is not an array:', quizzesData);
+      throw new Error('Invalid quiz data format received');
+    }
+    
+    setQuizzes(quizzesData);
+    
+    // Log each quiz for debugging
+    quizzesData.forEach((quiz, index) => {
+      console.log(`Quiz ${index + 1}:`, {
+        id: quiz.id,
+        title: quiz.title,
+        active: quiz.is_active,
+        start: quiz.start_time,
+        end: quiz.end_time,
+        attempted: !!quiz.attempt_id
+      });
+    });
+    
+  } catch (error) {
+    console.error('Error fetching quizzes:', error);
+    console.error('Error stack:', error.stack);
+    setQuizError(error.message || 'Failed to load quizzes');
+  } finally {
+    setQuizzesLoading(false);
+  }
+};
 
   const handleStartQuiz = async (quizId) => {
     try {
@@ -132,14 +150,9 @@ const StudentQuizView = () => {
     navigate(`/student/subjects/${courseId}`);
   };
 
+  // Simplified isQuizAvailable function - now uses service method
   const isQuizAvailable = (quiz) => {
-    if (!quiz || !quiz.is_active) return false;
-    
-    const now = new Date();
-    const startTime = new Date(quiz.start_time);
-    const endTime = new Date(quiz.end_time);
-    
-    return now >= startTime && now <= endTime;
+    return studentQuizService.isQuizCurrentlyAvailable(quiz);
   };
 
   const getQuizStats = () => {
@@ -150,14 +163,16 @@ const StudentQuizView = () => {
     let upcoming = 0;
 
     quizzes.forEach(quiz => {
+      if (!quiz.is_active) {
+        // Skip inactive quizzes from stats
+        return;
+      }
+
       const startTime = new Date(quiz.start_time);
       const endTime = new Date(quiz.end_time);
 
       if (quiz.attempt_id) {
         attempted++;
-      } else if (!quiz.is_active) {
-        // Inactive quizzes
-        return;
       } else if (now < startTime) {
         upcoming++;
       } else if (now > endTime) {
@@ -176,21 +191,24 @@ const StudentQuizView = () => {
     switch (activeFilter) {
       case 'available':
         return quizzes.filter(quiz => {
+          if (!quiz.is_active || quiz.attempt_id) return false;
           const startTime = new Date(quiz.start_time);
           const endTime = new Date(quiz.end_time);
-          return quiz.is_active && !quiz.attempt_id && now >= startTime && now <= endTime;
+          return now >= startTime && now <= endTime;
         });
       case 'attempted':
         return quizzes.filter(quiz => quiz.attempt_id);
       case 'missed':
         return quizzes.filter(quiz => {
+          if (!quiz.is_active || quiz.attempt_id) return false;
           const endTime = new Date(quiz.end_time);
-          return quiz.is_active && !quiz.attempt_id && now > endTime;
+          return now > endTime;
         });
       case 'upcoming':
         return quizzes.filter(quiz => {
+          if (!quiz.is_active || quiz.attempt_id) return false;
           const startTime = new Date(quiz.start_time);
-          return quiz.is_active && !quiz.attempt_id && now < startTime;
+          return now < startTime;
         });
       default:
         return quizzes;
@@ -202,7 +220,6 @@ const StudentQuizView = () => {
   };
 
   const formatQuizStatus = (quiz) => {
-    const isAvailable = isQuizAvailable(quiz);
     const now = new Date();
     const startTime = new Date(quiz.start_time);
     const endTime = new Date(quiz.end_time);
@@ -223,7 +240,7 @@ const StudentQuizView = () => {
       return { status: 'Missed', color: 'text-red-400', bgColor: 'bg-red-500/20', icon: XCircle };
     }
     
-    if (isAvailable) {
+    if (now >= startTime && now <= endTime) {
       return { status: 'Available', color: 'text-green-400', bgColor: 'bg-green-500/20', icon: CheckCircle };
     }
     
@@ -232,29 +249,48 @@ const StudentQuizView = () => {
 
   const formatDateTime = (dateString) => {
     if (!dateString) return 'Not specified';
-    const date = new Date(dateString);
-    return date.toLocaleString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+    
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return 'Invalid date';
+      
+      // Format in user's local timezone
+      return date.toLocaleString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+      });
+    } catch (error) {
+      console.error('Date formatting error:', error);
+      return 'Invalid date';
+    }
   };
 
   const calculateDuration = (startTime, endTime) => {
     if (!startTime || !endTime) return 'Not specified';
-    const start = new Date(startTime);
-    const end = new Date(endTime);
-    const diffMinutes = Math.floor((end - start) / (1000 * 60));
     
-    if (diffMinutes < 60) {
-      return `${diffMinutes} minutes`;
+    try {
+      const start = new Date(startTime);
+      const end = new Date(endTime);
+      
+      if (isNaN(start.getTime()) || isNaN(end.getTime())) return 'Invalid duration';
+      
+      const diffMinutes = Math.floor((end - start) / (1000 * 60));
+      
+      if (diffMinutes < 60) {
+        return `${diffMinutes} minutes`;
+      }
+      
+      const hours = Math.floor(diffMinutes / 60);
+      const minutes = diffMinutes % 60;
+      return minutes > 0 ? `${hours}h ${minutes}m` : `${hours}h`;
+    } catch (error) {
+      console.error('Duration calculation error:', error);
+      return 'Invalid duration';
     }
-    
-    const hours = Math.floor(diffMinutes / 60);
-    const minutes = diffMinutes % 60;
-    return minutes > 0 ? `${hours}h ${minutes}m` : `${hours}h`;
   };
 
   const getQuizTypeIcon = (type) => {
@@ -278,7 +314,7 @@ const StudentQuizView = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="flex items-center justify-center py-20">
             <RefreshCw className="w-8 h-8 text-cyan-400 animate-spin mr-3" />
-            <span>Loading quizzes...</span>
+            <span>Loading course details...</span>
           </div>
         </div>
       </div>
@@ -360,6 +396,41 @@ const StudentQuizView = () => {
           </div>
         </div>
 
+        // Replace the debug info section in StudentQuizView.jsx with this:
+
+{/* Debug Info - Remove this in production */}
+{process.env.NODE_ENV === 'development' && (
+  <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-4 mb-6 text-sm">
+    <h4 className="text-yellow-400 font-medium mb-2">Debug Info (Dev Only):</h4>
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div>
+        <p className="text-gray-300">Total quizzes loaded: {quizzes.length}</p>
+        <p className="text-gray-300">Current UTC time: {new Date().toISOString()}</p>
+        <p className="text-gray-300">Current local time: {new Date().toLocaleString()}</p>
+        <p className="text-gray-300">Browser timezone: {Intl.DateTimeFormat().resolvedOptions().timeZone}</p>
+      </div>
+      {quizzes.length > 0 && (
+        <div>
+          <p className="text-yellow-400">First quiz ({quizzes[0]?.id}):</p>
+          <p className="text-gray-300">Title: {quizzes[0]?.title}</p>
+          <p className="text-gray-300">Active: {quizzes[0]?.is_active ? 'Yes' : 'No'}</p>
+          <p className="text-gray-300">Start (UTC): {quizzes[0]?.start_time}</p>
+          <p className="text-gray-300">End (UTC): {quizzes[0]?.end_time}</p>
+          <p className="text-gray-300">Start (Local): {quizzes[0]?.start_time ? new Date(quizzes[0].start_time).toLocaleString() : 'N/A'}</p>
+          <p className="text-gray-300">End (Local): {quizzes[0]?.end_time ? new Date(quizzes[0].end_time).toLocaleString() : 'N/A'}</p>
+          <p className="text-gray-300">Available: {isQuizAvailable(quizzes[0]) ? 'YES' : 'NO'}</p>
+          <p className="text-gray-300">Status: {quizzes[0]?._computed?.status || 'unknown'}</p>
+        </div>
+      )}
+      {quizzes.length === 0 && (
+        <div>
+          <p className="text-red-400">No quizzes loaded!</p>
+          <p className="text-gray-300">Check API response in console</p>
+        </div>
+      )}
+    </div>
+  </div>
+)}
         {/* Quiz Statistics Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-8">
           <button
@@ -488,7 +559,7 @@ const StudentQuizView = () => {
           ) : (
             filteredQuizzes.map((quiz) => {
               const statusInfo = formatQuizStatus(quiz);
-              const isAvailable = isQuizAvailable(quiz) && !quiz.attempt_id;
+              const isAvailable = isQuizAvailable(quiz);
               const isStarting = startingQuiz === quiz.id;
               
               return (
@@ -548,6 +619,16 @@ const StudentQuizView = () => {
                         <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3 mb-4">
                           <h4 className="text-sm font-medium text-blue-400 mb-1">Instructions:</h4>
                           <p className="text-sm text-gray-300">{quiz.instructions}</p>
+                        </div>
+                      )}
+
+                      {/* Debug info for each quiz - Remove in production */}
+                      {process.env.NODE_ENV === 'development' && (
+                        <div className="bg-gray-500/10 border border-gray-500/30 rounded-lg p-2 mb-4 text-xs">
+                          <p className="text-gray-400">Quiz ID: {quiz.id}</p>
+                          <p className="text-gray-400">Active: {quiz.is_active ? 'Yes' : 'No'}</p>
+                          <p className="text-gray-400">Attempted: {quiz.attempt_id ? 'Yes' : 'No'}</p>
+                          <p className="text-gray-400">Available: {isAvailable ? 'Yes' : 'No'}</p>
                         </div>
                       )}
                     </div>
