@@ -396,41 +396,7 @@ const fetchStudentQuizzes = async () => {
           </div>
         </div>
 
-        // Replace the debug info section in StudentQuizView.jsx with this:
-
-{/* Debug Info - Remove this in production */}
-{process.env.NODE_ENV === 'development' && (
-  <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-4 mb-6 text-sm">
-    <h4 className="text-yellow-400 font-medium mb-2">Debug Info (Dev Only):</h4>
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <div>
-        <p className="text-gray-300">Total quizzes loaded: {quizzes.length}</p>
-        <p className="text-gray-300">Current UTC time: {new Date().toISOString()}</p>
-        <p className="text-gray-300">Current local time: {new Date().toLocaleString()}</p>
-        <p className="text-gray-300">Browser timezone: {Intl.DateTimeFormat().resolvedOptions().timeZone}</p>
-      </div>
-      {quizzes.length > 0 && (
-        <div>
-          <p className="text-yellow-400">First quiz ({quizzes[0]?.id}):</p>
-          <p className="text-gray-300">Title: {quizzes[0]?.title}</p>
-          <p className="text-gray-300">Active: {quizzes[0]?.is_active ? 'Yes' : 'No'}</p>
-          <p className="text-gray-300">Start (UTC): {quizzes[0]?.start_time}</p>
-          <p className="text-gray-300">End (UTC): {quizzes[0]?.end_time}</p>
-          <p className="text-gray-300">Start (Local): {quizzes[0]?.start_time ? new Date(quizzes[0].start_time).toLocaleString() : 'N/A'}</p>
-          <p className="text-gray-300">End (Local): {quizzes[0]?.end_time ? new Date(quizzes[0].end_time).toLocaleString() : 'N/A'}</p>
-          <p className="text-gray-300">Available: {isQuizAvailable(quizzes[0]) ? 'YES' : 'NO'}</p>
-          <p className="text-gray-300">Status: {quizzes[0]?._computed?.status || 'unknown'}</p>
-        </div>
-      )}
-      {quizzes.length === 0 && (
-        <div>
-          <p className="text-red-400">No quizzes loaded!</p>
-          <p className="text-gray-300">Check API response in console</p>
-        </div>
-      )}
-    </div>
-  </div>
-)}
+       
         {/* Quiz Statistics Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-8">
           <button

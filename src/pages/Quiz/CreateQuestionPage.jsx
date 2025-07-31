@@ -8,25 +8,53 @@ const CreateQuestionPage = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [questionData, setQuestionData] = useState({
-    question_text: '',
-    question_type: 'multiple_choice',
-    marks: '',
-    order_number: 0,
-    options: [
-      { option_text: '', is_correct: false, order_number: 0 },
-      { option_text: '', is_correct: false, order_number: 1 },
-      { option_text: '', is_correct: false, order_number: 2 },
-      { option_text: '', is_correct: false, order_number: 3 }
-    ]
-  });
+  question_text: '',
+  question_type: 'multiple_choice',
+  marks: '1',
+  order_number: 0,
+  options: [
+    { option_text: '', is_correct: false, order_number: 0 },
+    { option_text: '', is_correct: false, order_number: 1 },
+    { option_text: '', is_correct: false, order_number: 2 },
+    { option_text: '', is_correct: false, order_number: 3 }
+  ]
+});
 
   const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setQuestionData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
+  const { name, value } = e.target;
+  setQuestionData(prev => ({
+    ...prev,
+    [name]: value
+  }));
+
+  // Reset options when question type changes
+  if (name === 'question_type') {
+    if (value === 'true_false') {
+      setQuestionData(prev => ({
+        ...prev,
+        options: [
+          { option_text: 'True', is_correct: true, order_number: 0 },
+          { option_text: 'False', is_correct: false, order_number: 1 }
+        ]
+      }));
+    } else if (value === 'multiple_choice') {
+      setQuestionData(prev => ({
+        ...prev,
+        options: [
+          { option_text: '', is_correct: false, order_number: 0 },
+          { option_text: '', is_correct: false, order_number: 1 },
+          { option_text: '', is_correct: false, order_number: 2 },
+          { option_text: '', is_correct: false, order_number: 3 }
+        ]
+      }));
+    } else {
+      setQuestionData(prev => ({
+        ...prev,
+        options: []
+      }));
+    }
+  }
+};
 
   const handleOptionChange = (index, field, value) => {
     setQuestionData(prev => ({
@@ -139,7 +167,8 @@ const CreateQuestionPage = () => {
                       className="flex-1 bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-white placeholder-gray-400 focus:outline-none focus:border-cyan-400"
                       placeholder={`Option ${index + 1}`}
                       required
-                      disabled={loading}
+                      disabled={loading || questionData.question_type === 'true_false'}
+                      readOnly={questionData.question_type === 'true_false'}
                     />
                     <input
                       type="radio"

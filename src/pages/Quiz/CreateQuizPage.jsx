@@ -32,21 +32,51 @@ const CreateQuizPage = () => {
     setTimeout(() => setNotification(null), 3000);
   };
 
+  const handleQuestionTypeChange = (questionId, newType) => {
+  setQuestions(prev => prev.map(q => {
+    if (q.id !== questionId) return q;
+    
+    let newOptions = [];
+    if (newType === 'true_false') {
+      newOptions = [
+        { option_text: 'True', is_correct: true, order_number: 0 },
+        { option_text: 'False', is_correct: false, order_number: 1 }
+      ];
+    } else if (newType === 'multiple_choice') {
+      newOptions = [
+        { option_text: '', is_correct: false, order_number: 0 },
+        { option_text: '', is_correct: false, order_number: 1 },
+        { option_text: '', is_correct: false, order_number: 2 },
+        { option_text: '', is_correct: false, order_number: 3 }
+      ];
+    } else {
+      newOptions = [];
+    }
+    
+    return {
+      ...q,
+      question_type: newType,
+      options: newOptions,
+      is_saved: false
+    };
+  }));
+};
+
   // Helper function to create empty question template
   const createEmptyQuestion = (id = null) => ({
-    id: id || nextQuestionId,
-    question_text: '',
-    question_type: 'multiple_choice',
-    marks: '',
-    order_number: questions.length,
-    is_saved: false, // Track if question is saved
-    options: [
-      { option_text: '', is_correct: false, order_number: 0 },
-      { option_text: '', is_correct: false, order_number: 1 },
-      { option_text: '', is_correct: false, order_number: 2 },
-      { option_text: '', is_correct: false, order_number: 3 }
-    ]
-  });
+  id: id || nextQuestionId,
+  question_text: '',
+  question_type: 'multiple_choice',
+  marks: '1',
+  order_number: questions.length,
+  is_saved: false, // Track if question is saved
+  options: [
+    { option_text: '', is_correct: false, order_number: 0 },
+    { option_text: '', is_correct: false, order_number: 1 },
+    { option_text: '', is_correct: false, order_number: 2 },
+    { option_text: '', is_correct: false, order_number: 3 }
+  ]
+});
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -127,6 +157,40 @@ const CreateQuizPage = () => {
     showNotification('Question saved successfully!', 'success');
     return true;
   };
+
+  const saveAllQuestions = () => {
+  const unsavedQuestions = questions.filter(q => !q.is_saved);
+  let allValid = true;
+  const invalidQuestions = [];
+
+  // Validate all unsaved questions first
+  unsavedQuestions.forEach((question, index) => {
+    const validation = quizService.validateQuestionData(question);
+    if (!validation.isValid) {
+      allValid = false;
+      invalidQuestions.push({
+        questionNumber: question.order_number + 1,
+        errors: validation.errors
+      });
+    }
+  });
+
+  if (!allValid) {
+    const errorMessage = invalidQuestions.map(q => 
+      `Question ${q.questionNumber}:\n${q.errors.join('\n')}`
+    ).join('\n\n');
+    
+    showNotification('Please fix the following errors before saving:\n\n' + errorMessage, 'error');
+    return false;
+  }
+
+  // If all valid, mark all as saved
+  setQuestions(prev => prev.map(q => ({ ...q, is_saved: true })));
+  setEditingQuestionId(null); // Stop editing any question
+  
+  showNotification(`Successfully saved ${unsavedQuestions.length} question(s)!`, 'success');
+  return true;
+};
 
   const editQuestion = (questionId) => {
     setEditingQuestionId(questionId);
@@ -349,7 +413,7 @@ const CreateQuizPage = () => {
               <label className="block text-sm font-medium text-gray-300 mb-2">Question Type *</label>
               <select
                 value={question.question_type}
-                onChange={(e) => handleQuestionChange(question.id, 'question_type', e.target.value)}
+                onChange={(e) => handleQuestionTypeChange(question.id, e.target.value)}
                 className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-cyan-400"
                 disabled={loading}
               >
@@ -374,31 +438,32 @@ const CreateQuizPage = () => {
           </div>
 
           {question.question_type !== 'short_answer' && (
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">Options *</label>
-              {question.options.map((option, index) => (
-                <div key={index} className="flex items-center space-x-2 mb-2">
-                  <input
-                    type="text"
-                    value={option.option_text}
-                    onChange={(e) => handleOptionChange(question.id, index, 'option_text', e.target.value)}
-                    className="flex-1 bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-white placeholder-gray-400 focus:outline-none focus:border-cyan-400"
-                    placeholder={`Option ${index + 1}`}
-                    disabled={loading}
-                  />
-                  <input
-                    type="radio"
-                    name={`correct_option_${question.id}`}
-                    checked={option.is_correct}
-                    onChange={() => handleOptionChange(question.id, index, 'is_correct', true)}
-                    className="mr-2"
-                    disabled={loading}
-                  />
-                  <label className="text-sm text-gray-300 min-w-[60px]">Correct</label>
-                </div>
-              ))}
-            </div>
-          )}
+  <div>
+    <label className="block text-sm font-medium text-gray-300 mb-2">Options *</label>
+    {question.options.map((option, index) => (
+      <div key={index} className="flex items-center space-x-2 mb-2">
+        <input
+          type="text"
+          value={option.option_text}
+          onChange={(e) => handleOptionChange(question.id, index, 'option_text', e.target.value)}
+          className="flex-1 bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-white placeholder-gray-400 focus:outline-none focus:border-cyan-400"
+          placeholder={`Option ${index + 1}`}
+          disabled={loading || question.question_type === 'true_false'}
+          readOnly={question.question_type === 'true_false'}
+        />
+        <input
+          type="radio"
+          name={`correct_option_${question.id}`}
+          checked={option.is_correct}
+          onChange={() => handleOptionChange(question.id, index, 'is_correct', true)}
+          className="mr-2"
+          disabled={loading}
+        />
+        <label className="text-sm text-gray-300 min-w-[60px]">Correct</label>
+      </div>
+    ))}
+  </div>
+)}
         </div>
       </div>
     );
@@ -567,31 +632,37 @@ const CreateQuizPage = () => {
 
             {/* Questions Section */}
             <div className="border-t border-white/10 pt-6">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-xl font-semibold text-cyan-400">
-                  Questions ({savedQuestionsCount} saved, {unsavedQuestionsCount} unsaved)
-                </h3>
-                
-                {!editingQuestionId && (
-                  <button
-                    type="button"
-                    onClick={addNewQuestion}
-                    className="flex items-center space-x-2 bg-cyan-500 hover:bg-cyan-600 px-4 py-2 rounded-lg transition-all"
-                    disabled={loading}
-                  >
-                    <Plus className="w-4 h-4" />
-                    <span>Add Question</span>
-                  </button>
-                )}
-              </div>
+  <div className="flex items-center justify-between mb-4">
+  <h3 className="text-xl font-semibold text-cyan-400">
+    Questions ({savedQuestionsCount} saved, {unsavedQuestionsCount} unsaved)
+  </h3>
+  
+  <div className="flex space-x-2">
+    {unsavedQuestionsCount > 0 && (
+  <button
+    type="button"
+    onClick={saveAllQuestions}
+    className="flex items-center space-x-2 bg-green-500 hover:bg-green-600 px-4 py-2 rounded-lg transition-all"
+    disabled={loading}
+  >
+    <Save className="w-4 h-4" />
+    <span>Save All ({unsavedQuestionsCount})</span>
+  </button>
+)}
+    
+    <button
+  type="button"
+  onClick={addNewQuestion}
+  className="flex items-center space-x-2 bg-cyan-500 hover:bg-cyan-600 px-4 py-2 rounded-lg transition-all"
+  disabled={loading}
+>
+  <Plus className="w-4 h-4" />
+  <span>Add Question</span>
+</button>
+  </div>
+</div>
 
-              {editingQuestionId && (
-                <div className="mb-4 p-3 bg-blue-500/10 border border-blue-400/30 rounded-lg">
-                  <p className="text-sm text-blue-300">
-                    Please save or cancel the current question before adding a new one.
-                  </p>
-                </div>
-              )}
+             
 
               {unsavedQuestionsCount > 0 && (
                 <div className="mb-4 p-3 bg-orange-500/10 border border-orange-400/30 rounded-lg">
@@ -616,17 +687,30 @@ const CreateQuizPage = () => {
               )}
             </div>
 
+            {/* Add Question button at bottom */}
+<div className="flex justify-center py-4">
+  <button
+    type="button"
+    onClick={addNewQuestion}
+    className="flex items-center space-x-2 bg-cyan-500 hover:bg-cyan-600 px-6 py-3 rounded-lg transition-all text-lg"
+    disabled={loading}
+  >
+    <Plus className="w-5 h-5" />
+    <span>Add Another Question</span>
+  </button>
+</div>
+
             {/* Submit buttons */}
             <div className="flex space-x-4 pt-6 border-t border-white/10">
               <button
-                type="submit"
-                disabled={loading || editingQuestionId !== null || unsavedQuestionsCount > 0}
-                className="flex items-center space-x-2 bg-cyan-500 hover:bg-cyan-600 disabled:bg-cyan-500/50 px-6 py-3 rounded-lg transition-all"
-                aria-label="Create quiz"
-              >
-                <Save className="w-4 h-4" />
-                <span>{loading ? 'Creating...' : 'Create Quiz'}</span>
-              </button>
+  type="submit"
+  disabled={loading || unsavedQuestionsCount > 0}
+  className="flex items-center space-x-2 bg-cyan-500 hover:bg-cyan-600 disabled:bg-cyan-500/50 px-6 py-3 rounded-lg transition-all"
+  aria-label="Create quiz"
+>
+  <Save className="w-4 h-4" />
+  <span>{loading ? 'Creating...' : 'Create Quiz'}</span>
+</button>
               <button
                 type="button"
                 onClick={() => navigate(`/faculty/subjects/${subjectId}/quizzes`)}
@@ -638,11 +722,11 @@ const CreateQuizPage = () => {
               </button>
             </div>
 
-            {(editingQuestionId || unsavedQuestionsCount > 0) && (
-              <div className="text-sm text-yellow-300 bg-yellow-500/10 border border-yellow-400/30 rounded-lg p-3">
-                ⚠️ Please save all questions before submitting the quiz.
-              </div>
-            )}
+           {unsavedQuestionsCount > 0 && (
+  <div className="text-sm text-yellow-300 bg-yellow-500/10 border border-yellow-400/30 rounded-lg p-3">
+    ⚠️ Please save all questions before submitting the quiz. You have {unsavedQuestionsCount} unsaved question(s).
+  </div>
+)}
           </form>
         </div>
       </div>

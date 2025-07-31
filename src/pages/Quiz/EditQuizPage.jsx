@@ -40,7 +40,7 @@ const EditQuizPage = () => {
   const [questionForm, setQuestionForm] = useState({
     question_text: '',
     question_type: 'multiple_choice',
-    marks: '',
+    marks: '1',
     options: [
       { option_text: '', is_correct: false },
       { option_text: '', is_correct: false },
@@ -171,40 +171,40 @@ const EditQuizPage = () => {
   };
 
   const handleQuestionFormChange = (e) => {
-    const { name, value } = e.target;
-    setQuestionForm(prev => ({
-      ...prev,
-      [name]: value
-    }));
+  const { name, value } = e.target;
+  setQuestionForm(prev => ({
+    ...prev,
+    [name]: value
+  }));
 
-    // Reset options when question type changes
-    if (name === 'question_type') {
-      if (value === 'true_false') {
-        setQuestionForm(prev => ({
-          ...prev,
-          options: [
-            { option_text: 'True', is_correct: false },
-            { option_text: 'False', is_correct: false }
-          ]
-        }));
-      } else if (value === 'multiple_choice') {
-        setQuestionForm(prev => ({
-          ...prev,
-          options: [
-            { option_text: '', is_correct: false },
-            { option_text: '', is_correct: false },
-            { option_text: '', is_correct: false },
-            { option_text: '', is_correct: false }
-          ]
-        }));
-      } else {
-        setQuestionForm(prev => ({
-          ...prev,
-          options: []
-        }));
-      }
+  // Reset options when question type changes
+  if (name === 'question_type') {
+    if (value === 'true_false') {
+      setQuestionForm(prev => ({
+        ...prev,
+        options: [
+          { option_text: 'True', is_correct: true },
+          { option_text: 'False', is_correct: false }
+        ]
+      }));
+    } else if (value === 'multiple_choice') {
+      setQuestionForm(prev => ({
+        ...prev,
+        options: [
+          { option_text: '', is_correct: false },
+          { option_text: '', is_correct: false },
+          { option_text: '', is_correct: false },
+          { option_text: '', is_correct: false }
+        ]
+      }));
+    } else {
+      setQuestionForm(prev => ({
+        ...prev,
+        options: []
+      }));
     }
-  };
+  }
+};
 
   const handleOptionChange = (index, field, value) => {
     setQuestionForm(prev => ({
@@ -233,7 +233,7 @@ const EditQuizPage = () => {
     setQuestionForm({
       question_text: '',
       question_type: 'multiple_choice',
-      marks: '',
+      marks: '1',
       options: [
         { option_text: '', is_correct: false },
         { option_text: '', is_correct: false },
@@ -244,6 +244,18 @@ const EditQuizPage = () => {
     setEditingQuestion(null);
     setShowQuestionForm(false);
   };
+
+  // Add this function after resetQuestionForm
+const openQuestionForm = () => {
+  setShowQuestionForm(true);
+  // Scroll to the form after a short delay to ensure it's rendered
+  setTimeout(() => {
+    const formElement = document.getElementById('question-form');
+    if (formElement) {
+      formElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, 100);
+};
 
   const handleCreateQuestion = async (e) => {
     e.preventDefault();
@@ -266,6 +278,8 @@ const EditQuizPage = () => {
       setLoading(false);
     }
   };
+
+ 
 
   const handleEditQuestion = (question) => {
     setEditingQuestion(question);
@@ -580,17 +594,18 @@ const EditQuizPage = () => {
                 <span>Quiz Questions</span>
               </h2>
               <button
-                onClick={() => setShowQuestionForm(true)}
-                className="flex items-center space-x-2 bg-green-500 hover:bg-green-600 px-4 py-2 rounded-lg transition-all"
-              >
-                <Plus className="w-4 h-4" />
-                <span>Add Question</span>
-              </button>
+onClick={openQuestionForm}
+  className="flex items-center space-x-2 bg-green-500 hover:bg-green-600 px-4 py-2 rounded-lg transition-all"
+  disabled={loading}
+>
+  <Plus className="w-4 h-4" />
+  <span>Add Question</span>
+</button>
             </div>
 
             {/* Question Form Modal */}
             {showQuestionForm && (
-              <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20">
+              <div id="question-form" className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20">
                 <div className="flex justify-between items-center mb-4">
                   <h3 className="text-xl font-semibold">
                     {editingQuestion ? 'Edit Question' : 'Add New Question'}
@@ -677,6 +692,7 @@ const EditQuizPage = () => {
                               className="flex-1 bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-white placeholder-gray-400 focus:outline-none focus:border-cyan-400"
                               placeholder={`Option ${index + 1}`}
                               disabled={questionForm.question_type === 'true_false'}
+                              readOnly={questionForm.question_type === 'true_false'}
                             />
                             {questionForm.question_type === 'multiple_choice' && questionForm.options.length > 2 && (
                               <button
@@ -713,6 +729,28 @@ const EditQuizPage = () => {
                       <Save className="w-4 h-4" />
                       <span>{loading ? 'Saving...' : (editingQuestion ? 'Update Question' : 'Add Question')}</span>
                     </button>
+                    {!editingQuestion && (
+  <button
+    type="button"
+    onClick={() => {
+      // Reset form but keep it open for adding another question
+      setQuestionForm({
+        question_text: '',
+        question_type: 'multiple_choice',
+        marks: '1',
+        options: [
+          { option_text: '', is_correct: false },
+          { option_text: '', is_correct: false },
+          { option_text: '', is_correct: false },
+          { option_text: '', is_correct: false }
+        ]
+      });
+    }}
+    className="bg-blue-500 hover:bg-blue-600 px-6 py-3 rounded-lg transition-all"
+  >
+    Add Another Question
+  </button>
+)}
                     <button
                       type="button"
                       onClick={resetQuestionForm}
@@ -790,6 +828,22 @@ const EditQuizPage = () => {
                 ))
               )}
             </div>
+            {/* Floating Add Question Button */}
+<div className="fixed bottom-8 right-8 z-50">
+  <button
+    onClick={() => {
+      setShowQuestionForm(true);
+      // Scroll to top to show the form
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }}
+    className="flex items-center space-x-2 bg-green-500 hover:bg-green-600 px-4 py-3 rounded-full shadow-lg transition-all transform hover:scale-105"
+    disabled={loading}
+    title="Add New Question"
+  >
+    <Plus className="w-5 h-5" />
+    <span className="hidden sm:inline">Add Question</span>
+  </button>
+</div>
           </div>
         )}
       </div>
