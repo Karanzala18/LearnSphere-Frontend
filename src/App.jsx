@@ -27,7 +27,8 @@
   import CreateQuestionPage from './pages/Quiz/CreateQuestionPage'; 
   import StudentQuizView from './pages/Quiz/StudentQuizView';
 
-
+// Faculty Assignment components
+import FacultyAssignment from './pages/Assignment/FacultyAssignment';
 
   // Protection components
   import ProtectedRoute from './components/ProtectedRoute';
@@ -106,6 +107,7 @@ import QuizScorecardPage from './pages/Quiz/QuizScorecardPage';
                     <Route path="subjects/:subjectId/quizzes/:quizId/edit" element={<EditQuizPage />} />
                     <Route path="subjects/:subjectId/quizzes/:quizId/questions/create" element={<CreateQuestionPage />} />
                     <Route path="subjects/:subjectId/students" element={<EnrolledStudentsView />} />
+                    <Route path="subjects/:subjectId/assignments" element={<FacultyAssignment />} />
                     <Route path='quizzes/:quizId/scorecard' element={<QuizScorecardPage />} />
                     {/* Redirect /faculty to /faculty/dashboard */}
                     <Route path="" element={<Navigate to="dashboard" replace />} />
