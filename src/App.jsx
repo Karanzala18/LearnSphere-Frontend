@@ -36,6 +36,7 @@ import FacultyAssignment from './pages/Assignment/FacultyAssignment';
 import QuizAttemptPage from './pages/Quiz/QuizAttemptPage';
 import QuizResultPage from './pages/Quiz/QuizResultPage';
 import QuizScorecardPage from './pages/Quiz/QuizScorecardPage';
+import StudentAssignment from './pages/Assignment/StudentAssignment';
 
 
 
@@ -85,7 +86,7 @@ import QuizScorecardPage from './pages/Quiz/QuizScorecardPage';
                     <Route path='course/:courseId/quizzes' element={<StudentQuizView />} />
                     <Route path='quiz-attempts/:attemptId' element={<QuizAttemptPage />} />
                     <Route path='quiz-attempts/:attemptId/result' element={<QuizResultPage />} />
-
+                    <Route path='course/:courseId/assignments' element={<StudentAssignment />} />
                     
                     {/* Redirect /student to /student/dashboard */}
                     <Route path="" element={<Navigate to="dashboard" replace />} />
