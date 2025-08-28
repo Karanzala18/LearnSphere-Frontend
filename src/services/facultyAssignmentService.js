@@ -67,6 +67,26 @@ class FacultyAssignmentService {
     }
   }
 
+  // Get all submissions for a specific assignment
+  async getAssignmentSubmissions(assignmentId) {
+    try {
+      const response = await api.get(`/faculty/assignments/${assignmentId}/submissions`);
+      return response.data;
+    } catch (error) {
+      throw this.handleError(error);
+    }
+  }
+
+  // Get a specific student's submission for an assignment
+  async getStudentSubmission(assignmentId, studentId) {
+    try {
+      const response = await api.get(`/faculty/assignments/${assignmentId}/students/${studentId}/submission`);
+      return response.data;
+    } catch (error) {
+      throw this.handleError(error);
+    }
+  }
+
   // Helper method to clean assignment data before sending
   cleanAssignmentData(data) {
     const cleaned = { ...data };
