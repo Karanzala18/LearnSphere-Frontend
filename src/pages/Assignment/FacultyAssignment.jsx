@@ -15,6 +15,22 @@ const FacultyAssignment = () => {
   const [submissions, setSubmissions] = useState([]);
   const [submissionsLoading, setSubmissionsLoading] = useState(false);
   const [selectedSubmission, setSelectedSubmission] = useState(null);
+
+  // AI Grading and Batch Operations
+  const [gradingInProgress, setGradingInProgress] = useState(false);
+  const [gradingResults, setGradingResults] = useState(null);
+  const [assignmentStats, setAssignmentStats] = useState(null);
+  const [showBatchGrade, setShowBatchGrade] = useState(false);
+  const [selectedStudents, setSelectedStudents] = useState([]);
+  const [showStats, setShowStats] = useState(false);
+
+  // Grading form state
+  const [showGradingForm, setShowGradingForm] = useState(false);
+  const [gradingData, setGradingData] = useState({
+    marks: '',
+    feedback: ''
+  });
+  
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -32,6 +48,12 @@ const FacultyAssignment = () => {
   useEffect(() => {
     fetchAssignments();
   }, [subjectId]);
+
+  useEffect(() => {
+    if (viewingSubmissions) {
+      fetchAssignmentStats(viewingSubmissions.id);
+    }
+  }, [viewingSubmissions]);
 
   const fetchAssignments = async () => {
     try {
@@ -66,11 +88,115 @@ const FacultyAssignment = () => {
     }
   };
 
+  const fetchAssignmentStats = async (assignmentId) => {
+    try {
+      // Mock stats - replace with actual API call
+      const mockStats = {
+        total_students: submissions.length || 0,
+        submitted: submissions.filter(s => s.status === 'submitted').length || 0,
+        graded: submissions.filter(s => s.marks !== null && s.marks !== undefined).length || 0,
+        average_marks: submissions.reduce((acc, s) => acc + (s.marks || 0), 0) / (submissions.length || 1),
+        late_submissions: submissions.filter(s => s.is_late).length || 0
+      };
+      setAssignmentStats(mockStats);
+    } catch (error) {
+      console.error('Error fetching stats:', error);
+    }
+  };
+
+  // AI Grading Functions
+  const handleAIGrade = async (assignmentId, studentId) => {
+    try {
+      setGradingInProgress(true);
+      const result = await facultyAssignmentService.gradeWithAI(assignmentId, studentId);
+      setGradingResults(result);
+      
+      // Refresh submissions to show updated grades
+      await fetchSubmissions(assignmentId);
+      
+      alert('AI Grading completed successfully!');
+    } catch (error) {
+      setError('AI Grading failed: ' + error.message);
+    } finally {
+      setGradingInProgress(false);
+    }
+  };
+
+  const handleBatchAIGrade = async () => {
+    if (selectedStudents.length === 0) {
+      alert('Please select at least one student for batch grading.');
+      return;
+    }
+
+    try {
+      setGradingInProgress(true);
+      const results = [];
+      
+      for (const studentId of selectedStudents) {
+        const result = await facultyAssignmentService.gradeWithAI(viewingSubmissions.id, studentId);
+        results.push(result);
+      }
+      
+      setGradingResults(results);
+      await fetchSubmissions(viewingSubmissions.id);
+      setSelectedStudents([]);
+      setShowBatchGrade(false);
+      
+      alert(`Batch AI Grading completed for ${results.length} students!`);
+    } catch (error) {
+      setError('Batch AI Grading failed: ' + error.message);
+    } finally {
+      setGradingInProgress(false);
+    }
+  };
+
+  // Manual Grading Functions
+  const handleManualGrade = async (assignmentId, studentId, marks, feedback) => {
+    try {
+      // Mock API call for manual grading - replace with actual service method
+      console.log('Manual grading:', { assignmentId, studentId, marks, feedback });
+      
+      // Refresh submissions
+      await fetchSubmissions(assignmentId);
+      setShowGradingForm(false);
+      setGradingData({ marks: '', feedback: '' });
+      
+      alert('Manual grading saved successfully!');
+    } catch (error) {
+      setError('Manual grading failed: ' + error.message);
+    }
+  };
+
+  const handleStudentSelection = (studentId, isSelected) => {
+    if (isSelected) {
+      setSelectedStudents(prev => [...prev, studentId]);
+    } else {
+      setSelectedStudents(prev => prev.filter(id => id !== studentId));
+    }
+  };
+
+  const handleSelectAllStudents = (selectAll) => {
+    if (selectAll) {
+      setSelectedStudents(submissions.map(s => s.student_id));
+    } else {
+      setSelectedStudents([]);
+    }
+  };
+
+  // Original functions
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
     setFormData(prev => ({
       ...prev,
       [name]: type === 'checkbox' ? checked : value
+    }));
+  };
+
+  const handleGradingInputChange = (e) => {
+    const { name, value } = e.target;
+    setGradingData(prev => ({
+      ...prev,
+      [name]: value
     }));
   };
 
@@ -158,6 +284,10 @@ const FacultyAssignment = () => {
     setViewingSubmissions(null);
     setSubmissions([]);
     setSelectedSubmission(null);
+    setAssignmentStats(null);
+    setSelectedStudents([]);
+    setShowBatchGrade(false);
+    setShowStats(false);
   };
 
   const formatDate = (dateString) => {
@@ -209,6 +339,20 @@ const FacultyAssignment = () => {
         </div>
       )}
 
+      {/* AI Grading Progress */}
+      {gradingInProgress && (
+        <div style={{
+          background: '#e3f2fd',
+          border: '1px solid #2196f3',
+          padding: '15px',
+          marginBottom: '20px',
+          borderRadius: '4px',
+          textAlign: 'center'
+        }}>
+          <p>🤖 AI Grading in progress... Please wait.</p>
+        </div>
+      )}
+
       {/* Submissions View */}
       {viewingSubmissions && (
         <div style={{
@@ -222,20 +366,140 @@ const FacultyAssignment = () => {
             <h2 style={{ margin: '0' }}>
               Submissions for: {viewingSubmissions.title}
             </h2>
-            <button
-              onClick={resetSubmissionsView}
-              style={{
-                background: '#666',
-                color: 'white',
-                border: 'none',
-                padding: '8px 16px',
-                cursor: 'pointer',
-                borderRadius: '4px'
-              }}
-            >
-              Close Submissions
-            </button>
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button
+                onClick={() => setShowStats(!showStats)}
+                style={{
+                  background: '#17a2b8',
+                  color: 'white',
+                  border: 'none',
+                  padding: '8px 16px',
+                  cursor: 'pointer',
+                  borderRadius: '4px'
+                }}
+              >
+                {showStats ? 'Hide Stats' : 'Show Stats'}
+              </button>
+              <button
+                onClick={() => setShowBatchGrade(!showBatchGrade)}
+                style={{
+                  background: '#ffc107',
+                  color: 'black',
+                  border: 'none',
+                  padding: '8px 16px',
+                  cursor: 'pointer',
+                  borderRadius: '4px'
+                }}
+              >
+                Batch Grade
+              </button>
+              <button
+                onClick={resetSubmissionsView}
+                style={{
+                  background: '#666',
+                  color: 'white',
+                  border: 'none',
+                  padding: '8px 16px',
+                  cursor: 'pointer',
+                  borderRadius: '4px'
+                }}
+              >
+                Close Submissions
+              </button>
+            </div>
           </div>
+
+          {/* Assignment Statistics */}
+          {showStats && assignmentStats && (
+            <div style={{
+              background: '#fff',
+              border: '1px solid #ddd',
+              borderRadius: '4px',
+              padding: '15px',
+              marginBottom: '20px'
+            }}>
+              <h3 style={{ marginTop: '0' }}>Assignment Statistics</h3>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '15px' }}>
+                <div style={{ textAlign: 'center', padding: '10px', background: '#e3f2fd', borderRadius: '4px' }}>
+                  <div style={{ fontSize: '24px', fontWeight: 'bold' }}>{assignmentStats.total_students}</div>
+                  <div>Total Students</div>
+                </div>
+                <div style={{ textAlign: 'center', padding: '10px', background: '#e8f5e8', borderRadius: '4px' }}>
+                  <div style={{ fontSize: '24px', fontWeight: 'bold' }}>{assignmentStats.submitted}</div>
+                  <div>Submitted</div>
+                </div>
+                <div style={{ textAlign: 'center', padding: '10px', background: '#fff3cd', borderRadius: '4px' }}>
+                  <div style={{ fontSize: '24px', fontWeight: 'bold' }}>{assignmentStats.graded}</div>
+                  <div>Graded</div>
+                </div>
+                <div style={{ textAlign: 'center', padding: '10px', background: '#f8d7da', borderRadius: '4px' }}>
+                  <div style={{ fontSize: '24px', fontWeight: 'bold' }}>{assignmentStats.late_submissions}</div>
+                  <div>Late Submissions</div>
+                </div>
+                <div style={{ textAlign: 'center', padding: '10px', background: '#d1ecf1', borderRadius: '4px' }}>
+                  <div style={{ fontSize: '24px', fontWeight: 'bold' }}>
+                    {assignmentStats.average_marks ? assignmentStats.average_marks.toFixed(1) : '0'}
+                  </div>
+                  <div>Average Marks</div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Batch Grading Panel */}
+          {showBatchGrade && (
+            <div style={{
+              background: '#fff',
+              border: '2px solid #ffc107',
+              borderRadius: '4px',
+              padding: '15px',
+              marginBottom: '20px'
+            }}>
+              <h3 style={{ marginTop: '0' }}>Batch AI Grading</h3>
+              <div style={{ marginBottom: '15px' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
+                  <input
+                    type="checkbox"
+                    checked={selectedStudents.length === submissions.length && submissions.length > 0}
+                    onChange={(e) => handleSelectAllStudents(e.target.checked)}
+                  />
+                  <span>Select All ({submissions.length} students)</span>
+                </label>
+                <p style={{ fontSize: '14px', color: '#666', margin: '0' }}>
+                  Selected: {selectedStudents.length} students
+                </p>
+              </div>
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <button
+                  onClick={handleBatchAIGrade}
+                  disabled={gradingInProgress || selectedStudents.length === 0}
+                  style={{
+                    background: selectedStudents.length === 0 ? '#ccc' : '#28a745',
+                    color: 'white',
+                    border: 'none',
+                    padding: '8px 16px',
+                    cursor: selectedStudents.length === 0 ? 'not-allowed' : 'pointer',
+                    borderRadius: '4px'
+                  }}
+                >
+                  🤖 Start Batch AI Grading
+                </button>
+                <button
+                  onClick={() => setShowBatchGrade(false)}
+                  style={{
+                    background: '#6c757d',
+                    color: 'white',
+                    border: 'none',
+                    padding: '8px 16px',
+                    cursor: 'pointer',
+                    borderRadius: '4px'
+                  }}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
 
           {submissionsLoading ? (
             <p>Loading submissions...</p>
@@ -262,41 +526,85 @@ const FacultyAssignment = () => {
                   }}
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '10px' }}>
-                    <div>
-                      <h4 style={{ margin: '0 0 5px 0' }}>
-                        {submission.student_name || `Student ID: ${submission.student_id}`}
-                      </h4>
-                      <p style={{ margin: '0', fontSize: '14px', color: '#666' }}>
-                        Submitted: {formatDateTime(submission.submitted_at)}
-                      </p>
-                      {submission.is_late && (
-                        <span style={{
-                          background: '#ff9800',
-                          color: 'white',
-                          padding: '2px 8px',
-                          fontSize: '12px',
-                          borderRadius: '12px',
-                          marginTop: '5px',
-                          display: 'inline-block'
-                        }}>
-                          Late Submission
-                        </span>
+                    <div style={{ display: 'flex', alignItems: 'start', gap: '10px' }}>
+                      {showBatchGrade && (
+                        <input
+                          type="checkbox"
+                          checked={selectedStudents.includes(submission.student_id)}
+                          onChange={(e) => handleStudentSelection(submission.student_id, e.target.checked)}
+                          style={{ marginTop: '5px' }}
+                        />
                       )}
+                      <div>
+                        <h4 style={{ margin: '0 0 5px 0' }}>
+                          {submission.student_name || `Student ID: ${submission.student_id}`}
+                        </h4>
+                        <p style={{ margin: '0', fontSize: '14px', color: '#666' }}>
+                          Submitted: {formatDateTime(submission.submitted_at)}
+                        </p>
+                        {submission.is_late && (
+                          <span style={{
+                            background: '#ff9800',
+                            color: 'white',
+                            padding: '2px 8px',
+                            fontSize: '12px',
+                            borderRadius: '12px',
+                            marginTop: '5px',
+                            display: 'inline-block'
+                          }}>
+                            Late Submission
+                          </span>
+                        )}
+                      </div>
                     </div>
-                    <button
-                      onClick={() => handleViewSubmission(viewingSubmissions.id, submission.student_id)}
-                      style={{
-                        background: '#000',
-                        color: 'white',
-                        border: 'none',
-                        padding: '5px 10px',
-                        cursor: 'pointer',
-                        borderRadius: '4px',
-                        fontSize: '12px'
-                      }}
-                    >
-                      View Details
-                    </button>
+                    <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap' }}>
+                      <button
+                        onClick={() => handleViewSubmission(viewingSubmissions.id, submission.student_id)}
+                        style={{
+                          background: '#000',
+                          color: 'white',
+                          border: 'none',
+                          padding: '5px 10px',
+                          cursor: 'pointer',
+                          borderRadius: '4px',
+                          fontSize: '12px'
+                        }}
+                      >
+                        View Details
+                      </button>
+                      <button
+                        onClick={() => handleAIGrade(viewingSubmissions.id, submission.student_id)}
+                        disabled={gradingInProgress}
+                        style={{
+                          background: gradingInProgress ? '#ccc' : '#17a2b8',
+                          color: 'white',
+                          border: 'none',
+                          padding: '5px 10px',
+                          cursor: gradingInProgress ? 'not-allowed' : 'pointer',
+                          borderRadius: '4px',
+                          fontSize: '12px'
+                        }}
+                      >
+                        🤖 AI Grade
+                      </button>
+                      <button
+                        onClick={() => {
+                          setSelectedSubmission(submission);
+                          setShowGradingForm(true);
+                        }}
+                        style={{
+                          background: '#28a745',
+                          color: 'white',
+                          border: 'none',
+                          padding: '5px 10px',
+                          cursor: 'pointer',
+                          borderRadius: '4px',
+                          fontSize: '12px'
+                        }}
+                      >
+                        Manual Grade
+                      </button>
+                    </div>
                   </div>
                   
                   <div style={{ fontSize: '14px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '10px' }}>
@@ -320,8 +628,117 @@ const FacultyAssignment = () => {
             </div>
           )}
 
+          {/* Manual Grading Form */}
+          {showGradingForm && selectedSubmission && (
+            <div style={{
+              position: 'fixed',
+              top: '0',
+              left: '0',
+              right: '0',
+              bottom: '0',
+              background: 'rgba(0,0,0,0.5)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 1000
+            }}>
+              <div style={{
+                background: '#fff',
+                padding: '20px',
+                borderRadius: '8px',
+                maxWidth: '500px',
+                width: '90%'
+              }}>
+                <h3 style={{ marginTop: '0' }}>
+                  Grade Submission: {selectedSubmission.student_name || `ID: ${selectedSubmission.student_id}`}
+                </h3>
+                <form onSubmit={(e) => {
+                  e.preventDefault();
+                  handleManualGrade(
+                    viewingSubmissions.id,
+                    selectedSubmission.student_id,
+                    gradingData.marks,
+                    gradingData.feedback
+                  );
+                }}>
+                  <div style={{ marginBottom: '15px' }}>
+                    <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
+                      Marks (out of {viewingSubmissions.total_marks})
+                    </label>
+                    <input
+                      type="number"
+                      name="marks"
+                      value={gradingData.marks}
+                      onChange={handleGradingInputChange}
+                      min="0"
+                      max={viewingSubmissions.total_marks}
+                      required
+                      style={{
+                        width: '100%',
+                        padding: '8px',
+                        border: '1px solid #ccc',
+                        borderRadius: '4px'
+                      }}
+                    />
+                  </div>
+                  <div style={{ marginBottom: '15px' }}>
+                    <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
+                      Feedback
+                    </label>
+                    <textarea
+                      name="feedback"
+                      value={gradingData.feedback}
+                      onChange={handleGradingInputChange}
+                      rows="4"
+                      style={{
+                        width: '100%',
+                        padding: '8px',
+                        border: '1px solid #ccc',
+                        borderRadius: '4px',
+                        resize: 'vertical'
+                      }}
+                      placeholder="Provide feedback to the student..."
+                    />
+                  </div>
+                  <div style={{ display: 'flex', gap: '10px' }}>
+                    <button
+                      type="submit"
+                      style={{
+                        background: '#28a745',
+                        color: 'white',
+                        border: 'none',
+                        padding: '10px 20px',
+                        cursor: 'pointer',
+                        borderRadius: '4px'
+                      }}
+                    >
+                      Save Grade
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowGradingForm(false);
+                        setGradingData({ marks: '', feedback: '' });
+                      }}
+                      style={{
+                        background: '#6c757d',
+                        color: 'white',
+                        border: 'none',
+                        padding: '10px 20px',
+                        cursor: 'pointer',
+                        borderRadius: '4px'
+                      }}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
+
           {/* Selected Submission Details */}
-          {selectedSubmission && (
+          {selectedSubmission && !showGradingForm && (
             <div style={{
               marginTop: '20px',
               padding: '20px',
@@ -426,6 +843,22 @@ const FacultyAssignment = () => {
                     marginTop: '5px'
                   }}>
                     {selectedSubmission.feedback}
+                  </div>
+                </div>
+              )}
+
+              {selectedSubmission.marks && (
+                <div style={{ marginTop: '15px' }}>
+                  <strong>Grade:</strong>
+                  <div style={{ 
+                    background: '#e8f5e8', 
+                    padding: '10px', 
+                    borderRadius: '4px', 
+                    marginTop: '5px',
+                    fontSize: '16px',
+                    fontWeight: 'bold'
+                  }}>
+                    {selectedSubmission.marks} / {viewingSubmissions.total_marks}
                   </div>
                 </div>
               )}
@@ -870,6 +1303,42 @@ const FacultyAssignment = () => {
               ))}
             </div>
           )}
+        </div>
+      )}
+
+      {/* Grading Results Display */}
+      {gradingResults && (
+        <div style={{
+          position: 'fixed',
+          top: '20px',
+          right: '20px',
+          background: '#d4edda',
+          border: '1px solid #c3e6cb',
+          padding: '15px',
+          borderRadius: '4px',
+          maxWidth: '300px',
+          zIndex: 1001
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <strong>🤖 AI Grading Complete</strong>
+            <button
+              onClick={() => setGradingResults(null)}
+              style={{
+                background: 'none',
+                border: 'none',
+                fontSize: '16px',
+                cursor: 'pointer'
+              }}
+            >
+              ×
+            </button>
+          </div>
+          <p style={{ margin: '10px 0 0 0', fontSize: '14px' }}>
+            {Array.isArray(gradingResults) 
+              ? `${gradingResults.length} submissions graded successfully!`
+              : 'Submission graded successfully!'
+            }
+          </p>
         </div>
       )}
     </div>

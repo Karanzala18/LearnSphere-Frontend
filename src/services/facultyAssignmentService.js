@@ -87,6 +87,28 @@ class FacultyAssignmentService {
     }
   }
 
+  // Download assignment submission file
+  async downloadSubmissionFile(assignmentId, studentId, fileId) {
+    try {
+      const response = await api.get(`/faculty/assignments/${assignmentId}/submissions/${studentId}/files/${fileId}`, {
+        responseType: 'blob'
+      });
+      return response;
+    } catch (error) {
+      throw this.handleError(error);
+    }
+  }
+
+  // Grade assignment submission with AI
+  async gradeWithAI(assignmentId, studentId) {
+    try {
+      const response = await api.post(`/faculty/assignments/${assignmentId}/submissions/${studentId}/ai-grade`);
+      return response.data;
+    } catch (error) {
+      throw this.handleError(error);
+    }
+  }
+
   // Helper method to clean assignment data before sending
   cleanAssignmentData(data) {
     const cleaned = { ...data };
