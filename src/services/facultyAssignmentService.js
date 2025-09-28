@@ -109,6 +109,28 @@ class FacultyAssignmentService {
     }
   }
 
+  // Add these methods to your service class:
+
+// Manual grading
+async gradeSubmission(assignmentId, studentId, gradeData) {
+  try {
+    const response = await api.put(`/faculty/assignments/${assignmentId}/submissions/${studentId}/grade`, gradeData);
+    return response.data;
+  } catch (error) {
+    throw this.handleError(error);
+  }
+}
+
+// Get assignment statistics
+async getAssignmentStats(assignmentId) {
+  try {
+    const response = await api.get(`/faculty/assignments/${assignmentId}/stats`);
+    return response.data;
+  } catch (error) {
+    throw this.handleError(error);
+  }
+}
+
   // Helper method to clean assignment data before sending
   cleanAssignmentData(data) {
     const cleaned = { ...data };
