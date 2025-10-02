@@ -1,9 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-
 import { authService } from '../../services/authService';
-import FacultyProfile from '../Profile/FacultyProfile';
-// Replace subjectService import with facultyDashboardService
 import facultyDashboardService from '../../services/facultyDashboardService';
 import { subjectService } from '../../services/subjectService';
 import { 
@@ -17,24 +14,25 @@ import {
   Search,
   Filter,
   Clock,
-  FileText,
-  Award,
-  TrendingUp,
-  Eye,
-  Edit,
-  Trash2,
-  Copy,
-  Download,
-  Bell,
-  ChevronDown,
-  ChevronRight,
-  User,
-  LogOut,
-  Menu,
-  X
+  FileText, 
+  Award, 
+  TrendingUp, 
+  Eye, 
+  Edit, 
+  Trash2, 
+  Copy, 
+  Download, 
+  Bell, 
+  ChevronDown, 
+  ChevronRight, 
+  User, 
+  LogOut, 
+  Menu, 
+  X, 
+  Check 
 } from 'lucide-react';
 
-// Add this helper function at the top of your component, after the imports:
+// Helper function for semester text
 const getSemesterText = (semester) => {
   const semesterMap = {
     1: '1st Semester',
@@ -61,9 +59,13 @@ const FacultyDashboard = () => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [createModalType, setCreateModalType] = useState('');
   const [notification, setNotification] = useState(null);
-  
+  const [scrollY, setScrollY] = useState(0);
+
   useEffect(() => {
+    const handleScroll = () => setScrollY(window.scrollY);
+    window.addEventListener('scroll', handleScroll);
     fetchDashboardData();
+    return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
   const showNotification = (message, type = 'success') => {
@@ -74,15 +76,11 @@ const FacultyDashboard = () => {
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
-      
-      // Use facultyDashboardService instead of subjectService
       const dashboardResult = await facultyDashboardService.getDashboardData();
       
       if (dashboardResult.success) {
         const { subjects: subjectsData, total_subjects } = dashboardResult.data;
         setSubjects(subjectsData || []);
-        
-        // Calculate analytics from the dashboard data
         const totalStudents = subjectsData?.reduce((sum, subject) => sum + (subject.student_count || 0), 0) || 0;
         const totalQuizzes = subjectsData?.reduce((sum, subject) => sum + (subject.quiz_count || 0), 0) || 0;
         const totalAssignments = subjectsData?.reduce((sum, subject) => sum + (subject.assignment_count || 0), 0) || 0;
@@ -91,16 +89,14 @@ const FacultyDashboard = () => {
           totalSubjects: total_subjects || 0,
           totalStudents,
           activeQuizzes: totalQuizzes,
-          pendingGrading: 0, // This would need to be calculated from actual grading data
-          avgPerformance: 0, // This would need actual performance data
+          pendingGrading: 0,
+          avgPerformance: 0,
           totalQuizzes,
           totalAssignments
         });
       } else {
         console.error('Dashboard data fetch failed:', dashboardResult.message);
         showNotification(dashboardResult.message || 'Failed to fetch dashboard data', 'error');
-        
-        // Set empty data on failure
         setSubjects([]);
         setAnalytics({
           totalSubjects: 0,
@@ -113,16 +109,11 @@ const FacultyDashboard = () => {
         });
       }
       
-      // For now, mock quizzes and assignments data
-      // You can later replace these with actual API calls
       setQuizzes([]);
       setAssignments([]);
-      
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
       showNotification('An unexpected error occurred while fetching data', 'error');
-      
-      // Set empty data on error
       setSubjects([]);
       setQuizzes([]);
       setAssignments([]);
@@ -142,25 +133,22 @@ const FacultyDashboard = () => {
 
   const handleCreateSubject = async (subjectData) => {
     try {
-      const response = await subjectService.createSubject(subjectData);
-      
+      await subjectService.createSubject(subjectData);
       showNotification('Subject created successfully!');
-      
       setShowCreateModal(false);
-      await fetchDashboardData(); // This will now use the integrated service
+      await fetchDashboardData();
     } catch (error) {
       console.error('Error creating subject:', error);
       showNotification('Error creating subject: ' + (error.message || 'Unknown error'), 'error');
     }
   };
 
-  // Add this function after handleCreateAssignment
   const handleDeleteSubject = async (subjectId) => {
     if (window.confirm('Are you sure you want to delete this subject? This action cannot be undone.')) {
       try {
         await subjectService.deleteSubject(subjectId);
         showNotification('Subject deleted successfully!');
-        await fetchDashboardData(); // This will now use the integrated service
+        await fetchDashboardData();
       } catch (error) {
         console.error('Error deleting subject:', error);
         showNotification('Error deleting subject: ' + (error.message || 'Unknown error'), 'error');
@@ -168,7 +156,6 @@ const FacultyDashboard = () => {
     }
   };
 
-  // ADD these new functions:
   const handleViewSubjectDetails = (subjectId) => {
     navigate(`/faculty/subjects/${subjectId}`);
   };
@@ -179,7 +166,6 @@ const FacultyDashboard = () => {
       showNotification('Team code copied to clipboard!', 'success');
     } catch (error) {
       console.error('Failed to copy team code:', error);
-      // Fallback for older browsers
       const textArea = document.createElement('textarea');
       textArea.value = teamCode;
       document.body.appendChild(textArea);
@@ -192,9 +178,8 @@ const FacultyDashboard = () => {
 
   const handleEditSubject = async (subjectId, updatedData) => {
     try {
-      // You'll need to add updateSubject method to subjectService
       await subjectService.updateSubject(subjectId, updatedData);
-      await fetchDashboardData(); // This will now use the integrated service
+      await fetchDashboardData();
     } catch (error) {
       console.error('Error updating subject:', error);
       showNotification('Error updating subject: ' + (error.message || 'Unknown error'), 'error');
@@ -217,7 +202,7 @@ const FacultyDashboard = () => {
       }
       
       setShowCreateModal(false);
-      await fetchDashboardData(); // This will now use the integrated service
+      await fetchDashboardData();
     } catch (error) {
       console.error('Error creating quiz:', error);
       showNotification('Error creating quiz: ' + (error.message || 'Unknown error'), 'error');
@@ -240,7 +225,7 @@ const FacultyDashboard = () => {
       }
       
       setShowCreateModal(false);
-      await fetchDashboardData(); // This will now use the integrated service
+      await fetchDashboardData();
     } catch (error) {
       console.error('Error creating assignment:', error);
       showNotification('Error creating assignment: ' + (error.message || 'Unknown error'), 'error');
@@ -252,7 +237,6 @@ const FacultyDashboard = () => {
     setShowCreateModal(true);
   };
 
-  // Add refresh dashboard functionality
   const handleRefreshDashboard = async () => {
     try {
       setLoading(true);
@@ -266,63 +250,69 @@ const FacultyDashboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 text-white">
+    <div className="min-h-screen bg-white text-gray-900">
+      {/* Subtle Background Pattern */}
+      <div className="fixed inset-0 bg-gradient-to-b from-gray-50 to-white -z-10"></div>
+      <div className="fixed inset-0 opacity-[0.03] -z-10">
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:14px_24px]"></div>
+      </div>
+
       {/* Notification */}
       {notification && (
-        <div className={`fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg transition-all ${
+        <div className={`fixed top-4 right-4 z-50 px-4 py-2 rounded-lg shadow-lg transition-all ${
           notification.type === 'success' 
-            ? 'bg-green-500/90 text-white' 
-            : 'bg-red-500/90 text-white'
+            ? 'bg-blue-50 text-blue-700' 
+            : 'bg-red-50 text-red-700'
         }`}>
           {notification.message}
         </div>
       )}
 
       {/* Header */}
-      <header className="bg-black/20 backdrop-blur-md border-b border-white/10 z-40 relative">
+      <header className={`fixed w-full z-50 transition-all duration-300 ${
+        scrollY > 50 ? 'bg-white/95 backdrop-blur-md border-b border-gray-200 shadow-sm' : 'bg-white'
+      }`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
-            <div className="flex items-center space-x-4">
-              <Brain className="w-8 h-8 text-cyan-400" />
-              <span className="text-2xl font-bold bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent">
-                LearnSphere AI
-              </span>
+            <div className="flex items-center space-x-2">
+              <Brain className="w-8 h-8 text-blue-600" />
+              <span className="text-xl font-semibold text-gray-900">LearnSphere AI</span>
               <span className="text-gray-400">|</span>
-              <span className="text-lg font-medium">Faculty Dashboard</span>
+              <span className="text-lg font-medium text-gray-600">Faculty Dashboard</span>
             </div>
             
-            <div className="flex items-center space-x-4">
+            <div className="hidden md:flex items-center space-x-4">
               <button 
                 onClick={handleRefreshDashboard}
                 disabled={loading}
-                className="p-2 hover:bg-white/10 rounded-lg transition-all disabled:opacity-50"
+                className="p-2 text-gray-600 hover:text-gray-900 transition-colors"
                 title="Refresh Dashboard"
               >
-                <BarChart3 className={`w-5 h-5 text-cyan-400 ${loading ? 'animate-spin' : ''}`} />
+                <BarChart3 className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
               </button>
-              <Bell className="w-6 h-6 text-gray-300 hover:text-cyan-400 cursor-pointer" />
+              <Bell className="w-6 h-6 text-gray-600 hover:text-gray-900 cursor-pointer" />
               <div className="relative">
                 <button 
                   onClick={() => setIsMenuOpen(!isMenuOpen)}
-                  className="flex items-center space-x-2 bg-white/10 rounded-full px-4 py-2 hover:bg-white/20 transition-all"
+                  className="flex items-center space-x-2 px-4 py-2 text-gray-700 hover:text-gray-900 transition-colors"
                 >
                   <User className="w-5 h-5" />
                   <span>{authService.getCurrentUser()?.name || 'User'}</span>
                   <ChevronDown className="w-4 h-4" />
                 </button>
                 {isMenuOpen && (
-                  <div className="absolute right-0 mt-2 w-48 bg-white/10 backdrop-blur-sm rounded-lg shadow-lg border border-white/10 z-50">
+                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
                     <button 
                       onClick={() => {
                         navigate('/faculty/profile');
                         setIsMenuOpen(false);
                       }}
-                      className="w-full px-4 py-2 text-left hover:bg-white/10 transition-colors flex items-center space-x-2"
+                      className="w-full px-4 py-2 text-left hover:bg-gray-50 transition-colors flex items-center space-x-2 text-gray-600"
                     >
                       <User className="w-4 h-4" />
                       <span>Profile</span>
                     </button>
-                    <a href="/settings" className="flex items-center space-x-2 px-4 py-2 text-gray-300 hover:bg-white/20">
+                    <a href="/settings" className="flex items-center space-x-2 px-4 py-2 text-gray-600 hover:bg-gray-50">
                       <Settings className="w-4 h-4" />
                       <span>Settings</span>
                     </a>
@@ -331,7 +321,7 @@ const FacultyDashboard = () => {
                         authService.logout();
                         navigate('/');
                       }} 
-                      className="flex items-center space-x-2 w-full px-4 py-2 text-gray-300 hover:bg-white/20"
+                      className="flex items-center space-x-2 w-full px-4 py-2 text-gray-600 hover:bg-gray-50"
                     >
                       <LogOut className="w-4 h-4" />
                       <span>Logout</span>
@@ -340,56 +330,104 @@ const FacultyDashboard = () => {
                 )}
               </div>
             </div>
+
+            {/* Mobile menu button */}
+            <button
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+              className="md:hidden p-2 text-gray-600 hover:text-gray-900 transition-colors"
+            >
+              {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+            </button>
           </div>
+
+          {/* Mobile Navigation */}
+          {isMenuOpen && (
+            <div className="md:hidden bg-white rounded-lg mt-2 p-4 border border-gray-200 shadow-lg mb-4">
+              <div className="flex flex-col space-y-4">
+                <button 
+                  onClick={handleRefreshDashboard}
+                  disabled={loading}
+                  className="flex items-center space-x-2 px-4 py-2 text-gray-600 hover:bg-gray-50 rounded-lg transition-colors"
+                >
+                  <BarChart3 className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
+                  <span>Refresh Dashboard</span>
+                </button>
+                <button 
+                  onClick={() => {
+                    navigate('/faculty/profile');
+                    setIsMenuOpen(false);
+                  }}
+                  className="flex items-center space-x-2 px-4 py-2 text-gray-600 hover:bg-gray-50 rounded-lg transition-colors"
+                >
+                  <User className="w-4 h-4" />
+                  <span>Profile</span>
+                </button>
+                <a href="/settings" className="flex items-center space-x-2 px-4 py-2 text-gray-600 hover:bg-gray-50 rounded-lg">
+                  <Settings className="w-4 h-4" />
+                  <span>Settings</span>
+                </a>
+                <button 
+                  onClick={() => {
+                    authService.logout();
+                    navigate('/');
+                  }} 
+                  className="flex items-center space-x-2 px-4 py-2 text-gray-600 hover:bg-gray-50 rounded-lg"
+                >
+                  <LogOut className="w-4 h-4" />
+                  <span>Logout</span>
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </header>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Quick Stats - Updated to use analytics from service */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-6 border border-white/10">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-8">
+        {/* Quick Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12">
+          <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm hover:shadow-lg transition-all">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-gray-300 text-sm">Total Subjects</p>
-                <p className="text-3xl font-bold text-cyan-400">{analytics.totalSubjects}</p>
+                <p className="text-gray-600 text-sm">Total Subjects</p>
+                <p className="text-3xl font-bold text-blue-600">{analytics.totalSubjects}</p>
               </div>
-              <BookOpen className="w-8 h-8 text-cyan-400/60" />
+              <BookOpen className="w-8 h-8 text-blue-600/50" />
             </div>
           </div>
 
-          <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-6 border border-white/10">
+          <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm hover:shadow-lg transition-all">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-gray-300 text-sm">Total Students</p>
-                <p className="text-3xl font-bold text-green-400">{analytics.totalStudents}</p>
+                <p className="text-gray-600 text-sm">Total Students</p>
+                <p className="text-3xl font-bold text-blue-600">{analytics.totalStudents}</p>
               </div>
-              <Users className="w-8 h-8 text-green-400/60" />
+              <Users className="w-8 h-8 text-blue-600/50" />
             </div>
           </div>
           
-          <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-6 border border-white/10">
+          <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm hover:shadow-lg transition-all">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-gray-300 text-sm">Total Quizzes</p>
-                <p className="text-3xl font-bold text-purple-400">{analytics.totalQuizzes}</p>
+                <p className="text-gray-600 text-sm">Total Quizzes</p>
+                <p className="text-3xl font-bold text-blue-600">{analytics.totalQuizzes}</p>
               </div>
-              <Clock className="w-8 h-8 text-purple-400/60" />
+              <Clock className="w-8 h-8 text-blue-600/50" />
             </div>
           </div>
           
-          <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-6 border border-white/10">
+          <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm hover:shadow-lg transition-all">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-gray-300 text-sm">Total Assignments</p>
-                <p className="text-3xl font-bold text-orange-400">{analytics.totalAssignments}</p>
+                <p className="text-gray-600 text-sm">Total Assignments</p>
+                <p className="text-3xl font-bold text-blue-600">{analytics.totalAssignments}</p>
               </div>
-              <FileText className="w-8 h-8 text-orange-400/60" />
+              <FileText className="w-8 h-8 text-blue-600/50" />
             </div>
           </div>
         </div>
 
         {/* Navigation Tabs */}
-        <div className="flex flex-wrap gap-2 mb-8 bg-white/5 backdrop-blur-sm rounded-2xl p-2">
+        <div className="flex flex-wrap gap-2 mb-12 bg-gray-50 rounded-xl p-2">
           {[
             { id: 'overview', label: 'Overview', icon: BarChart3 },
             { id: 'subjects', label: 'Subjects', icon: BookOpen },
@@ -401,10 +439,10 @@ const FacultyDashboard = () => {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center space-x-2 px-4 py-2 rounded-xl transition-all ${
+              className={`flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                 activeTab === tab.id
-                  ? 'bg-gradient-to-r from-cyan-500 to-purple-500 text-white'
-                  : 'text-gray-300 hover:bg-white/10'
+                  ? 'bg-blue-600 text-white'
+                  : 'text-gray-600 hover:bg-gray-200'
               }`}
             >
               <tab.icon className="w-4 h-4" />
@@ -416,8 +454,8 @@ const FacultyDashboard = () => {
         {/* Loading State */}
         {loading && (
           <div className="flex items-center justify-center py-8">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-400"></div>
-            <span className="ml-3 text-cyan-400">Loading dashboard data...</span>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <span className="ml-3 text-gray-600">Loading dashboard data...</span>
           </div>
         )}
 
@@ -425,11 +463,10 @@ const FacultyDashboard = () => {
         {!loading && activeTab === 'overview' && (
           <div className="space-y-8">
             {/* Recent Activity */}
-            <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-6 border border-white/10">
-              <h3 className="text-xl font-semibold mb-4 text-cyan-400">Recent Activity</h3>
+            <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
+              <h3 className="text-xl font-semibold mb-4 text-gray-900">Recent Activity</h3>
               <div className="space-y-4">
-                {/* Dynamic recent activity would be fetched from API */}
-                <p className="text-gray-300">No recent activity available</p>
+                <p className="text-gray-600">No recent activity available</p>
               </div>
             </div>
 
@@ -437,35 +474,41 @@ const FacultyDashboard = () => {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <button
                 onClick={() => openCreateModal('subject')}
-                className="bg-white/5 backdrop-blur-sm rounded-2xl p-6 border border-white/10 hover:bg-white/10 transition-all text-left group"
+                className="bg-white rounded-xl p-6 border border-gray-200 hover:border-blue-300 hover:shadow-lg transition-all text-left group"
               >
                 <div className="flex items-center space-x-3 mb-3">
-                  <Plus className="w-6 h-6 text-cyan-400" />
-                  <h4 className="text-lg font-semibold">Create Subject</h4>
+                  <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center text-blue-600">
+                    <Plus className="w-5 h-5" />
+                  </div>
+                  <h4 className="text-lg font-semibold text-gray-900">Create Subject</h4>
                 </div>
-                <p className="text-gray-300 text-sm">Add a new subject for the semester</p>
+                <p className="text-gray-600 text-sm">Add a new subject for the semester</p>
               </button>
               
               <button
                 onClick={() => openCreateModal('quiz')}
-                className="bg-white/5 backdrop-blur-sm rounded-2xl p-6 border border-white/10 hover:bg-white/10 transition-all text-left group"
+                className="bg-white rounded-xl p-6 border border-gray-200 hover:border-blue-300 hover:shadow-lg transition-all text-left group"
               >
                 <div className="flex items-center space-x-3 mb-3">
-                  <Plus className="w-6 h-6 text-purple-400" />
-                  <h4 className="text-lg font-semibold">Create Quiz</h4>
+                  <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center text-blue-600">
+                    <Plus className="w-5 h-5" />
+                  </div>
+                  <h4 className="text-lg font-semibold text-gray-900">Create Quiz</h4>
                 </div>
-                <p className="text-gray-300 text-sm">Design a new quiz for your students</p>
+                <p className="text-gray-600 text-sm">Design a new quiz for your students</p>
               </button>
               
               <button
                 onClick={() => openCreateModal('assignment')}
-                className="bg-white/5 backdrop-blur-sm rounded-2xl p-6 border border-white/10 hover:bg-white/10 transition-all text-left group"
+                className="bg-white rounded-xl p-6 border border-gray-200 hover:border-blue-300 hover:shadow-lg transition-all text-left group"
               >
                 <div className="flex items-center space-x-3 mb-3">
-                  <Plus className="w-6 h-6 text-orange-400" />
-                  <h4 className="text-lg font-semibold">Create Assignment</h4>
+                  <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center text-blue-600">
+                    <Plus className="w-5 h-5" />
+                  </div>
+                  <h4 className="text-lg font-semibold text-gray-900">Create Assignment</h4>
                 </div>
-                <p className="text-gray-300 text-sm">Add a new assignment with auto-grading</p>
+                <p className="text-gray-600 text-sm">Add a new assignment with auto-grading</p>
               </button>
             </div>
           </div>
@@ -474,10 +517,10 @@ const FacultyDashboard = () => {
         {!loading && activeTab === 'subjects' && (
           <div className="space-y-6">
             <div className="flex justify-between items-center">
-              <h2 className="text-2xl font-bold text-cyan-400">My Subjects</h2>
+              <h2 className="text-2xl font-bold text-gray-900">My Subjects</h2>
               <button
                 onClick={() => openCreateModal('subject')}
-                className="flex items-center space-x-2 bg-gradient-to-r from-cyan-500 to-purple-500 px-4 py-2 rounded-xl hover:from-cyan-600 hover:to-purple-600 transition-all"
+                className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-all"
               >
                 <Plus className="w-4 h-4" />
                 <span>Add Subject</span>
@@ -488,27 +531,27 @@ const FacultyDashboard = () => {
               {subjects.length === 0 ? (
                 <div className="col-span-full text-center py-8">
                   <BookOpen className="w-16 h-16 mx-auto mb-4 text-gray-400" />
-                  <p className="text-gray-300 text-lg">No subjects available</p>
-                  <p className="text-gray-400 text-sm">Create your first subject to get started</p>
+                  <p className="text-gray-600 text-lg">No subjects available</p>
+                  <p className="text-gray-500 text-sm">Create your first subject to get started</p>
                 </div>
               ) : (
                 subjects.map((subject) => (
-                  <div key={subject.id} className="bg-white/5 backdrop-blur-sm rounded-2xl p-6 border border-white/10 hover:bg-white/10 transition-all">
+                  <div key={subject.id} className="bg-white rounded-xl p-6 border border-gray-200 hover:border-blue-300 hover:shadow-lg transition-all">
                     <div className="flex justify-between items-start mb-4">
                       <div>
-                        <h3 className="text-lg font-semibold text-white">{subject.name}</h3>
-                        <p className="text-cyan-400 font-mono">{subject.code}</p>
+                        <h3 className="text-lg font-semibold text-gray-900">{subject.name}</h3>
+                        <p className="text-blue-600 font-mono text-sm">{subject.code}</p>
                         {subject.team_code && (
-                          <p className="text-purple-400 text-sm mt-1">Team Code: {subject.team_code}</p>
+                          <p className="text-blue-600 text-sm mt-1">Team Code: {subject.team_code}</p>
                         )}
                       </div>
                       <div className="flex space-x-2">
-                        <button className="text-gray-400 hover:text-cyan-400">
+                        <button className="text-gray-600 hover:text-blue-600">
                           <Edit className="w-4 h-4" />
                         </button>
                         <button 
                           onClick={() => handleDeleteSubject(subject.id)}
-                          className="text-gray-400 hover:text-red-400"
+                          className="text-gray-600 hover:text-red-600"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
@@ -516,25 +559,25 @@ const FacultyDashboard = () => {
                     </div>
                     
                     <div className="space-y-2 mb-4">
-                      <p className="text-gray-300 text-sm">
+                      <p className="text-gray-600 text-sm">
                         <Calendar className="w-4 h-4 inline mr-1" />
                         {getSemesterText(subject.semester)}
                       </p>
-                      <p className="text-gray-300 text-sm">
+                      <p className="text-gray-600 text-sm">
                         <Users className="w-4 h-4 inline mr-1" />
                         {subject.student_count || 0} Students
                       </p>
-                      <p className="text-gray-300 text-sm">
+                      <p className="text-gray-600 text-sm">
                         <FileText className="w-4 h-4 inline mr-1" />
                         {subject.quiz_count || 0} Quizzes • {subject.assignment_count || 0} Assignments
                       </p>
                       {subject.department && (
-                        <p className="text-gray-300 text-sm">
+                        <p className="text-gray-600 text-sm">
                           Department: {subject.department}
                         </p>
                       )}
                       {subject.credits && (
-                        <p className="text-gray-300 text-sm">
+                        <p className="text-gray-600 text-sm">
                           Credits: {subject.credits}
                         </p>
                       )}
@@ -543,13 +586,13 @@ const FacultyDashboard = () => {
                     <div className="flex space-x-2">
                       <button 
                         onClick={() => handleViewSubjectDetails(subject.id)}
-                        className="flex-1 bg-white/10 hover:bg-white/20 px-3 py-2 rounded-lg text-sm transition-all"
+                        className="flex-1 px-3 py-2 bg-gray-50 text-gray-700 rounded-lg text-sm hover:bg-gray-100 transition-all"
                       >
                         View Details
                       </button>
                       <button 
                         onClick={() => handleCopyTeamCode(subject.team_code)}
-                        className="flex items-center space-x-1 bg-cyan-500/20 hover:bg-cyan-500/30 px-3 py-2 rounded-lg text-sm transition-all"
+                        className="flex items-center space-x-1 px-3 py-2 bg-blue-50 text-blue-600 rounded-lg text-sm hover:bg-blue-100 transition-all"
                         disabled={!subject.team_code}
                       >
                         <Copy className="w-3 h-3" />
@@ -566,61 +609,61 @@ const FacultyDashboard = () => {
         {!loading && activeTab === 'quizzes' && (
           <div className="space-y-6">
             <div className="flex justify-between items-center">
-              <h2 className="text-2xl font-bold text-cyan-400">Quizzes</h2>
+              <h2 className="text-2xl font-bold text-gray-900">Quizzes</h2>
               <button
                 onClick={() => openCreateModal('quiz')}
-                className="flex items-center space-x-2 bg-gradient-to-r from-cyan-500 to-purple-500 px-4 py-2 rounded-xl hover:from-cyan-600 hover:to-purple-600 transition-all"
+                className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-all"
               >
                 <Plus className="w-4 h-4" />
                 <span>Create Quiz</span>
               </button>
             </div>
             
-            <div className="bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 overflow-hidden">
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full">
-                  <thead className="bg-white/5">
+                  <thead className="bg-gray-50">
                     <tr>
-                      <th className="px-6 py-4 text-left text-cyan-400 font-semibold">Quiz Title</th>
-                      <th className="px-6 py-4 text-left text-cyan-400 font-semibold">Subject</th>
-                      <th className="px-6 py-4 text-left text-cyan-400 font-semibold">Due Date</th>
-                      <th className="px-6 py-4 text-left text-cyan-400 font-semibold">Status</th>
-                      <th className="px-6 py-4 text-left text-cyan-400 font-semibold">Submissions</th>
-                      <th className="px-6 py-4 text-left text-cyan-400 font-semibold">Actions</th>
+                      <th className="px-6 py-4 text-left text-gray-600 font-semibold">Quiz Title</th>
+                      <th className="px-6 py-4 text-left text-gray-600 font-semibold">Subject</th>
+                      <th className="px-6 py-4 text-left text-gray-600 font-semibold">Due Date</th>
+                      <th className="px-6 py-4 text-left text-gray-600 font-semibold">Status</th>
+                      <th className="px-6 py-4 text-left text-gray-600 font-semibold">Submissions</th>
+                      <th className="px-6 py-4 text-left text-gray-600 font-semibold">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
                     {quizzes.length === 0 ? (
                       <tr>
-                        <td colSpan="6" className="px-6 py-4 text-center text-gray-300">
+                        <td colSpan="6" className="px-6 py-4 text-center text-gray-600">
                           No quizzes available
                         </td>
                       </tr>
                     ) : (
                       quizzes.map((quiz) => (
-                        <tr key={quiz.id} className="border-b border-white/10 hover:bg-white/5">
-                          <td className="px-6 py-4 text-white">{quiz.title}</td>
-                          <td className="px-6 py-4 text-gray-300">{quiz.subject}</td>
-                          <td className="px-6 py-4 text-gray-300">{quiz.dueDate}</td>
+                        <tr key={quiz.id} className="border-b border-gray-200 hover:bg-gray-50">
+                          <td className="px-6 py-4 text-gray-900">{quiz.title}</td>
+                          <td className="px-6 py-4 text-gray-600">{quiz.subject}</td>
+                          <td className="px-6 py-4 text-gray-600">{quiz.dueDate}</td>
                           <td className="px-6 py-4">
                             <span className={`px-2 py-1 rounded-full text-xs ${
-                              quiz.status === 'active' ? 'bg-green-500/20 text-green-400' :
-                              quiz.status === 'draft' ? 'bg-orange-500/20 text-orange-400' :
-                              'bg-blue-500/20 text-blue-400'
+                              quiz.status === 'active' ? 'bg-blue-100 text-blue-600' :
+                              quiz.status === 'draft' ? 'bg-yellow-100 text-yellow-600' :
+                              'bg-gray-100 text-gray-600'
                             }`}>
                               {quiz.status}
                             </span>
                           </td>
-                          <td className="px-6 py-4 text-gray-300">{quiz.submissions}</td>
+                          <td className="px-6 py-4 text-gray-600">{quiz.submissions}</td>
                           <td className="px-6 py-4">
                             <div className="flex space-x-2">
-                              <button className="text-cyan-400 hover:text-cyan-300">
+                              <button className="text-blue-600 hover:text-blue-800">
                                 <Eye className="w-4 h-4" />
                               </button>
-                              <button className="text-gray-400 hover:text-cyan-400">
+                              <button className="text-gray-600 hover:text-gray-900">
                                 <Edit className="w-4 h-4" />
                               </button>
-                              <button className="text-gray-400 hover:text-red-400">
+                              <button className="text-gray-600 hover:text-red-600">
                                 <Trash2 className="w-4 h-4" />
                               </button>
                             </div>
@@ -638,61 +681,61 @@ const FacultyDashboard = () => {
         {!loading && activeTab === 'assignments' && (
           <div className="space-y-6">
             <div className="flex justify-between items-center">
-              <h2 className="text-2xl font-bold text-cyan-400">Assignments</h2>
+              <h2 className="text-2xl font-bold text-gray-900">Assignments</h2>
               <button
                 onClick={() => openCreateModal('assignment')}
-                className="flex items-center space-x-2 bg-gradient-to-r from-cyan-500 to-purple-500 px-4 py-2 rounded-xl hover:from-cyan-600 hover:to-purple-600 transition-all"
+                className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-all"
               >
                 <Plus className="w-4 h-4" />
                 <span>Create Assignment</span>
               </button>
             </div>
             
-            <div className="bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 overflow-hidden">
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full">
-                  <thead className="bg-white/5">
+                  <thead className="bg-gray-50">
                     <tr>
-                      <th className="px-6 py-4 text-left text-cyan-400 font-semibold">Assignment Title</th>
-                      <th className="px-6 py-4 text-left text-cyan-400 font-semibold">Subject</th>
-                      <th className="px-6 py-4 text-left text-cyan-400 font-semibold">Due Date</th>
-                      <th className="px-6 py-4 text-left text-cyan-400 font-semibold">Submissions</th>
-                      <th className="px-6 py-4 text-left text-cyan-400 font-semibold">Graded</th>
-                      <th className="px-6 py-4 text-left text-cyan-400 font-semibold">Actions</th>
+                      <th className="px-6 py-4 text-left text-gray-600 font-semibold">Assignment Title</th>
+                      <th className="px-6 py-4 text-left text-gray-600 font-semibold">Subject</th>
+                      <th className="px-6 py-4 text-left text-gray-600 font-semibold">Due Date</th>
+                      <th className="px-6 py-4 text-left text-gray-600 font-semibold">Submissions</th>
+                      <th className="px-6 py-4 text-left text-gray-600 font-semibold">Graded</th>
+                      <th className="px-6 py-4 text-left text-gray-600 font-semibold">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
                     {assignments.length === 0 ? (
                       <tr>
-                        <td colSpan="6" className="px-6 py-4 text-center text-gray-300">
+                        <td colSpan="6" className="px-6 py-4 text-center text-gray-600">
                           No assignments available
                         </td>
                       </tr>
                     ) : (
                       assignments.map((assignment) => (
-                        <tr key={assignment.id} className="border-b border-white/10 hover:bg-white/5">
-                          <td className="px-6 py-4 text-white">{assignment.title}</td>
-                          <td className="px-6 py-4 text-gray-300">{assignment.subject}</td>
-                          <td className="px-6 py-4 text-gray-300">{assignment.dueDate}</td>
-                          <td className="px-6 py-4 text-gray-300">{assignment.submissions}</td>
+                        <tr key={assignment.id} className="border-b border-gray-200 hover:bg-gray-50">
+                          <td className="px-6 py-4 text-gray-900">{assignment.title}</td>
+                          <td className="px-6 py-4 text-gray-600">{assignment.subject}</td>
+                          <td className="px-6 py-4 text-gray-600">{assignment.dueDate}</td>
+                          <td className="px-6 py-4 text-gray-600">{assignment.submissions}</td>
                           <td className="px-6 py-4">
                             <span className={`px-2 py-1 rounded-full text-xs ${
                               assignment.graded === assignment.submissions 
-                                ? 'bg-green-500/20 text-green-400' 
-                                : 'bg-orange-500/20 text-orange-400'
+                                ? 'bg-blue-100 text-blue-600' 
+                                : 'bg-yellow-100 text-yellow-600'
                             }`}>
                               {assignment.graded}/{assignment.submissions}
                             </span>
                           </td>
                           <td className="px-6 py-4">
                             <div className="flex space-x-2">
-                              <button className="text-cyan-400 hover:text-cyan-300">
+                              <button className="text-blue-600 hover:text-blue-800">
                                 <Eye className="w-4 h-4" />
                               </button>
-                              <button className="text-gray-400 hover:text-white">
+                              <button className="text-gray-600 hover:text-gray-900">
                                 <Download className="w-4 h-4" />
                               </button>
-                              <button className="text-gray-400 hover:text-red-400">
+                              <button className="text-gray-600 hover:text-red-600">
                                 <Trash2 className="w-4 h-4" />
                               </button>
                             </div>
@@ -708,12 +751,12 @@ const FacultyDashboard = () => {
         )}
 
         {!loading && activeTab === 'calendar' && (
-          <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-6 border border-white/10">
-            <h2 className="text-2xl font-bold text-cyan-400 mb-6">Academic Calendar</h2>
-            <div className="text-center text-gray-300">
-              <Calendar className="w-16 h-16 mx-auto mb-4 text-cyan-400/50" />
+          <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
+            <h2 className="text-2xl font-bold text-gray-900 mb-6">Academic Calendar</h2>
+            <div className="text-center text-gray-600">
+              <Calendar className="w-16 h-16 mx-auto mb-4 text-blue-600/50" />
               <p>Calendar component will be implemented here</p>
-              <p className="text-sm mt-2">
+              <p className="text-sm mt-2 text-gray-500">
                 Show upcoming quizzes, assignment deadlines, and other important dates
               </p>
             </div>
@@ -722,19 +765,19 @@ const FacultyDashboard = () => {
 
         {!loading && activeTab === 'analytics' && (
           <div className="space-y-6">
-            <h2 className="text-2xl font-bold text-cyan-400">Performance Analytics</h2>
+            <h2 className="text-2xl font-bold text-gray-900">Performance Analytics</h2>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-6 border border-white/10">
-                <h3 className="text-lg font-semibold text-white mb-4">Student Performance</h3>
-                <div className="text-center text-gray-300">
-                  <BarChart3 className="w-16 h-16 mx-auto mb-4 text-cyan-400/50" />
+              <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Student Performance</h3>
+                <div className="text-center text-gray-600">
+                  <BarChart3 className="w-16 h-16 mx-auto mb-4 text-blue-600/50" />
                   <p>Performance charts will be implemented here</p>
                 </div>
               </div>
-              <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-6 border border-white/10">
-                <h3 className="text-lg font-semibold text-white mb-4">Subject Analytics</h3>
-                <div className="text-center text-gray-300">
-                  <TrendingUp className="w-16 h-16 mx-auto mb-4 text-purple-400/50" />
+              <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Subject Analytics</h3>
+                <div className="text-center text-gray-600">
+                  <TrendingUp className="w-16 h-16 mx-auto mb-4 text-blue-600/50" />
                   <p>Subject analytics will be implemented here</p>
                 </div>
               </div>
@@ -742,14 +785,9 @@ const FacultyDashboard = () => {
 
             {/* Additional Analytics Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-6 border border-white/10">
-                <h4 className="text-lg font-semibold text-white mb-2">Subjects by Semester</h4>
+              <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
+                <h4 className="text-lg font-semibold text-gray-900 mb-2">Subjects by Semester</h4>
                 <div className="space-y-2">
-                  {subjects.reduce((semesters, subject) => {
-                    const sem = subject.semester;
-                    semesters[sem] = (semesters[sem] || 0) + 1;
-                    return semesters;
-                  }, Object.create(null))}
                   {Object.entries(
                     subjects.reduce((semesters, subject) => {
                       const sem = subject.semester;
@@ -758,33 +796,33 @@ const FacultyDashboard = () => {
                     }, {})
                   ).map(([semester, count]) => (
                     <div key={semester} className="flex justify-between items-center">
-                      <span className="text-gray-300">{getSemesterText(parseInt(semester))}</span>
-                      <span className="text-cyan-400 font-semibold">{count}</span>
+                      <span className="text-gray-600">{getSemesterText(parseInt(semester))}</span>
+                      <span className="text-blue-600 font-semibold">{count}</span>
                     </div>
                   ))}
                 </div>
               </div>
 
-              <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-6 border border-white/10">
-                <h4 className="text-lg font-semibold text-white mb-2">Average Students per Subject</h4>
+              <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
+                <h4 className="text-lg font-semibold text-gray-900 mb-2">Average Students per Subject</h4>
                 <div className="text-center">
-                  <p className="text-3xl font-bold text-green-400">
+                  <p className="text-3xl font-bold text-blue-600">
                     {subjects.length > 0 ? Math.round(analytics.totalStudents / subjects.length) : 0}
                   </p>
-                  <p className="text-gray-400 text-sm">students per subject</p>
+                  <p className="text-gray-500 text-sm">students per subject</p>
                 </div>
               </div>
 
-              <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-6 border border-white/10">
-                <h4 className="text-lg font-semibold text-white mb-2">Content Distribution</h4>
+              <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
+                <h4 className="text-lg font-semibold text-gray-900 mb-2">Content Distribution</h4>
                 <div className="space-y-2">
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-300">Quizzes</span>
-                    <span className="text-purple-400 font-semibold">{analytics.totalQuizzes}</span>
+                    <span className="text-gray-600">Quizzes</span>
+                    <span className="text-blue-600 font-semibold">{analytics.totalQuizzes}</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-300">Assignments</span>
-                    <span className="text-orange-400 font-semibold">{analytics.totalAssignments}</span>
+                    <span className="text-gray-600">Assignments</span>
+                    <span className="text-blue-600 font-semibold">{analytics.totalAssignments}</span>
                   </div>
                 </div>
               </div>
@@ -828,12 +866,12 @@ const CreateModal = ({ type, onClose, onSubmit, subjects }) => {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-      <div className="bg-gradient-to-br from-purple-900 to-indigo-900 rounded-2xl p-6 w-full max-w-md border border-white/10">
+      <div className="bg-white rounded-xl p-6 w-full max-w-md border border-gray-200 shadow-lg">
         <div className="flex justify-between items-center mb-4">
-          <h3 className="text-xl font-bold text-cyan-400">
+          <h3 className="text-xl font-bold text-gray-900">
             Create {type.charAt(0).toUpperCase() + type.slice(1)}
           </h3>
-          <button onClick={onClose} className="text-gray-400 hover:text-white">
+          <button onClick={onClose} className="text-gray-600 hover:text-gray-900">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -842,56 +880,56 @@ const CreateModal = ({ type, onClose, onSubmit, subjects }) => {
           {type === 'subject' && (
             <>
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">Subject Name</label>
+                <label className="block text-sm font-medium text-gray-600 mb-2">Subject Name</label>
                 <input
                   type="text"
                   name="name"
                   required
                   onChange={handleChange}
-                  className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                  className="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-2 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="Enter subject name"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">Subject Code</label>
+                <label className="block text-sm font-medium text-gray-600 mb-2">Subject Code</label>
                 <input
                   type="text"
                   name="code"
                   required
                   onChange={handleChange}
-                  className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                  className="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-2 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="e.g., CS301"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">Department</label>
+                <label className="block text-sm font-medium text-gray-600 mb-2">Department</label>
                 <input
                   type="text"
                   name="department"
                   onChange={handleChange}
-                  className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                  className="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-2 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="e.g., Computer Science"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">Credits</label>
+                <label className="block text-sm font-medium text-gray-600 mb-2">Credits</label>
                 <input
                   type="number"
                   name="credits"
                   min="1"
                   max="6"
                   onChange={handleChange}
-                  className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                  className="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-2 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="3"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">Semester</label>
+                <label className="block text-sm font-medium text-gray-600 mb-2">Semester</label>
                 <select
                   name="semester"
                   required
                   onChange={handleChange}
-                  className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                  className="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="">Select semester</option>
                   <option value="1">1st Semester</option>
@@ -905,12 +943,12 @@ const CreateModal = ({ type, onClose, onSubmit, subjects }) => {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">Description</label>
+                <label className="block text-sm font-medium text-gray-600 mb-2">Description</label>
                 <textarea
                   name="description"
                   rows="3"
                   onChange={handleChange}
-                  className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                  className="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-2 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="Enter subject description"
                 />
               </div>
@@ -919,23 +957,23 @@ const CreateModal = ({ type, onClose, onSubmit, subjects }) => {
           {type === 'quiz' && (
             <>
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">Quiz Title</label>
+                <label className="block text-sm font-medium text-gray-600 mb-2">Quiz Title</label>
                 <input
                   type="text"
                   name="title"
                   required
                   onChange={handleChange}
-                  className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                  className="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-2 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="Enter quiz title"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">Subject</label>
+                <label className="block text-sm font-medium text-gray-600 mb-2">Subject</label>
                 <select
                   name="subject_id"
                   required
                   onChange={handleChange}
-                  className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                  className="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="">Select subject</option>
                   {subjects.map((subject) => (
@@ -946,33 +984,33 @@ const CreateModal = ({ type, onClose, onSubmit, subjects }) => {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">Due Date</label>
+                <label className="block text-sm font-medium text-gray-600 mb-2">Due Date</label>
                 <input
                   type="datetime-local"
                   name="due_date"
                   required
                   onChange={handleChange}
-                  className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                  className="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">Duration (minutes)</label>
+                <label className="block text-sm font-medium text-gray-600 mb-2">Duration (minutes)</label>
                 <input
                   type="number"
                   name="duration"
                   required
                   onChange={handleChange}
-                  className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                  className="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-2 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="60"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">Instructions</label>
+                <label className="block text-sm font-medium text-gray-600 mb-2">Instructions</label>
                 <textarea
                   name="instructions"
                   rows="3"
                   onChange={handleChange}
-                  className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                  className="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-2 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="Enter quiz instructions"
                 />
               </div>
@@ -982,23 +1020,23 @@ const CreateModal = ({ type, onClose, onSubmit, subjects }) => {
           {type === 'assignment' && (
             <>
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">Assignment Title</label>
+                <label className="block text-sm font-medium text-gray-600 mb-2">Assignment Title</label>
                 <input
                   type="text"
                   name="title"
                   required
                   onChange={handleChange}
-                  className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                  className="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-2 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="Enter assignment title"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">Subject</label>
+                <label className="block text-sm font-medium text-gray-600 mb-2">Subject</label>
                 <select
                   name="subject_id"
                   required
                   onChange={handleChange}
-                  className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                  className="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="">Select subject</option>
                   {subjects.map((subject) => (
@@ -1009,75 +1047,75 @@ const CreateModal = ({ type, onClose, onSubmit, subjects }) => {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">Due Date</label>
+                <label className="block text-sm font-medium text-gray-600 mb-2">Due Date</label>
                 <input
                   type="datetime-local"
                   name="due_date"
                   required
                   onChange={handleChange}
-                  className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                  className="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">Max Points</label>
+                <label className="block text-sm font-medium text-gray-600 mb-2">Max Points</label>
                 <input
                   type="number"
                   name="max_points"
                   required
                   onChange={handleChange}
-                  className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                  className="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-2 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="100"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">Description</label>
+                <label className="block text-sm font-medium text-gray-600 mb-2">Description</label>
                 <textarea
                   name="description"
                   rows="3"
                   required
                   onChange={handleChange}
-                  className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                  className="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-2 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="Enter assignment description"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">AI Grading Criteria</label>
+                <label className="block text-sm font-medium text-gray-600 mb-2">AI Grading Criteria</label>
                 <div className="space-y-2">
                   <label className="flex items-center space-x-2">
                     <input
                       type="checkbox"
                       name="check_grammar"
                       onChange={(e) => setFormData({...formData, check_grammar: e.target.checked})}
-                      className="rounded border-white/20 bg-white/10 text-cyan-500 focus:ring-cyan-500"
+                      className="rounded border-gray-200 text-blue-600 focus:ring-blue-500"
                     />
-                    <span className="text-sm text-gray-300">Check Grammar</span>
+                    <span className="text-sm text-gray-600">Check Grammar</span>
                   </label>
                   <label className="flex items-center space-x-2">
                     <input
                       type="checkbox"
                       name="check_structure"
                       onChange={(e) => setFormData({...formData, check_structure: e.target.checked})}
-                      className="rounded border-white/20 bg-white/10 text-cyan-500 focus:ring-cyan-500"
+                      className="rounded border-gray-200 text-blue-600 focus:ring-blue-500"
                     />
-                    <span className="text-sm text-gray-300">Check Structure</span>
+                    <span className="text-sm text-gray-600">Check Structure</span>
                   </label>
                   <label className="flex items-center space-x-2">
                     <input
                       type="checkbox"
                       name="check_plagiarism"
                       onChange={(e) => setFormData({...formData, check_plagiarism: e.target.checked})}
-                      className="rounded border-white/20 bg-white/10 text-cyan-500 focus:ring-cyan-500"
+                      className="rounded border-gray-200 text-blue-600 focus:ring-blue-500"
                     />
-                    <span className="text-sm text-gray-300">Check Plagiarism</span>
+                    <span className="text-sm text-gray-600">Check Plagiarism</span>
                   </label>
                   <label className="flex items-center space-x-2">
                     <input
                       type="checkbox"
                       name="check_content"
                       onChange={(e) => setFormData({...formData, check_content: e.target.checked})}
-                      className="rounded border-white/20 bg-white/10 text-cyan-500 focus:ring-cyan-500"
+                      className="rounded border-gray-200 text-blue-600 focus:ring-blue-500"
                     />
-                    <span className="text-sm text-gray-300">Check Content Quality</span>
+                    <span className="text-sm text-gray-600">Check Content Quality</span>
                   </label>
                 </div>
               </div>
@@ -1088,13 +1126,13 @@ const CreateModal = ({ type, onClose, onSubmit, subjects }) => {
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 bg-white/10 hover:bg-white/20 text-white py-2 px-4 rounded-lg transition-all"
+              className="flex-1 bg-gray-50 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-100 transition-all"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="flex-1 bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-600 hover:to-purple-600 text-white py-2 px-4 rounded-lg transition-all"
+              className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-all"
             >
               Create {type.charAt(0).toUpperCase() + type.slice(1)}
             </button>

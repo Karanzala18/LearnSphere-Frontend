@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Brain, Users, Calendar, BookOpen, Award, Zap, ChevronRight, Menu, X } from 'lucide-react';
+import { Brain, Users, Calendar, BookOpen, Award, Zap, ChevronRight, Menu, X, Check } from 'lucide-react';
 
 const LandingPage = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -13,9 +13,8 @@ const LandingPage = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Navigation handlers
   const handleLogin = () => {
-   navigate('/login'); 
+   navigate('/login');
   };
 
   const handleSignup = () => {
@@ -28,32 +27,32 @@ const LandingPage = () => {
 
   const features = [
     {
-      icon: <Brain className="w-8 h-8" />,
+      icon: <Brain className="w-6 h-6" />,
       title: "AI-Powered Learning",
       description: "Smart note summaries, flashcard generation, and personalized quizzes powered by advanced AI algorithms."
     },
     {
-      icon: <Users className="w-8 h-8" />,
+      icon: <Users className="w-6 h-6" />,
       title: "Collaborative Platform",
       description: "Faculty and students work together seamlessly with shared resources, assignments, and real-time feedback."
     },
     {
-      icon: <Calendar className="w-8 h-8" />,
+      icon: <Calendar className="w-6 h-6" />,
       title: "Smart Calendar",
       description: "Never miss a deadline with integrated calendar showing quizzes, assignments, and important academic events."
     },
     {
-      icon: <BookOpen className="w-8 h-8" />,
+      icon: <BookOpen className="w-6 h-6" />,
       title: "Auto-Grading System",
       description: "AI evaluates assignments for grammar, structure, and content quality with instant feedback generation."
     },
     {
-      icon: <Award className="w-8 h-8" />,
+      icon: <Award className="w-6 h-6" />,
       title: "Performance Analytics",
       description: "Track learning progress with detailed analytics and insights for both students and faculty."
     },
     {
-      icon: <Zap className="w-8 h-8" />,
+      icon: <Zap className="w-6 h-6" />,
       title: "Instant Feedback",
       description: "Get immediate AI-generated feedback on assignments and quizzes to accelerate learning."
     }
@@ -61,60 +60,75 @@ const LandingPage = () => {
 
   const roles = [
     {
-      icon: "👩‍🏫",
       title: "Faculty",
-      description: "Create subjects, manage quizzes, auto-grade assignments, and track student performance with powerful analytics."
+      description: "Create subjects, manage quizzes, auto-grade assignments, and track student performance with powerful analytics.",
+      benefits: [
+        "Subject & quiz management",
+        "Automated grading",
+        "Performance dashboards",
+        "Resource sharing"
+      ]
     },
     {
-      icon: "👨‍🎓",
       title: "Students",
-      description: "Join courses, access AI study tools, submit assignments, and get instant feedback on your academic progress."
+      description: "Join courses, access AI study tools, submit assignments, and get instant feedback on your academic progress.",
+      benefits: [
+        "AI study companions",
+        "Smart flashcards",
+        "Progress tracking",
+        "Instant feedback"
+      ]
     },
     {
-      icon: "🧑‍💼",
       title: "Admin",
-      description: "Institution-wide access, comprehensive analytics, and approval workflows for complete academic management."
+      description: "Institution-wide access, comprehensive analytics, and approval workflows for complete academic management.",
+      benefits: [
+        "Institution analytics",
+        "User management",
+        "Approval workflows",
+        "System oversight"
+      ]
     }
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 text-white overflow-hidden">
-      {/* Animated Background */}
-      <div className="fixed inset-0 opacity-30">
-        <div className="absolute inset-0 bg-gradient-to-r from-cyan-400 via-violet-600 to-cyan-400 animate-pulse"></div>
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(0,212,255,0.1),rgba(124,58,237,0.1),rgba(0,0,0,0.9))]"></div>
+    <div className="min-h-screen bg-white text-gray-900">
+      {/* Subtle Background Pattern */}
+      <div className="fixed inset-0 bg-gradient-to-b from-gray-50 to-white -z-10"></div>
+      <div className="fixed inset-0 opacity-[0.03] -z-10">
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:14px_24px]"></div>
       </div>
 
       {/* Header */}
       <nav className={`fixed w-full z-50 transition-all duration-300 ${
-        scrollY > 50 ? 'bg-slate-950/80 backdrop-blur-xl border-b border-slate-800/50' : 'bg-transparent'
+        scrollY > 50 ? 'bg-white/95 backdrop-blur-md border-b border-gray-200 shadow-sm' : 'bg-white'
       }`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
             <div className="flex items-center space-x-2">
-              <Brain className="w-8 h-8 text-cyan-400" />
-              <span className="text-2xl font-bold bg-gradient-to-r from-cyan-400 to-violet-400 bg-clip-text text-transparent">
+              <Brain className="w-8 h-8 text-blue-600" />
+              <span className="text-xl font-semibold text-gray-900">
                 LearnSphere AI
               </span>
             </div>
 
             {/* Desktop Navigation */}
             <div className="hidden md:flex items-center space-x-8">
-              <a href="#features" className="text-gray-300 hover:text-cyan-400 transition-colors">Features</a>
-              <a href="#roles" className="text-gray-300 hover:text-cyan-400 transition-colors">Roles</a>
-              <a href="#about" className="text-gray-300 hover:text-cyan-400 transition-colors">About</a>
-              <div className="flex items-center space-x-4">
+              <a href="#features" className="text-gray-600 hover:text-gray-900 transition-colors text-sm font-medium">Features</a>
+              <a href="#roles" className="text-gray-600 hover:text-gray-900 transition-colors text-sm font-medium">Roles</a>
+              <a href="#about" className="text-gray-600 hover:text-gray-900 transition-colors text-sm font-medium">About</a>
+              <div className="flex items-center space-x-3 ml-4">
                 <button
                   onClick={handleLogin}
-                  className="px-4 py-2 text-gray-300 border border-slate-600 rounded-full hover:bg-slate-800/50 hover:border-cyan-400 hover:text-cyan-400 transition-all duration-300"
+                  className="px-4 py-2 text-gray-700 text-sm font-medium hover:text-gray-900 transition-colors"
                 >
-                  Login
+                  Log in
                 </button>
                 <button
                   onClick={handleSignup}
-                  className="px-6 py-2 bg-gradient-to-r from-cyan-400 to-violet-600 text-white rounded-full hover:from-cyan-500 hover:to-violet-700 transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-cyan-500/25"
+                  className="px-5 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-all duration-200 shadow-sm"
                 >
-                  Sign Up
+                  Get Started
                 </button>
               </div>
             </div>
@@ -122,7 +136,7 @@ const LandingPage = () => {
             {/* Mobile menu button */}
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className="md:hidden p-2 text-gray-300 hover:text-cyan-400 transition-colors"
+              className="md:hidden p-2 text-gray-600 hover:text-gray-900 transition-colors"
             >
               {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
             </button>
@@ -130,23 +144,23 @@ const LandingPage = () => {
 
           {/* Mobile Navigation */}
           {isMenuOpen && (
-            <div className="md:hidden bg-slate-950/90 backdrop-blur-xl rounded-lg mt-2 p-4 border border-slate-800">
+            <div className="md:hidden bg-white rounded-lg mt-2 p-4 border border-gray-200 shadow-lg mb-4">
               <div className="flex flex-col space-y-4">
-                <a href="#features" className="text-gray-300 hover:text-cyan-400 transition-colors">Features</a>
-                <a href="#roles" className="text-gray-300 hover:text-cyan-400 transition-colors">Roles</a>
-                <a href="#about" className="text-gray-300 hover:text-cyan-400 transition-colors">About</a>
-                <div className="flex flex-col space-y-2 pt-4 border-t border-slate-800">
+                <a href="#features" className="text-gray-600 hover:text-gray-900 transition-colors text-sm font-medium">Features</a>
+                <a href="#roles" className="text-gray-600 hover:text-gray-900 transition-colors text-sm font-medium">Roles</a>
+                <a href="#about" className="text-gray-600 hover:text-gray-900 transition-colors text-sm font-medium">About</a>
+                <div className="flex flex-col space-y-2 pt-4 border-t border-gray-200">
                   <button
                     onClick={handleLogin}
-                    className="px-4 py-2 text-gray-300 border border-slate-600 rounded-full hover:bg-slate-800/50 hover:border-cyan-400 hover:text-cyan-400 transition-all duration-300"
+                    className="px-4 py-2 text-gray-700 text-sm font-medium hover:bg-gray-50 rounded-lg transition-all duration-200"
                   >
-                    Login
+                    Log in
                   </button>
                   <button
                     onClick={handleSignup}
-                    className="px-6 py-2 bg-gradient-to-r from-cyan-400 to-violet-600 text-white rounded-full hover:from-cyan-500 hover:to-violet-700 transition-all duration-300"
+                    className="px-5 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-all duration-200"
                   >
-                    Sign Up
+                    Get Started
                   </button>
                 </div>
               </div>
@@ -156,52 +170,58 @@ const LandingPage = () => {
       </nav>
 
       {/* Hero Section */}
-      <section className="relative min-h-screen flex items-center justify-center px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto text-center relative z-10">
-          <div className="animate-fade-in-up">
-            <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold mb-6 leading-tight">
+      <section className="relative pt-32 pb-20 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center">
+            <div className="inline-flex items-center px-4 py-2 bg-blue-50 text-blue-700 rounded-full text-sm font-medium mb-6">
+              <Zap className="w-4 h-4 mr-2" />
+              AI-Powered Academic Platform
+            </div>
+            <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold mb-6 text-gray-900 tracking-tight">
               The Smart Academic
-              <span className="block bg-gradient-to-r from-cyan-400 via-violet-400 to-cyan-400 bg-clip-text text-transparent">
+              <span className="block text-blue-600 mt-2">
                 Companion
               </span>
             </h1>
-            <p className="text-xl md:text-2xl mb-8 max-w-3xl mx-auto text-gray-300 leading-relaxed">
+            <p className="text-lg md:text-xl mb-10 max-w-3xl mx-auto text-gray-600 leading-relaxed">
               An all-in-one AI-powered platform where faculty manage subjects and assignments 
               while students access smart study tools — all under one collaborative ecosystem.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
               <button
                 onClick={handleGetStarted}
-                className="group px-8 py-4 bg-gradient-to-r from-cyan-400 to-violet-600 text-white rounded-full text-lg font-semibold hover:from-cyan-500 hover:to-violet-700 transition-all duration-300 transform hover:scale-105 flex items-center space-x-2 shadow-lg hover:shadow-cyan-500/25"
+                className="group px-8 py-4 bg-blue-600 text-white rounded-lg text-base font-semibold hover:bg-blue-700 transition-all duration-200 flex items-center space-x-2 shadow-lg shadow-blue-600/20"
               >
-                <span>Get Started Free</span>
+                <span>Get Started</span>
                 <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
               </button>
-              <button className="px-8 py-4 border-2 border-slate-600 text-gray-300 rounded-full text-lg font-semibold hover:bg-slate-800/50 hover:border-cyan-400 hover:text-cyan-400 transition-all duration-300">
-                Watch Demo
-              </button>
             </div>
+            <p className="mt-6 text-sm text-gray-500">Join thousands of educators and students today</p>
           </div>
-        </div>
 
-        {/* Floating Elements */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-20 left-10 w-20 h-20 bg-cyan-400/20 rounded-full animate-bounce"></div>
-          <div className="absolute top-40 right-20 w-16 h-16 bg-violet-500/20 rounded-full animate-pulse"></div>
-          <div className="absolute bottom-40 left-20 w-24 h-24 bg-cyan-500/20 rounded-full animate-bounce delay-1000"></div>
-          <div className="absolute bottom-20 right-10 w-12 h-12 bg-violet-400/20 rounded-full animate-pulse delay-500"></div>
+          {/* Hero Image Placeholder */}
+          <div className="mt-16 relative">
+            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl border border-gray-200 shadow-2xl p-8 aspect-video flex items-center justify-center">
+              <div className="text-center">
+                <Brain className="w-20 h-20 text-blue-600 mx-auto mb-4 opacity-50" />
+                <p className="text-gray-500 font-medium">Platform Preview</p>
+              </div>
+            </div>
+            <div className="absolute -bottom-6 -left-6 w-32 h-32 bg-blue-100 rounded-full blur-3xl opacity-50"></div>
+            <div className="absolute -top-6 -right-6 w-32 h-32 bg-indigo-100 rounded-full blur-3xl opacity-50"></div>
+          </div>
         </div>
       </section>
 
       {/* Features Section */}
-      <section id="features" className="py-20 px-4 sm:px-6 lg:px-8 relative">
+      <section id="features" className="py-24 px-4 sm:px-6 lg:px-8 bg-gray-50">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
-            <h2 className="text-4xl md:text-5xl font-bold mb-6 bg-gradient-to-r from-cyan-400 to-violet-400 bg-clip-text text-transparent">
+            <h2 className="text-4xl md:text-5xl font-bold mb-4 text-gray-900">
               Powerful Features
             </h2>
-            <p className="text-xl text-gray-300 max-w-3xl mx-auto">
-              Experience the future of education with our AI-powered tools designed for modern learning
+            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+              Everything you need to create an exceptional learning experience
             </p>
           </div>
 
@@ -209,13 +229,13 @@ const LandingPage = () => {
             {features.map((feature, index) => (
               <div
                 key={index}
-                className="group p-6 bg-slate-900/50 backdrop-blur-sm rounded-2xl border border-slate-800 hover:bg-slate-800/50 hover:border-cyan-400/50 transition-all duration-300 transform hover:scale-105 hover:shadow-xl hover:shadow-cyan-500/10"
+                className="p-8 bg-white rounded-xl border border-gray-200 hover:border-blue-300 hover:shadow-lg transition-all duration-300"
               >
-                <div className="text-cyan-400 mb-4 group-hover:scale-110 transition-transform duration-300">
+                <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center text-blue-600 mb-5">
                   {feature.icon}
                 </div>
-                <h3 className="text-xl font-semibold mb-3 text-white">{feature.title}</h3>
-                <p className="text-gray-300 leading-relaxed">{feature.description}</p>
+                <h3 className="text-xl font-semibold mb-3 text-gray-900">{feature.title}</h3>
+                <p className="text-gray-600 leading-relaxed">{feature.description}</p>
               </div>
             ))}
           </div>
@@ -223,14 +243,14 @@ const LandingPage = () => {
       </section>
 
       {/* Roles Section */}
-      <section id="roles" className="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-r from-slate-900/50 to-indigo-950/50">
+      <section id="roles" className="py-24 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
-            <h2 className="text-4xl md:text-5xl font-bold mb-6 text-white">
+            <h2 className="text-4xl md:text-5xl font-bold mb-4 text-gray-900">
               Built for Everyone
             </h2>
-            <p className="text-xl text-gray-300 max-w-3xl mx-auto">
-              Whether you're a faculty member, student, or administrator, LearnSphere AI has you covered
+            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+              Tailored experiences for faculty, students, and administrators
             </p>
           </div>
 
@@ -238,13 +258,18 @@ const LandingPage = () => {
             {roles.map((role, index) => (
               <div
                 key={index}
-                className="group text-center p-8 bg-slate-900/50 backdrop-blur-sm rounded-2xl border border-slate-800 hover:bg-slate-800/50 hover:border-violet-400/50 transition-all duration-300 transform hover:scale-105 hover:shadow-xl hover:shadow-violet-500/10"
+                className="p-8 bg-white rounded-xl border border-gray-200 hover:border-blue-300 hover:shadow-lg transition-all duration-300"
               >
-                <div className="text-6xl mb-6 group-hover:scale-110 transition-transform duration-300">
-                  {role.icon}
-                </div>
-                <h3 className="text-2xl font-semibold mb-4 text-cyan-400">{role.title}</h3>
-                <p className="text-gray-300 leading-relaxed">{role.description}</p>
+                <h3 className="text-2xl font-semibold mb-4 text-gray-900">{role.title}</h3>
+                <p className="text-gray-600 mb-6 leading-relaxed">{role.description}</p>
+                <ul className="space-y-3">
+                  {role.benefits.map((benefit, idx) => (
+                    <li key={idx} className="flex items-start">
+                      <Check className="w-5 h-5 text-blue-600 mr-3 mt-0.5 flex-shrink-0" />
+                      <span className="text-gray-700">{benefit}</span>
+                    </li>
+                  ))}
+                </ul>
               </div>
             ))}
           </div>
@@ -252,46 +277,44 @@ const LandingPage = () => {
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-r from-cyan-500/10 to-violet-600/10">
+      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-blue-600">
         <div className="max-w-4xl mx-auto text-center">
           <h2 className="text-4xl md:text-5xl font-bold mb-6 text-white">
-            Ready to Transform Your Academic Experience?
+            Ready to Transform Your Learning?
           </h2>
-          <p className="text-xl text-gray-300 mb-8 max-w-2xl mx-auto">
-            Join thousands of educators and students who are already using LearnSphere AI to enhance their learning journey.
+          <p className="text-xl text-blue-100 mb-10 max-w-2xl mx-auto">
+            Join thousands of educators and students already using LearnSphere AI
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <button
               onClick={handleGetStarted}
-              className="group px-8 py-4 bg-gradient-to-r from-cyan-400 to-violet-600 text-white rounded-full text-lg font-semibold hover:from-cyan-500 hover:to-violet-700 transition-all duration-300 transform hover:scale-105 flex items-center justify-center space-x-2 shadow-lg hover:shadow-cyan-500/25"
+              className="group px-8 py-4 bg-white text-blue-600 rounded-lg text-lg font-semibold hover:bg-gray-50 transition-all duration-200 flex items-center justify-center space-x-2 shadow-lg"
             >
-              <span>Start Free Trial</span>
+              <span>Get Started</span>
               <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-            </button>
-            <button className="px-8 py-4 border-2 border-slate-600 text-gray-300 rounded-full text-lg font-semibold hover:bg-slate-800/50 hover:border-cyan-400 hover:text-cyan-400 transition-all duration-300">
-              Contact Sales
             </button>
           </div>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="py-12 px-4 sm:px-6 lg:px-8 bg-slate-950/50 backdrop-blur-sm border-t border-slate-800">
+      <footer className="py-12 px-4 sm:px-6 lg:px-8 bg-gray-50 border-t border-gray-200">
         <div className="max-w-7xl mx-auto">
-          <div className="flex flex-col md:flex-row justify-between items-center">
-            <div className="flex items-center space-x-2 mb-4 md:mb-0">
-              <Brain className="w-8 h-8 text-cyan-400" />
-              <span className="text-2xl font-bold bg-gradient-to-r from-cyan-400 to-violet-400 bg-clip-text text-transparent">
+          <div className="flex flex-col md:flex-row justify-between items-center mb-8">
+            <div className="flex items-center space-x-2 mb-6 md:mb-0">
+              <Brain className="w-8 h-8 text-blue-600" />
+              <span className="text-xl font-semibold text-gray-900">
                 LearnSphere AI
               </span>
             </div>
-            <div className="flex space-x-6 text-gray-300">
-              <a href="#" className="hover:text-cyan-400 transition-colors">Privacy Policy</a>
-              <a href="#" className="hover:text-cyan-400 transition-colors">Terms of Service</a>
-              <a href="#" className="hover:text-cyan-400 transition-colors">Support</a>
+            <div className="flex flex-wrap justify-center gap-8 text-sm text-gray-600">
+              <a href="#" className="hover:text-gray-900 transition-colors">Privacy Policy</a>
+              <a href="#" className="hover:text-gray-900 transition-colors">Terms of Service</a>
+              <a href="#" className="hover:text-gray-900 transition-colors">Support</a>
+              <a href="#" className="hover:text-gray-900 transition-colors">Contact</a>
             </div>
           </div>
-          <div className="mt-8 pt-8 border-t border-slate-800 text-center text-gray-400">
+          <div className="pt-8 border-t border-gray-200 text-center text-sm text-gray-500">
             <p>&copy; 2024 LearnSphere AI. All rights reserved.</p>
           </div>
         </div>
@@ -300,4 +323,4 @@ const LandingPage = () => {
   );
 };
 
-export default LandingPage;
+export default LandingPage; 
