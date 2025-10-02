@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { authService } from '../../services/authService';
 import facultyDashboardService from '../../services/facultyDashboardService';
 import { subjectService } from '../../services/subjectService';
+import FacultyNavbar from '../../components/Navbar/FacultyNavbar';
 import { 
   Brain, 
   Plus, 
@@ -50,7 +51,6 @@ const getSemesterText = (semester) => {
 const FacultyDashboard = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('overview');
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [subjects, setSubjects] = useState([]);
   const [quizzes, setQuizzes] = useState([]);
   const [assignments, setAssignments] = useState([]);
@@ -59,13 +59,10 @@ const FacultyDashboard = () => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [createModalType, setCreateModalType] = useState('');
   const [notification, setNotification] = useState(null);
-  const [scrollY, setScrollY] = useState(0);
+
 
   useEffect(() => {
-    const handleScroll = () => setScrollY(window.scrollY);
-    window.addEventListener('scroll', handleScroll);
     fetchDashboardData();
-    return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
   const showNotification = (message, type = 'success') => {
@@ -268,121 +265,14 @@ const FacultyDashboard = () => {
         </div>
       )}
 
-      {/* Header */}
-      <header className={`fixed w-full z-50 transition-all duration-300 ${
-        scrollY > 50 ? 'bg-white/95 backdrop-blur-md border-b border-gray-200 shadow-sm' : 'bg-white'
-      }`}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4">
-            <div className="flex items-center space-x-2">
-              <Brain className="w-8 h-8 text-blue-600" />
-              <span className="text-xl font-semibold text-gray-900">LearnSphere AI</span>
-              <span className="text-gray-400">|</span>
-              <span className="text-lg font-medium text-gray-600">Faculty Dashboard</span>
-            </div>
-            
-            <div className="hidden md:flex items-center space-x-4">
-              <button 
-                onClick={handleRefreshDashboard}
-                disabled={loading}
-                className="p-2 text-gray-600 hover:text-gray-900 transition-colors"
-                title="Refresh Dashboard"
-              >
-                <BarChart3 className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
-              </button>
-              <Bell className="w-6 h-6 text-gray-600 hover:text-gray-900 cursor-pointer" />
-              <div className="relative">
-                <button 
-                  onClick={() => setIsMenuOpen(!isMenuOpen)}
-                  className="flex items-center space-x-2 px-4 py-2 text-gray-700 hover:text-gray-900 transition-colors"
-                >
-                  <User className="w-5 h-5" />
-                  <span>{authService.getCurrentUser()?.name || 'User'}</span>
-                  <ChevronDown className="w-4 h-4" />
-                </button>
-                {isMenuOpen && (
-                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
-                    <button 
-                      onClick={() => {
-                        navigate('/faculty/profile');
-                        setIsMenuOpen(false);
-                      }}
-                      className="w-full px-4 py-2 text-left hover:bg-gray-50 transition-colors flex items-center space-x-2 text-gray-600"
-                    >
-                      <User className="w-4 h-4" />
-                      <span>Profile</span>
-                    </button>
-                    <a href="/settings" className="flex items-center space-x-2 px-4 py-2 text-gray-600 hover:bg-gray-50">
-                      <Settings className="w-4 h-4" />
-                      <span>Settings</span>
-                    </a>
-                    <button 
-                      onClick={() => {
-                        authService.logout();
-                        navigate('/');
-                      }} 
-                      className="flex items-center space-x-2 w-full px-4 py-2 text-gray-600 hover:bg-gray-50"
-                    >
-                      <LogOut className="w-4 h-4" />
-                      <span>Logout</span>
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
+      <FacultyNavbar 
+        onRefresh={handleRefreshDashboard} 
+        loading={loading}
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+      />
 
-            {/* Mobile menu button */}
-            <button
-              onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className="md:hidden p-2 text-gray-600 hover:text-gray-900 transition-colors"
-            >
-              {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-            </button>
-          </div>
-
-          {/* Mobile Navigation */}
-          {isMenuOpen && (
-            <div className="md:hidden bg-white rounded-lg mt-2 p-4 border border-gray-200 shadow-lg mb-4">
-              <div className="flex flex-col space-y-4">
-                <button 
-                  onClick={handleRefreshDashboard}
-                  disabled={loading}
-                  className="flex items-center space-x-2 px-4 py-2 text-gray-600 hover:bg-gray-50 rounded-lg transition-colors"
-                >
-                  <BarChart3 className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
-                  <span>Refresh Dashboard</span>
-                </button>
-                <button 
-                  onClick={() => {
-                    navigate('/faculty/profile');
-                    setIsMenuOpen(false);
-                  }}
-                  className="flex items-center space-x-2 px-4 py-2 text-gray-600 hover:bg-gray-50 rounded-lg transition-colors"
-                >
-                  <User className="w-4 h-4" />
-                  <span>Profile</span>
-                </button>
-                <a href="/settings" className="flex items-center space-x-2 px-4 py-2 text-gray-600 hover:bg-gray-50 rounded-lg">
-                  <Settings className="w-4 h-4" />
-                  <span>Settings</span>
-                </a>
-                <button 
-                  onClick={() => {
-                    authService.logout();
-                    navigate('/');
-                  }} 
-                  className="flex items-center space-x-2 px-4 py-2 text-gray-600 hover:bg-gray-50 rounded-lg"
-                >
-                  <LogOut className="w-4 h-4" />
-                  <span>Logout</span>
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-      </header>
-
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-36 pb-8">
         {/* Quick Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12">
           <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm hover:shadow-lg transition-all">
@@ -426,30 +316,7 @@ const FacultyDashboard = () => {
           </div>
         </div>
 
-        {/* Navigation Tabs */}
-        <div className="flex flex-wrap gap-2 mb-12 bg-gray-50 rounded-xl p-2">
-          {[
-            { id: 'overview', label: 'Overview', icon: BarChart3 },
-            { id: 'subjects', label: 'Subjects', icon: BookOpen },
-            { id: 'quizzes', label: 'Quizzes', icon: FileText },
-            { id: 'assignments', label: 'Assignments', icon: Award },
-            { id: 'calendar', label: 'Calendar', icon: Calendar },
-            { id: 'analytics', label: 'Analytics', icon: BarChart3 }
-          ].map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                activeTab === tab.id
-                  ? 'bg-blue-600 text-white'
-                  : 'text-gray-600 hover:bg-gray-200'
-              }`}
-            >
-              <tab.icon className="w-4 h-4" />
-              <span>{tab.label}</span>
-            </button>
-          ))}
-        </div>
+       
 
         {/* Loading State */}
         {loading && (
