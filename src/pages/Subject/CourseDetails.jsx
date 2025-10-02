@@ -3,23 +3,25 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { 
   ArrowLeft, 
   BookOpen, 
-  Users, 
   Calendar, 
-  Clock, 
-  FileText,
   Award,
   Brain,
-  Play,
-  Download,
-  Eye,
+  FileText,
   AlertCircle,
   RefreshCw,
-  Timer,
+  Clock,
   CheckCircle,
-  XCircle
+  XCircle,
+  Play,
+  Eye,
+  BarChart3,
+  Users,
+  TrendingUp,
+  Timer,
+  ChevronRight
 } from 'lucide-react';
 import { subjectService } from '../../services/subjectService';
-import studentQuizService from '../../services/studentQuizService'; // Updated import
+import studentQuizService from '../../services/studentQuizService';
 
 const CourseDetails = () => {
   const { courseId } = useParams();
@@ -66,7 +68,6 @@ const CourseDetails = () => {
       setQuizError('');
       console.log('Fetching quizzes for course:', courseId);
       
-      // Use the new studentQuizService
       const response = await studentQuizService.getQuizzes(courseId);
       console.log('Quizzes API Response:', response);
       
@@ -74,7 +75,6 @@ const CourseDetails = () => {
         throw new Error(response.message);
       }
       
-      // Extract quizzes from the response
       let quizzesData = [];
       if (response.quizzes) {
         quizzesData = response.quizzes;
@@ -108,7 +108,6 @@ const CourseDetails = () => {
         throw new Error(response.message);
       }
 
-      // Navigate to quiz attempt page
       const attemptId = response.attempt?.id || response.data?.attempt?.id || response.data?.id;
       console.log('Quiz started, attempt ID:', attemptId);
       
@@ -145,32 +144,111 @@ const CourseDetails = () => {
     const endTime = new Date(quiz.end_time);
 
     if (!quiz.is_active) {
-      return { status: 'Inactive', color: 'text-gray-400', icon: XCircle };
+      return { status: 'Inactive', color: 'text-gray-400', bgColor: 'bg-gray-100', icon: XCircle };
     }
     
     if (now < startTime) {
-      return { status: 'Upcoming', color: 'text-yellow-400', icon: Clock };
+      return { status: 'Upcoming', color: 'text-yellow-600', bgColor: 'bg-yellow-100', icon: Clock };
     }
     
     if (now > endTime) {
-      return { status: 'Expired', color: 'text-red-400', icon: XCircle };
+      return { status: 'Expired', color: 'text-red-600', bgColor: 'bg-red-100', icon: XCircle };
     }
     
     if (isAvailable) {
-      return { status: 'Available', color: 'text-green-400', icon: CheckCircle };
+      return { status: 'Available', color: 'text-green-600', bgColor: 'bg-green-100', icon: CheckCircle };
     }
     
-    return { status: 'Unavailable', color: 'text-gray-400', icon: XCircle };
+    return { status: 'Unavailable', color: 'text-gray-400', bgColor: 'bg-gray-100', icon: XCircle };
+  };
+
+  const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  const StatCard = ({ icon: Icon, title, value, color }) => (
+    <div className="bg-white rounded-xl p-6 border border-gray-200 hover:border-blue-300 hover:shadow-lg transition-all duration-300">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-gray-600 text-sm font-medium">{title}</p>
+          <p className="text-3xl font-bold text-gray-900 mt-2">{value}</p>
+        </div>
+        <div className={`p-3 rounded-xl bg-gradient-to-br ${color}`}>
+          <Icon className="w-6 h-6 text-white" />
+        </div>
+      </div>
+    </div>
+  );
+
+  const QuizCard = ({ quiz }) => {
+    const statusInfo = formatQuizStatus(quiz);
+    const StatusIcon = statusInfo.icon;
+    const isAvailable = isQuizAvailable(quiz);
+
+    return (
+      <div className="bg-white rounded-xl p-6 border border-gray-200 hover:border-blue-300 hover:shadow-lg transition-all duration-300">
+        <div className="flex items-start justify-between mb-4">
+          <div className="flex-1">
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">{quiz.title}</h3>
+            <div className={`inline-flex items-center space-x-1 px-3 py-1 rounded-full text-sm font-medium ${statusInfo.bgColor} ${statusInfo.color}`}>
+              <StatusIcon className="w-4 h-4" />
+              <span>{statusInfo.status}</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="space-y-2 mb-4">
+          <div className="flex items-center text-gray-600 text-sm">
+            <Timer className="w-4 h-4 mr-2" />
+            Duration: {quiz.duration_minutes} minutes
+          </div>
+          <div className="flex items-center text-gray-600 text-sm">
+            <Brain className="w-4 h-4 mr-2" />
+            Total Marks: {quiz.total_marks}
+          </div>
+          <div className="flex items-center text-gray-600 text-sm">
+            <Clock className="w-4 h-4 mr-2" />
+            Start: {formatDate(quiz.start_time)}
+          </div>
+          <div className="flex items-center text-gray-600 text-sm">
+            <Clock className="w-4 h-4 mr-2" />
+            End: {formatDate(quiz.end_time)}
+          </div>
+        </div>
+
+        <div className="flex space-x-2">
+          <button
+            onClick={() => handleStartQuiz(quiz.id)}
+            disabled={!isAvailable}
+            className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center justify-center space-x-2 ${
+              isAvailable
+                ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+            }`}
+          >
+            <Play className="w-4 h-4" />
+            <span>{isAvailable ? 'Start Quiz' : 'Unavailable'}</span>
+          </button>
+          <button className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition-all duration-200">
+            <Eye className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+    );
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 text-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="flex items-center justify-center py-20">
-            <RefreshCw className="w-8 h-8 text-cyan-400 animate-spin mr-3" />
-            <span>Loading course details...</span>
-          </div>
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="text-center">
+          <RefreshCw className="w-8 h-8 text-blue-600 animate-spin mx-auto mb-4" />
+          <p className="text-gray-600">Loading course details...</p>
         </div>
       </div>
     );
@@ -178,29 +256,25 @@ const CourseDetails = () => {
 
   if (error && !course) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 text-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="flex items-center justify-center py-20">
-            <div className="text-center">
-              <AlertCircle className="w-16 h-16 text-red-400 mx-auto mb-4" />
-              <h2 className="text-2xl font-bold mb-2">Error Loading Course</h2>
-              <p className="text-gray-300 mb-2">Course ID: {courseId}</p>
-              <p className="text-gray-300 mb-6">{error}</p>
-              <div className="space-x-4">
-                <button
-                  onClick={fetchCourseDetails}
-                  className="bg-gradient-to-r from-cyan-500 to-purple-500 px-6 py-3 rounded-xl hover:from-cyan-600 hover:to-purple-600 transition-all"
-                >
-                  Retry
-                </button>
-                <button
-                  onClick={handleGoBack}
-                  className="border border-white/30 px-6 py-3 rounded-xl hover:bg-white/10 transition-all"
-                >
-                  Go Back
-                </button>
-              </div>
-            </div>
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="text-center">
+          <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Error Loading Course</h2>
+          <p className="text-gray-600 mb-2">Course ID: {courseId}</p>
+          <p className="text-gray-600 mb-6">{error}</p>
+          <div className="space-x-4">
+            <button
+              onClick={fetchCourseDetails}
+              className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-all duration-200 font-medium"
+            >
+              Retry
+            </button>
+            <button
+              onClick={handleGoBack}
+              className="border border-gray-300 text-gray-700 px-6 py-3 rounded-lg hover:bg-gray-50 transition-all duration-200 font-medium"
+            >
+              Go Back
+            </button>
           </div>
         </div>
       </div>
@@ -209,116 +283,122 @@ const CourseDetails = () => {
 
   if (!course) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 text-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="flex items-center justify-center py-20">
-            <div className="text-center">
-              <BookOpen className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-              <h2 className="text-2xl font-bold mb-2">Course Not Found</h2>
-              <p className="text-gray-300 mb-6">The requested course could not be found.</p>
-              <button
-                onClick={handleGoBack}
-                className="bg-gradient-to-r from-cyan-500 to-purple-500 px-6 py-3 rounded-xl hover:from-cyan-600 hover:to-purple-600 transition-all"
-              >
-                Go Back
-              </button>
-            </div>
-          </div>
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="text-center">
+          <BookOpen className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Course Not Found</h2>
+          <p className="text-gray-600 mb-6">The requested course could not be found.</p>
+          <button
+            onClick={handleGoBack}
+            className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-all duration-200 font-medium"
+          >
+            Go Back
+          </button>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 text-white">
-      <div className="fixed inset-0 opacity-10">
-        <div className="absolute inset-0 bg-gradient-to-r from-purple-500 via-pink-500 to-blue-500 animate-pulse"></div>
+    <div className="min-h-screen bg-white text-gray-900">
+      {/* Subtle Background Pattern */}
+      <div className="fixed inset-0 bg-gradient-to-b from-gray-50 to-white -z-10"></div>
+      <div className="fixed inset-0 opacity-[0.03] -z-10">
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:14px_24px]"></div>
       </div>
 
-      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex items-center mb-8">
-          <button
-            onClick={handleGoBack}
-            className="flex items-center space-x-2 text-gray-300 hover:text-white transition-colors mr-6"
-          >
-            <ArrowLeft className="w-5 h-5" />
-            <span>Back to Dashboard</span>
-          </button>
-        </div>
+      {/* Back Button */}
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-6">
+        <button
+          onClick={handleGoBack}
+          className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 transition-colors"
+        >
+          <ArrowLeft className="w-5 h-5" />
+          <span className="font-medium">Back to Dashboard</span>
+        </button>
+      </div>
 
-        <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-8 border border-white/10 mb-8">
-          <div className="flex flex-col md:flex-row md:items-start md:justify-between">
+      {/* Main Content */}
+      <main className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
+        {/* Course Header */}
+        <div className="bg-white rounded-2xl p-8 border border-gray-200 shadow-sm mb-8">
+          <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between">
             <div className="flex-1">
-              <h1 className="text-3xl font-bold mb-2">{course.name || 'Course Name'}</h1>
-              <p className="text-xl text-gray-300 mb-4">{course.code || 'Course Code'}</p>
-              <p className="text-gray-300 mb-6">{course.description || 'No description available'}</p>
-              
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="text-center">
-                  <Calendar className="w-6 h-6 mx-auto mb-2 text-purple-400" />
-                  <p className="text-sm text-gray-300">Semester</p>
-                  <p className="text-lg font-semibold">{course.semester || 'Current'}</p>
+              <div className="flex items-center space-x-3 mb-4">
+                <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center">
+                  <BookOpen className="w-6 h-6 text-white" />
                 </div>
-                <div className="text-center">
-                  <Award className="w-6 h-6 mx-auto mb-2 text-green-400" />
-                  <p className="text-sm text-gray-300">Credits</p>
-                  <p className="text-lg font-semibold">{course.credits || 'N/A'}</p>
-                </div>
-                <div className="text-center">
-                  <BookOpen className="w-6 h-6 mx-auto mb-2 text-yellow-400" />
-                  <p className="text-sm text-gray-300">Department</p>
-                  <p className="text-lg font-semibold">{course.department || 'N/A'}</p>
-                </div>
-                <div className="text-center">
-                  <Brain className="w-6 h-6 mx-auto mb-2 text-cyan-400" />
-                  <p className="text-sm text-gray-300">Quizzes</p>
-                  <p className="text-lg font-semibold">{quizzes.length}</p>
+                <div>
+                  <h1 className="text-3xl font-bold text-gray-900">{course.name || 'Course Name'}</h1>
+                  <p className="text-gray-600">{course.code || 'Course Code'}</p>
                 </div>
               </div>
+              <p className="text-gray-600 mb-6 max-w-3xl">{course.description || 'No description available'}</p>
             </div>
             
-            <div className="mt-6 md:mt-0 md:ml-8">
-              <div className="text-center">
-                <div className="w-16 h-16 bg-gradient-to-r from-cyan-500 to-purple-500 rounded-full flex items-center justify-center mx-auto mb-3">
-                  <BookOpen className="w-8 h-8" />
-                </div>
-                <p className="text-sm text-gray-300">Faculty</p>
-                <p className="font-semibold">{course.faculty?.name || course.faculty_name || 'Unknown Faculty'}</p>
+            <div className="mt-6 lg:mt-0 lg:ml-8">
+              <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-xl p-6 text-center border border-blue-100">
+                <Users className="w-8 h-8 text-blue-600 mx-auto mb-2" />
+                <p className="text-sm text-gray-600 mb-1">Instructor</p>
+                <p className="font-semibold text-gray-900">{course.faculty?.name || course.faculty_name || 'Unknown Faculty'}</p>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Action Buttons */}
-        <div className="flex space-x-4">
-          <button
-            onClick={() => navigate(`/student/course/${courseId}/quizzes`)}
-            className="flex-1 bg-blue-900 text-white p-4 rounded-lg flex items-center justify-center space-x-2 hover:bg-blue-800 transition-colors"
-          >
-            <span className="w-6 h-6 bg-gradient-to-br from-pink-500 to-purple-500 rounded flex items-center justify-center">
+        {/* Stats Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <StatCard
+            icon={Calendar}
+            title="Semester"
+            value={course.semester || 'Current'}
+            color="from-purple-500 to-purple-600"
+          />
+          <StatCard
+            icon={Award}
+            title="Credits"
+            value={course.credits || 'N/A'}
+            color="from-green-500 to-green-600"
+          />
+          <StatCard
+            icon={Brain}
+            title="Total Quizzes"
+            value={quizzes.length}
+            color="from-blue-500 to-blue-600"
+          />
+          <StatCard
+            icon={TrendingUp}
+            title="Department"
+            value={course.department || 'N/A'}
+            color="from-orange-500 to-orange-600"
+          />
+        </div>
+
+        {/* Quick Actions */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+          <button className="bg-white rounded-xl p-6 border border-gray-200 hover:border-blue-300 hover:shadow-lg transition-all duration-300 flex items-center space-x-4 group">
+            <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
               <FileText className="w-6 h-6 text-white" />
-            </span>
-            <div>
-              <h3 className="text-lg font-semibold">All Quizzes</h3>
-              <p className="text-sm text-gray-300">View and manage all quizzes</p>
             </div>
+            <div className="text-left flex-1">
+              <h3 className="text-lg font-semibold text-gray-900 mb-1">Course Materials</h3>
+              <p className="text-sm text-gray-600">View notes and resources</p>
+            </div>
+            <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-blue-600 group-hover:translate-x-1 transition-all duration-300" />
           </button>
-          <button
-            onClick={() => navigate(`/student/course/${courseId}/assignments`)}
-            className="flex-1 bg-blue-900 text-white p-4 rounded-lg flex items-center justify-center space-x-2 hover:bg-blue-800 transition-colors"
-          >
-            <span className="w-6 h-6 bg-orange-500 rounded flex items-center justify-center">
-              <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-1 16H6c-.55 0-1-.45-1-1V6c0-.55.45-1 1-1h12c.55 0 1 .45 1 1v12c0 .55-.45 1-1 1z"/>
-              </svg>
-            </span>
-            <div>
-              <h3 className="text-lg font-semibold">Assignments</h3>
-              <p className="text-sm text-gray-300">View and manage assignments</p>
+
+          <button className="bg-white rounded-xl p-6 border border-gray-200 hover:border-purple-300 hover:shadow-lg transition-all duration-300 flex items-center space-x-4 group">
+            <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+              <BarChart3 className="w-6 h-6 text-white" />
             </div>
+            <div className="text-left flex-1">
+              <h3 className="text-lg font-semibold text-gray-900 mb-1">Performance</h3>
+              <p className="text-sm text-gray-600">View your progress</p>
+            </div>
+            <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-purple-600 group-hover:translate-x-1 transition-all duration-300" />
           </button>
         </div>
-      </div>
+      </main>
     </div>
   );
 };
