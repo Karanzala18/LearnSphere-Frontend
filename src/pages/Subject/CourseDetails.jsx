@@ -376,26 +376,32 @@ const CourseDetails = () => {
 
         {/* Quick Actions */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-          <button className="bg-white rounded-xl p-6 border border-gray-200 hover:border-blue-300 hover:shadow-lg transition-all duration-300 flex items-center space-x-4 group">
+          <button 
+            onClick={() => navigate(`/student/course/${courseId}/quizzes`)}
+            className="bg-white rounded-xl p-6 border border-gray-200 hover:border-blue-300 hover:shadow-lg transition-all duration-300 flex items-center space-x-4 group"
+          >
             <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
               <FileText className="w-6 h-6 text-white" />
             </div>
             <div className="text-left flex-1">
-              <h3 className="text-lg font-semibold text-gray-900 mb-1">Course Materials</h3>
-              <p className="text-sm text-gray-600">View notes and resources</p>
+              <h3 className="text-lg font-semibold text-gray-900 mb-1">All Quizzes</h3>
+              <p className="text-sm text-gray-600">View and manage all quizzes</p>
             </div>
             <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-blue-600 group-hover:translate-x-1 transition-all duration-300" />
           </button>
 
-          <button className="bg-white rounded-xl p-6 border border-gray-200 hover:border-purple-300 hover:shadow-lg transition-all duration-300 flex items-center space-x-4 group">
-            <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-              <BarChart3 className="w-6 h-6 text-white" />
+          <button 
+            onClick={() => navigate(`/student/course/${courseId}/assignments`)}
+            className="bg-white rounded-xl p-6 border border-gray-200 hover:border-purple-300 hover:shadow-lg transition-all duration-300 flex items-center space-x-4 group"
+          >
+            <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+              <FileText className="w-6 h-6 text-white" />
             </div>
             <div className="text-left flex-1">
-              <h3 className="text-lg font-semibold text-gray-900 mb-1">Performance</h3>
-              <p className="text-sm text-gray-600">View your progress</p>
+              <h3 className="text-lg font-semibold text-gray-900 mb-1">Assignments</h3>
+              <p className="text-sm text-gray-600">View and manage assignments</p>
             </div>
-            <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-purple-600 group-hover:translate-x-1 transition-all duration-300" />
+            <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-orange-600 group-hover:translate-x-1 transition-all duration-300" />
           </button>
         </div>
       </main>
