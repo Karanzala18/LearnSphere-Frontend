@@ -186,63 +186,6 @@ const CourseDetails = () => {
     </div>
   );
 
-  const QuizCard = ({ quiz }) => {
-    const statusInfo = formatQuizStatus(quiz);
-    const StatusIcon = statusInfo.icon;
-    const isAvailable = isQuizAvailable(quiz);
-
-    return (
-      <div className="bg-white rounded-xl p-6 border border-gray-200 hover:border-blue-300 hover:shadow-lg transition-all duration-300">
-        <div className="flex items-start justify-between mb-4">
-          <div className="flex-1">
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">{quiz.title}</h3>
-            <div className={`inline-flex items-center space-x-1 px-3 py-1 rounded-full text-sm font-medium ${statusInfo.bgColor} ${statusInfo.color}`}>
-              <StatusIcon className="w-4 h-4" />
-              <span>{statusInfo.status}</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="space-y-2 mb-4">
-          <div className="flex items-center text-gray-600 text-sm">
-            <Timer className="w-4 h-4 mr-2" />
-            Duration: {quiz.duration_minutes} minutes
-          </div>
-          <div className="flex items-center text-gray-600 text-sm">
-            <Brain className="w-4 h-4 mr-2" />
-            Total Marks: {quiz.total_marks}
-          </div>
-          <div className="flex items-center text-gray-600 text-sm">
-            <Clock className="w-4 h-4 mr-2" />
-            Start: {formatDate(quiz.start_time)}
-          </div>
-          <div className="flex items-center text-gray-600 text-sm">
-            <Clock className="w-4 h-4 mr-2" />
-            End: {formatDate(quiz.end_time)}
-          </div>
-        </div>
-
-        <div className="flex space-x-2">
-          <button
-            onClick={() => handleStartQuiz(quiz.id)}
-            disabled={!isAvailable}
-            className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center justify-center space-x-2 ${
-              isAvailable
-                ? 'bg-blue-600 hover:bg-blue-700 text-white'
-                : 'bg-gray-100 text-gray-400 cursor-not-allowed'
-            }`}
-          >
-            <Play className="w-4 h-4" />
-            <span>{isAvailable ? 'Start Quiz' : 'Unavailable'}</span>
-          </button>
-          <button className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition-all duration-200">
-            <Eye className="w-4 h-4" />
-          </button>
-        </div>
-      </div>
-    );
-  };
-
   if (loading) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">

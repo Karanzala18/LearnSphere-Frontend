@@ -20,7 +20,6 @@ import {
   Star,
   BarChart3,
   Target,
-  ClockIcon,
   CheckSquare
 } from 'lucide-react';
 import studentQuizService from '../../services/studentQuizService';
@@ -67,55 +66,51 @@ const StudentQuizView = () => {
     }
   };
 
-  // Replace the fetchStudentQuizzes function in StudentQuizView.jsx:
-
-const fetchStudentQuizzes = async () => {
-  try {
-    setQuizzesLoading(true);
-    setQuizError('');
-    console.log('Fetching quizzes for course:', courseId);
-    console.log('Course ID type:', typeof courseId);
-    
-    const response = await studentQuizService.getQuizzes(courseId);
-    console.log('Service response received:', response);
-    
-    if (!response.success) {
-      console.error('Service returned error:', response.message);
-      throw new Error(response.message);
-    }
-    
-    const quizzesData = response.quizzes || [];
-    console.log('Setting quizzes data:', quizzesData);
-    console.log('Quizzes count:', quizzesData.length);
-    
-    // Additional validation
-    if (!Array.isArray(quizzesData)) {
-      console.error('Quizzes data is not an array:', quizzesData);
-      throw new Error('Invalid quiz data format received');
-    }
-    
-    setQuizzes(quizzesData);
-    
-    // Log each quiz for debugging
-    quizzesData.forEach((quiz, index) => {
-      console.log(`Quiz ${index + 1}:`, {
-        id: quiz.id,
-        title: quiz.title,
-        active: quiz.is_active,
-        start: quiz.start_time,
-        end: quiz.end_time,
-        attempted: !!quiz.attempt_id
+  const fetchStudentQuizzes = async () => {
+    try {
+      setQuizzesLoading(true);
+      setQuizError('');
+      console.log('Fetching quizzes for course:', courseId);
+      console.log('Course ID type:', typeof courseId);
+      
+      const response = await studentQuizService.getQuizzes(courseId);
+      console.log('Service response received:', response);
+      
+      if (!response.success) {
+        console.error('Service returned error:', response.message);
+        throw new Error(response.message);
+      }
+      
+      const quizzesData = response.quizzes || [];
+      console.log('Setting quizzes data:', quizzesData);
+      console.log('Quizzes count:', quizzesData.length);
+      
+      if (!Array.isArray(quizzesData)) {
+        console.error('Quizzes data is not an array:', quizzesData);
+        throw new Error('Invalid quiz data format received');
+      }
+      
+      setQuizzes(quizzesData);
+      
+      quizzesData.forEach((quiz, index) => {
+        console.log(`Quiz ${index + 1}:`, {
+          id: quiz.id,
+          title: quiz.title,
+          active: quiz.is_active,
+          start: quiz.start_time,
+          end: quiz.end_time,
+          attempted: !!quiz.attempt_id
+        });
       });
-    });
-    
-  } catch (error) {
-    console.error('Error fetching quizzes:', error);
-    console.error('Error stack:', error.stack);
-    setQuizError(error.message || 'Failed to load quizzes');
-  } finally {
-    setQuizzesLoading(false);
-  }
-};
+      
+    } catch (error) {
+      console.error('Error fetching quizzes:', error);
+      console.error('Error stack:', error.stack);
+      setQuizError(error.message || 'Failed to load quizzes');
+    } finally {
+      setQuizzesLoading(false);
+    }
+  };
 
   const handleStartQuiz = async (quizId) => {
     try {
@@ -125,22 +120,20 @@ const fetchStudentQuizzes = async () => {
         const attemptId = response.attempt.id;
         console.log('Quiz started, attempt ID:', attemptId);
         
-        // Debug: Check current location
         console.log('Current location before navigation:', window.location.href);
         
-        // Try navigation
         const targetPath = `/student/quiz-attempts/${attemptId}`;
         console.log('Navigating to:', targetPath);
         
         navigate(targetPath);
         
-        // Debug: Check if navigation worked (with a small delay)
         setTimeout(() => {
           console.log('Current location after navigation:', window.location.href);
         }, 100);
       }
     } catch (error) {
       console.error('Error starting quiz:', error);
+      alert('Failed to start quiz: ' + error.message);
     } finally {
       setStartingQuiz(null);
     }
@@ -150,7 +143,6 @@ const fetchStudentQuizzes = async () => {
     navigate(`/student/subjects/${courseId}`);
   };
 
-  // Simplified isQuizAvailable function - now uses service method
   const isQuizAvailable = (quiz) => {
     return studentQuizService.isQuizCurrentlyAvailable(quiz);
   };
@@ -164,7 +156,6 @@ const fetchStudentQuizzes = async () => {
 
     quizzes.forEach(quiz => {
       if (!quiz.is_active) {
-        // Skip inactive quizzes from stats
         return;
       }
 
@@ -225,26 +216,26 @@ const fetchStudentQuizzes = async () => {
     const endTime = new Date(quiz.end_time);
 
     if (quiz.attempt_id) {
-      return { status: 'Completed', color: 'text-blue-400', bgColor: 'bg-blue-500/20', icon: CheckSquare };
+      return { status: 'Completed', color: 'text-blue-600', bgColor: 'bg-blue-100', icon: CheckSquare };
     }
 
     if (!quiz.is_active) {
-      return { status: 'Inactive', color: 'text-gray-400', bgColor: 'bg-gray-500/20', icon: XCircle };
+      return { status: 'Inactive', color: 'text-gray-400', bgColor: 'bg-gray-100', icon: XCircle };
     }
     
     if (now < startTime) {
-      return { status: 'Upcoming', color: 'text-yellow-400', bgColor: 'bg-yellow-500/20', icon: Clock };
+      return { status: 'Upcoming', color: 'text-yellow-600', bgColor: 'bg-yellow-100', icon: Clock };
     }
     
     if (now > endTime) {
-      return { status: 'Missed', color: 'text-red-400', bgColor: 'bg-red-500/20', icon: XCircle };
+      return { status: 'Missed', color: 'text-red-600', bgColor: 'bg-red-100', icon: XCircle };
     }
     
     if (now >= startTime && now <= endTime) {
-      return { status: 'Available', color: 'text-green-400', bgColor: 'bg-green-500/20', icon: CheckCircle };
+      return { status: 'Available', color: 'text-green-600', bgColor: 'bg-green-100', icon: CheckCircle };
     }
     
-    return { status: 'Unavailable', color: 'text-gray-400', bgColor: 'bg-gray-500/20', icon: XCircle };
+    return { status: 'Unavailable', color: 'text-gray-400', bgColor: 'bg-gray-100', icon: XCircle };
   };
 
   const formatDateTime = (dateString) => {
@@ -254,7 +245,6 @@ const fetchStudentQuizzes = async () => {
       const date = new Date(dateString);
       if (isNaN(date.getTime())) return 'Invalid date';
       
-      // Format in user's local timezone
       return date.toLocaleString('en-US', {
         year: 'numeric',
         month: 'short',
@@ -281,7 +271,7 @@ const fetchStudentQuizzes = async () => {
       const diffMinutes = Math.floor((end - start) / (1000 * 60));
       
       if (diffMinutes < 60) {
-        return `${diffMinutes} minutes`;
+        return `${diffMinutes} min`;
       }
       
       const hours = Math.floor(diffMinutes / 60);
@@ -308,14 +298,33 @@ const fetchStudentQuizzes = async () => {
     }
   };
 
+  const StatCard = ({ icon: Icon, title, value, color, onClick, isActive }) => (
+    <button
+      onClick={onClick}
+      className={`bg-white rounded-xl p-6 border transition-all duration-300 text-left w-full ${
+        isActive 
+          ? 'border-blue-300 shadow-lg ring-2 ring-blue-100' 
+          : 'border-gray-200 hover:border-blue-300 hover:shadow-lg'
+      }`}
+    >
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-gray-600 text-sm font-medium">{title}</p>
+          <p className="text-3xl font-bold text-gray-900 mt-2">{value}</p>
+        </div>
+        <div className={`p-3 rounded-xl bg-gradient-to-br ${color}`}>
+          <Icon className="w-6 h-6 text-white" />
+        </div>
+      </div>
+    </button>
+  );
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 text-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="flex items-center justify-center py-20">
-            <RefreshCw className="w-8 h-8 text-cyan-400 animate-spin mr-3" />
-            <span>Loading course details...</span>
-          </div>
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="text-center">
+          <RefreshCw className="w-8 h-8 text-blue-600 animate-spin mx-auto mb-4" />
+          <p className="text-gray-600">Loading course details...</p>
         </div>
       </div>
     );
@@ -323,29 +332,25 @@ const fetchStudentQuizzes = async () => {
 
   if (error && !course) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 text-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="flex items-center justify-center py-20">
-            <div className="text-center">
-              <AlertCircle className="w-16 h-16 text-red-400 mx-auto mb-4" />
-              <h2 className="text-2xl font-bold mb-2">Error Loading Course</h2>
-              <p className="text-gray-300 mb-2">Course ID: {courseId}</p>
-              <p className="text-gray-300 mb-6">{error}</p>
-              <div className="space-x-4">
-                <button
-                  onClick={fetchCourseDetails}
-                  className="bg-gradient-to-r from-cyan-500 to-purple-500 px-6 py-3 rounded-xl hover:from-cyan-600 hover:to-purple-600 transition-all"
-                >
-                  Retry
-                </button>
-                <button
-                  onClick={handleGoBack}
-                  className="border border-white/30 px-6 py-3 rounded-xl hover:bg-white/10 transition-all"
-                >
-                  Go Back
-                </button>
-              </div>
-            </div>
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="text-center">
+          <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Error Loading Course</h2>
+          <p className="text-gray-600 mb-2">Course ID: {courseId}</p>
+          <p className="text-gray-600 mb-6">{error}</p>
+          <div className="space-x-4">
+            <button
+              onClick={fetchCourseDetails}
+              className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-all duration-200 font-medium"
+            >
+              Retry
+            </button>
+            <button
+              onClick={handleGoBack}
+              className="border border-gray-300 text-gray-700 px-6 py-3 rounded-lg hover:bg-gray-50 transition-all duration-200 font-medium"
+            >
+              Go Back
+            </button>
           </div>
         </div>
       </div>
@@ -356,168 +361,164 @@ const fetchStudentQuizzes = async () => {
   const filteredQuizzes = getFilteredQuizzes();
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 text-white">
-      <div className="fixed inset-0 opacity-10">
-        <div className="absolute inset-0 bg-gradient-to-r from-purple-500 via-pink-500 to-blue-500 animate-pulse"></div>
+    <div className="min-h-screen bg-white text-gray-900">
+      {/* Subtle Background Pattern */}
+      <div className="fixed inset-0 bg-gradient-to-b from-gray-50 to-white -z-10"></div>
+      <div className="fixed inset-0 opacity-[0.03] -z-10">
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:14px_24px]"></div>
       </div>
 
-      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-8">
+      {/* Header */}
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-6">
+        <div className="flex items-center justify-between">
           <button
             onClick={handleGoBack}
-            className="flex items-center space-x-2 text-gray-300 hover:text-white transition-colors"
+            className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 transition-colors"
           >
             <ArrowLeft className="w-5 h-5" />
-            <span>Back to Course</span>
+            <span className="font-medium">Back to Course</span>
           </button>
           
-          {/* Refresh Button - Moved to top */}
           <button
             onClick={fetchStudentQuizzes}
             disabled={quizzesLoading}
-            className="bg-white/10 hover:bg-white/20 border border-white/20 px-6 py-3 rounded-xl flex items-center space-x-2 transition-all"
+            className="flex items-center space-x-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-all duration-200 text-gray-700"
           >
             <RefreshCw className={`w-4 h-4 ${quizzesLoading ? 'animate-spin' : ''}`} />
-            <span>Refresh Quizzes</span>
+            <span className="font-medium">Refresh</span>
           </button>
         </div>
+      </div>
 
-        {/* Course Info Header */}
-        <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-6 border border-white/10 mb-8">
-          <div className="flex items-center space-x-4">
-            <div className="w-12 h-12 bg-gradient-to-r from-cyan-500 to-purple-500 rounded-full flex items-center justify-center">
-              <BookOpen className="w-6 h-6" />
+      {/* Main Content */}
+      <main className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
+        {/* Course Header */}
+        <div className="bg-white rounded-2xl p-8 border border-gray-200 shadow-sm mb-8">
+          <div className="flex items-center space-x-4 mb-2">
+            <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center">
+              <BookOpen className="w-6 h-6 text-white" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold">{course?.name || 'Course Quizzes'}</h1>
-              <p className="text-gray-300">{course?.code || ''}</p>
+              <h1 className="text-3xl font-bold text-gray-900">{course?.name || 'Course Quizzes'}</h1>
+              <p className="text-gray-600">{course?.code || ''}</p>
             </div>
           </div>
         </div>
 
-       
-        {/* Quiz Statistics Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-8">
+        {/* Tab Navigation */}
+        <div className="bg-white rounded-xl border border-gray-200 p-2 mb-8 flex flex-wrap gap-2">
           <button
             onClick={() => handleFilterChange('available')}
-            className={`bg-green-500/10 backdrop-blur-sm rounded-xl p-6 border transition-all hover:bg-green-500/20 text-left ${
-              activeFilter === 'available' ? 'border-green-500/50 ring-2 ring-green-500/30' : 'border-green-500/20'
+            className={`flex items-center space-x-2 px-6 py-3 rounded-lg transition-all duration-200 font-medium ${
+              activeFilter === 'available'
+                ? 'bg-green-600 text-white shadow-sm'
+                : 'bg-white text-gray-700 hover:bg-gray-50'
             }`}
           >
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-green-500/20 rounded-full flex items-center justify-center">
-                <CheckCircle className="w-5 h-5 text-green-400" />
-              </div>
-              <div>
-                <p className="text-green-400 text-sm font-medium">Available</p>
-                <p className="text-2xl font-bold text-white">{stats.available}</p>
-              </div>
-            </div>
+            <CheckCircle className="w-4 h-4" />
+            <span>Available Now</span>
+            <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${
+              activeFilter === 'available'
+                ? 'bg-green-700 text-white'
+                : 'bg-green-100 text-green-700'
+            }`}>
+              {stats.available}
+            </span>
           </button>
 
           <button
             onClick={() => handleFilterChange('attempted')}
-            className={`bg-blue-500/10 backdrop-blur-sm rounded-xl p-6 border transition-all hover:bg-blue-500/20 text-left ${
-              activeFilter === 'attempted' ? 'border-blue-500/50 ring-2 ring-blue-500/30' : 'border-blue-500/20'
+            className={`flex items-center space-x-2 px-6 py-3 rounded-lg transition-all duration-200 font-medium ${
+              activeFilter === 'attempted'
+                ? 'bg-blue-600 text-white shadow-sm'
+                : 'bg-white text-gray-700 hover:bg-gray-50'
             }`}
           >
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-blue-500/20 rounded-full flex items-center justify-center">
-                <CheckSquare className="w-5 h-5 text-blue-400" />
-              </div>
-              <div>
-                <p className="text-blue-400 text-sm font-medium">Attempted</p>
-                <p className="text-2xl font-bold text-white">{stats.attempted}</p>
-              </div>
-            </div>
+            <CheckSquare className="w-4 h-4" />
+            <span>Attempted</span>
+            <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${
+              activeFilter === 'attempted'
+                ? 'bg-blue-700 text-white'
+                : 'bg-blue-100 text-blue-700'
+            }`}>
+              {stats.attempted}
+            </span>
           </button>
 
           <button
             onClick={() => handleFilterChange('missed')}
-            className={`bg-red-500/10 backdrop-blur-sm rounded-xl p-6 border transition-all hover:bg-red-500/20 text-left ${
-              activeFilter === 'missed' ? 'border-red-500/50 ring-2 ring-red-500/30' : 'border-red-500/20'
+            className={`flex items-center space-x-2 px-6 py-3 rounded-lg transition-all duration-200 font-medium ${
+              activeFilter === 'missed'
+                ? 'bg-red-600 text-white shadow-sm'
+                : 'bg-white text-gray-700 hover:bg-gray-50'
             }`}
           >
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-red-500/20 rounded-full flex items-center justify-center">
-                <XCircle className="w-5 h-5 text-red-400" />
-              </div>
-              <div>
-                <p className="text-red-400 text-sm font-medium">Missed</p>
-                <p className="text-2xl font-bold text-white">{stats.missed}</p>
-              </div>
-            </div>
+            <XCircle className="w-4 h-4" />
+            <span>Missed</span>
+            <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${
+              activeFilter === 'missed'
+                ? 'bg-red-700 text-white'
+                : 'bg-red-100 text-red-700'
+            }`}>
+              {stats.missed}
+            </span>
           </button>
 
           <button
             onClick={() => handleFilterChange('upcoming')}
-            className={`bg-yellow-500/10 backdrop-blur-sm rounded-xl p-6 border transition-all hover:bg-yellow-500/20 text-left ${
-              activeFilter === 'upcoming' ? 'border-yellow-500/50 ring-2 ring-yellow-500/30' : 'border-yellow-500/20'
+            className={`flex items-center space-x-2 px-6 py-3 rounded-lg transition-all duration-200 font-medium ${
+              activeFilter === 'upcoming'
+                ? 'bg-yellow-600 text-white shadow-sm'
+                : 'bg-white text-gray-700 hover:bg-gray-50'
             }`}
           >
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-yellow-500/20 rounded-full flex items-center justify-center">
-                <ClockIcon className="w-5 h-5 text-yellow-400" />
-              </div>
-              <div>
-                <p className="text-yellow-400 text-sm font-medium">Upcoming</p>
-                <p className="text-2xl font-bold text-white">{stats.upcoming}</p>
-              </div>
-            </div>
+            <Clock className="w-4 h-4" />
+            <span>Upcoming</span>
+            <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${
+              activeFilter === 'upcoming'
+                ? 'bg-yellow-700 text-white'
+                : 'bg-yellow-100 text-yellow-700'
+            }`}>
+              {stats.upcoming}
+            </span>
           </button>
         </div>
 
-        {/* Filter Indicator */}
-        {activeFilter !== 'all' && (
-          <div className="mb-6 flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <span className="text-gray-300">Showing:</span>
-              <span className="text-white font-semibold capitalize">{activeFilter} Quizzes</span>
-              <span className="text-gray-400">({filteredQuizzes.length})</span>
-            </div>
-            <button
-              onClick={() => handleFilterChange('all')}
-              className="text-cyan-400 hover:text-cyan-300 text-sm underline"
-            >
-              Show All Quizzes
-            </button>
-          </div>
-        )}
-
         {/* Quiz List */}
-        <div className="space-y-6">
+        <div className="space-y-4">
           {quizzesLoading ? (
             <div className="flex items-center justify-center py-12">
-              <RefreshCw className="w-6 h-6 text-cyan-400 animate-spin mr-3" />
-              <span>Loading quizzes...</span>
+              <RefreshCw className="w-6 h-6 text-blue-600 animate-spin mr-3" />
+              <span className="text-gray-600">Loading quizzes...</span>
             </div>
           ) : quizError ? (
-            <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-6 text-center">
-              <AlertCircle className="w-8 h-8 text-red-400 mx-auto mb-3" />
-              <h3 className="text-lg font-semibold text-red-400 mb-2">Error Loading Quizzes</h3>
-              <p className="text-gray-300 mb-4">{quizError}</p>
+            <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-center">
+              <AlertCircle className="w-8 h-8 text-red-500 mx-auto mb-3" />
+              <h3 className="text-lg font-semibold text-red-900 mb-2">Error Loading Quizzes</h3>
+              <p className="text-red-700 mb-4">{quizError}</p>
               <button
                 onClick={fetchStudentQuizzes}
-                className="bg-red-500/20 hover:bg-red-500/30 px-4 py-2 rounded-lg transition-colors"
+                className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition-colors font-medium"
               >
                 Try Again
               </button>
             </div>
           ) : quizzes.length === 0 ? (
-            <div className="bg-white/5 backdrop-blur-sm rounded-xl p-12 text-center border border-white/10">
+            <div className="bg-white rounded-xl p-12 text-center border border-gray-200">
               <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold mb-2">No Quizzes Available</h3>
-              <p className="text-gray-300 mb-6">There are no quizzes available for this course yet.</p>
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">No Quizzes Available</h3>
+              <p className="text-gray-600">There are no quizzes available for this course yet.</p>
             </div>
           ) : filteredQuizzes.length === 0 ? (
-            <div className="bg-white/5 backdrop-blur-sm rounded-xl p-12 text-center border border-white/10">
+            <div className="bg-white rounded-xl p-12 text-center border border-gray-200">
               <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold mb-2">No {activeFilter.charAt(0).toUpperCase() + activeFilter.slice(1)} Quizzes</h3>
-              <p className="text-gray-300 mb-6">There are no {activeFilter} quizzes at the moment.</p>
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                No {activeFilter.charAt(0).toUpperCase() + activeFilter.slice(1)} Quizzes
+              </h3>
+              <p className="text-gray-600 mb-6">There are no {activeFilter} quizzes at the moment.</p>
               <button
                 onClick={() => handleFilterChange('all')}
-                className="bg-gradient-to-r from-cyan-500 to-purple-500 px-6 py-3 rounded-xl hover:from-cyan-600 hover:to-purple-600 transition-all"
+                className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-all duration-200 font-medium"
               >
                 Show All Quizzes
               </button>
@@ -531,80 +532,72 @@ const fetchStudentQuizzes = async () => {
               return (
                 <div
                   key={quiz.id}
-                  className="bg-white/5 backdrop-blur-sm rounded-xl p-6 border border-white/10 hover:bg-white/10 transition-all"
+                  className="bg-white rounded-xl p-6 border border-gray-200 hover:border-blue-300 hover:shadow-lg transition-all duration-300"
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <div className="flex items-center space-x-3 mb-3">
                         <div className="flex items-center space-x-2">
-                          {getQuizTypeIcon(quiz.quiz_type)}
-                          <h3 className="text-xl font-semibold">{quiz.title}</h3>
+                          <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+                            {getQuizTypeIcon(quiz.quiz_type)}
+                          </div>
+                          <h3 className="text-xl font-semibold text-gray-900">{quiz.title}</h3>
                         </div>
-                        <div className={`px-2 py-1 rounded-full text-xs font-medium ${statusInfo.bgColor} ${statusInfo.color} flex items-center space-x-1`}>
+                        <div className={`px-3 py-1 rounded-full text-xs font-medium ${statusInfo.bgColor} ${statusInfo.color} flex items-center space-x-1`}>
                           <statusInfo.icon className="w-3 h-3" />
                           <span>{statusInfo.status}</span>
                         </div>
                       </div>
                       
                       {quiz.description && (
-                        <p className="text-gray-300 mb-4">{quiz.description}</p>
+                        <p className="text-gray-600 mb-4">{quiz.description}</p>
                       )}
                       
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-                        <div className="flex items-center space-x-2 text-sm">
-                          <Calendar className="w-4 h-4 text-blue-400" />
+                        <div className="flex items-start space-x-2">
+                          <Calendar className="w-4 h-4 text-blue-600 mt-0.5" />
                           <div>
-                            <p className="text-gray-400">Start Time</p>
-                            <p className="text-white">{formatDateTime(quiz.start_time)}</p>
+                            <p className="text-xs text-gray-500 font-medium">Start Time</p>
+                            <p className="text-sm text-gray-900">{formatDateTime(quiz.start_time)}</p>
                           </div>
                         </div>
-                        <div className="flex items-center space-x-2 text-sm">
-                          <Clock className="w-4 h-4 text-orange-400" />
+                        <div className="flex items-start space-x-2">
+                          <Clock className="w-4 h-4 text-orange-600 mt-0.5" />
                           <div>
-                            <p className="text-gray-400">End Time</p>
-                            <p className="text-white">{formatDateTime(quiz.end_time)}</p>
+                            <p className="text-xs text-gray-500 font-medium">End Time</p>
+                            <p className="text-sm text-gray-900">{formatDateTime(quiz.end_time)}</p>
                           </div>
                         </div>
-                        <div className="flex items-center space-x-2 text-sm">
-                          <Timer className="w-4 h-4 text-green-400" />
+                        <div className="flex items-start space-x-2">
+                          <Timer className="w-4 h-4 text-green-600 mt-0.5" />
                           <div>
-                            <p className="text-gray-400">Duration</p>
-                            <p className="text-white">{calculateDuration(quiz.start_time, quiz.end_time)}</p>
+                            <p className="text-xs text-gray-500 font-medium">Duration</p>
+                            <p className="text-sm text-gray-900">{calculateDuration(quiz.start_time, quiz.end_time)}</p>
                           </div>
                         </div>
-                        <div className="flex items-center space-x-2 text-sm">
-                          <BarChart3 className="w-4 h-4 text-purple-400" />
+                        <div className="flex items-start space-x-2">
+                          <Award className="w-4 h-4 text-purple-600 mt-0.5" />
                           <div>
-                            <p className="text-gray-400">Max Marks</p>
-                            <p className="text-white">{quiz.total_marks || 'N/A'}</p>
+                            <p className="text-xs text-gray-500 font-medium">Max Marks</p>
+                            <p className="text-sm text-gray-900">{quiz.total_marks || 'N/A'}</p>
                           </div>
                         </div>
                       </div>
 
                       {quiz.instructions && (
-                        <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3 mb-4">
-                          <h4 className="text-sm font-medium text-blue-400 mb-1">Instructions:</h4>
-                          <p className="text-sm text-gray-300">{quiz.instructions}</p>
-                        </div>
-                      )}
-
-                      {/* Debug info for each quiz - Remove in production */}
-                      {process.env.NODE_ENV === 'development' && (
-                        <div className="bg-gray-500/10 border border-gray-500/30 rounded-lg p-2 mb-4 text-xs">
-                          <p className="text-gray-400">Quiz ID: {quiz.id}</p>
-                          <p className="text-gray-400">Active: {quiz.is_active ? 'Yes' : 'No'}</p>
-                          <p className="text-gray-400">Attempted: {quiz.attempt_id ? 'Yes' : 'No'}</p>
-                          <p className="text-gray-400">Available: {isAvailable ? 'Yes' : 'No'}</p>
+                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                          <h4 className="text-sm font-semibold text-blue-900 mb-1">Instructions:</h4>
+                          <p className="text-sm text-blue-800">{quiz.instructions}</p>
                         </div>
                       )}
                     </div>
                     
                     <div className="ml-6 flex flex-col space-y-2">
-                      {isAvailable ? (
+                      {isAvailable && !quiz.attempt_id ? (
                         <button
                           onClick={() => handleStartQuiz(quiz.id)}
                           disabled={isStarting}
-                          className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 disabled:from-gray-500 disabled:to-gray-600 px-6 py-3 rounded-xl flex items-center space-x-2 transition-all min-w-[120px] justify-center"
+                          className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 disabled:from-gray-400 disabled:to-gray-500 text-white px-6 py-3 rounded-lg flex items-center space-x-2 transition-all duration-200 font-medium min-w-[140px] justify-center shadow-sm"
                         >
                           {isStarting ? (
                             <RefreshCw className="w-4 h-4 animate-spin" />
@@ -615,20 +608,20 @@ const fetchStudentQuizzes = async () => {
                             </>
                           )}
                         </button>
-                      ) : (
+                      ) : !quiz.attempt_id ? (
                         <button
                           disabled
-                          className="bg-gray-500/30 text-gray-400 px-6 py-3 rounded-xl flex items-center space-x-2 cursor-not-allowed min-w-[120px] justify-center"
+                          className="bg-gray-100 text-gray-400 px-6 py-3 rounded-lg flex items-center space-x-2 cursor-not-allowed min-w-[140px] justify-center border border-gray-200"
                         >
                           <XCircle className="w-4 h-4" />
                           <span>Unavailable</span>
                         </button>
-                      )}
+                      ) : null}
                       
                       {quiz.attempt_id && (
                         <button
                           onClick={() => navigate(`/student/quiz-attempts/${quiz.attempt_id}/result`)}
-                          className="bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 px-6 py-2 rounded-xl flex items-center space-x-2 transition-all text-sm"
+                          className="bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 px-6 py-2.5 rounded-lg flex items-center space-x-2 transition-all duration-200 text-sm font-medium"
                         >
                           <Eye className="w-4 h-4" />
                           <span>View Result</span>
@@ -641,7 +634,7 @@ const fetchStudentQuizzes = async () => {
             })
           )}
         </div>
-      </div>
+      </main>
     </div>
   );
 };
