@@ -114,13 +114,15 @@ class FacultyAssignmentService {
 // Manual grading
 async gradeSubmission(assignmentId, studentId, gradeData) {
   try {
-    const response = await api.put(`/faculty/assignments/${assignmentId}/submissions/${studentId}/grade`, gradeData);
+    const response = await api.post(
+      `/faculty/assignments/${assignmentId}/submissions/${studentId}/manual-grade`, 
+      gradeData
+    );
     return response.data;
   } catch (error) {
     throw this.handleError(error);
   }
 }
-
 // Get assignment statistics
 async getAssignmentStats(assignmentId) {
   try {

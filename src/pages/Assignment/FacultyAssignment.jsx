@@ -151,21 +151,28 @@ const FacultyAssignment = () => {
   };
 
   // Manual Grading Functions
-  const handleManualGrade = async (assignmentId, studentId, marks, feedback) => {
-    try {
-      // Mock API call for manual grading - replace with actual service method
-      console.log('Manual grading:', { assignmentId, studentId, marks, feedback });
-      
-      // Refresh submissions
-      await fetchSubmissions(assignmentId);
-      setShowGradingForm(false);
-      setGradingData({ marks: '', feedback: '' });
-      
-      alert('Manual grading saved successfully!');
-    } catch (error) {
-      setError('Manual grading failed: ' + error.message);
-    }
-  };
+const handleManualGrade = async (assignmentId, studentId, marks, feedback) => {
+  try {
+    const gradeData = {
+      marks: parseInt(marks, 10),
+      feedback: feedback || null
+    };
+    
+    await facultyAssignmentService.gradeSubmission(assignmentId, studentId, gradeData);
+    
+    // Refresh submissions to show updated grade
+    await fetchSubmissions(assignmentId);
+    
+    // Close the form and reset
+    setShowGradingForm(false);
+    setGradingData({ marks: '', feedback: '' });
+    setSelectedSubmission(null);
+    
+    alert('Manual grading saved successfully!');
+  } catch (error) {
+    setError('Manual grading failed: ' + (error.message || 'Unknown error'));
+  }
+};
 
   const handleStudentSelection = (studentId, isSelected) => {
     if (isSelected) {
@@ -590,6 +597,10 @@ const FacultyAssignment = () => {
                       <button
                         onClick={() => {
                           setSelectedSubmission(submission);
+                          setGradingData({
+                            marks: submission.marks_obtained || submission.marks || '',
+                            feedback: submission.feedback || ''
+                          });
                           setShowGradingForm(true);
                         }}
                         style={{
@@ -602,7 +613,7 @@ const FacultyAssignment = () => {
                           fontSize: '12px'
                         }}
                       >
-                        Manual Grade
+                        {submission.marks ? 'Edit Grade' : 'Manual Grade'}
                       </button>
                     </div>
                   </div>
@@ -662,44 +673,31 @@ const FacultyAssignment = () => {
                   );
                 }}>
                   <div style={{ marginBottom: '15px' }}>
-                    <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
-                      Marks (out of {viewingSubmissions.total_marks})
-                    </label>
-                    <input
-                      type="number"
-                      name="marks"
-                      value={gradingData.marks}
-                      onChange={handleGradingInputChange}
-                      min="0"
-                      max={viewingSubmissions.total_marks}
-                      required
-                      style={{
-                        width: '100%',
-                        padding: '8px',
-                        border: '1px solid #ccc',
-                        borderRadius: '4px'
-                      }}
-                    />
-                  </div>
-                  <div style={{ marginBottom: '15px' }}>
-                    <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
-                      Feedback
-                    </label>
-                    <textarea
-                      name="feedback"
-                      value={gradingData.feedback}
-                      onChange={handleGradingInputChange}
-                      rows="4"
-                      style={{
-                        width: '100%',
-                        padding: '8px',
-                        border: '1px solid #ccc',
-                        borderRadius: '4px',
-                        resize: 'vertical'
-                      }}
-                      placeholder="Provide feedback to the student..."
-                    />
-                  </div>
+  <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
+    Marks (out of {viewingSubmissions.total_marks})
+  </label>
+  <input
+    type="number"
+    name="marks"
+    value={gradingData.marks}
+    onChange={handleGradingInputChange}
+    min="0"
+    max={viewingSubmissions.total_marks}
+    step="0.01"
+    required
+    style={{
+      width: '100%',
+      padding: '8px',
+      border: gradingData.marks && (parseFloat(gradingData.marks) > viewingSubmissions.total_marks) ? '1px solid #dc3545' : '1px solid #ccc',
+      borderRadius: '4px'
+    }}
+  />
+  {gradingData.marks && (parseFloat(gradingData.marks) > viewingSubmissions.total_marks) && (
+    <div style={{ color: '#dc3545', fontSize: '12px', marginTop: '5px' }}>
+      Marks cannot exceed {viewingSubmissions.total_marks}
+    </div>
+  )}
+</div>
                   <div style={{ display: 'flex', gap: '10px' }}>
                     <button
                       type="submit"
