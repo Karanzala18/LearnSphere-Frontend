@@ -19,16 +19,12 @@ import {
 import { authService } from "../../services/authService";
 import { studentProfileService } from "../../services/studentProfileService";
 
-// Original FormField component
+// Modern FormField component with light theme
 const FormField = React.memo(({ icon: Icon, label, name, type = "text", value, onChange, required = false, options = null }) => {
-  const handleChange = (e) => {
-    onChange(e);
-  };
-
   return (
     <div>
-      <label className="block text-sm font-medium text-gray-300 mb-2">
-        {label} {required && <span className="text-red-400">*</span>}
+      <label className="block text-sm font-medium text-gray-700 mb-2">
+        {label} {required && <span className="text-red-500">*</span>}
       </label>
       <div className="relative">
         <div className="absolute left-3 top-1/2 transform -translate-y-1/2">
@@ -38,13 +34,13 @@ const FormField = React.memo(({ icon: Icon, label, name, type = "text", value, o
           <select
             name={name}
             value={value}
-            onChange={handleChange}
+            onChange={onChange}
             required={required}
-            className="w-full pl-12 pr-4 py-3 bg-white/10 rounded-lg border border-white/20 text-white focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-transparent"
+            className="w-full pl-12 pr-4 py-3 bg-gray-50 rounded-lg border border-gray-300 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
           >
             <option value="">Select {label}</option>
             {options.map((option) => (
-              <option key={option.value || option} value={option.value || option} className="bg-gray-800">
+              <option key={option.value || option} value={option.value || option}>
                 {option.label || option}
               </option>
             ))}
@@ -54,10 +50,10 @@ const FormField = React.memo(({ icon: Icon, label, name, type = "text", value, o
             type={type}
             name={name}
             value={value}
-            onChange={handleChange}
+            onChange={onChange}
             required={required}
             placeholder={`Enter ${label.toLowerCase()}`}
-            className="w-full pl-12 pr-4 py-3 bg-white/10 rounded-lg border border-white/20 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-transparent"
+            className="w-full pl-12 pr-4 py-3 bg-gray-50 rounded-lg border border-gray-300 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
           />
         )}
       </div>
@@ -65,26 +61,32 @@ const FormField = React.memo(({ icon: Icon, label, name, type = "text", value, o
   );
 });
 
-// Original ProfileField component
-const ProfileField = ({ icon: Icon, label, value, color = "text-cyan-400" }) => (
-  <div className="bg-white/5 backdrop-blur-sm rounded-xl p-4 border border-white/10">
-    <div className="flex items-center space-x-3">
-      <div className={`p-2 rounded-lg bg-gradient-to-r ${color === "text-cyan-400" ? "from-cyan-500/20 to-blue-500/20" : 
-        color === "text-purple-400" ? "from-purple-500/20 to-pink-500/20" :
-        color === "text-green-400" ? "from-green-500/20 to-teal-500/20" :
-        "from-yellow-500/20 to-orange-500/20"}`}>
-        <Icon className={`w-5 h-5 ${color}`} />
-      </div>
-      <div className="flex-1">
-        <p className="text-gray-300 text-sm">{label}</p>
-        <p className="text-white font-medium">{value || 'Not specified'}</p>
+// Modern ProfileField component with light theme
+const ProfileField = ({ icon: Icon, label, value, color = "blue" }) => {
+  const colorClasses = {
+    blue: "from-blue-500/10 to-blue-600/10 text-blue-600",
+    purple: "from-purple-500/10 to-purple-600/10 text-purple-600",
+    green: "from-green-500/10 to-green-600/10 text-green-600",
+    orange: "from-orange-500/10 to-orange-600/10 text-orange-600"
+  };
+
+  return (
+    <div className="bg-white rounded-xl p-4 border border-gray-200 hover:border-blue-300 hover:shadow-md transition-all duration-300">
+      <div className="flex items-center space-x-3">
+        <div className={`p-2 rounded-lg bg-gradient-to-br ${colorClasses[color]}`}>
+          <Icon className="w-5 h-5" />
+        </div>
+        <div className="flex-1">
+          <p className="text-gray-600 text-sm">{label}</p>
+          <p className="text-gray-900 font-semibold">{value || 'Not specified'}</p>
+        </div>
       </div>
     </div>
-  </div>
-);
+  );
+};
 
 const StudentProfile = () => {
-  const Navigate = useNavigate();
+  const navigate = useNavigate();
   const [profile, setProfile] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -101,13 +103,13 @@ const StudentProfile = () => {
 
   useEffect(() => {
     fetchProfile();
-  }, []); // Empty dependency array to run only once on mount
+  }, []);
 
   const fetchProfile = async () => {
     try {
       setLoading(true);
       const response = await studentProfileService.getProfile();
-      console.log("Profile response:", response); // Debug the response
+      console.log("Profile response:", response);
       setProfile(response.profile);
       if (response.profile) {
         setFormData({
@@ -127,7 +129,7 @@ const StudentProfile = () => {
 
   const handleInputChange = useCallback((e) => {
     const { name, value } = e.target;
-    console.log(`Input ${name} changed to: ${value}`); // Debug log
+    console.log(`Input ${name} changed to: ${value}`);
     setFormData((prev) => ({
       ...prev,
       [name]: value,
@@ -140,7 +142,7 @@ const StudentProfile = () => {
         setMessage({ type: "", text: "" });
       }
     } else if (name === "year_of_admission" && value.length > 0) {
-      setMessage({ type: "", text: "" }); // Clear message for partial input
+      setMessage({ type: "", text: "" });
     }
   }, []);
 
@@ -185,40 +187,47 @@ const StudentProfile = () => {
   };
 
   const handleBackToDashboard = () => {
-  Navigate('/student/dashboard');
-}
+    navigate('/student/dashboard');
+  };
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 flex items-center justify-center">
+      <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="text-center">
-          <RefreshCw className="w-8 h-8 text-cyan-400 animate-spin mx-auto mb-4" />
-          <p className="text-white">Loading profile...</p>
+          <RefreshCw className="w-8 h-8 text-blue-600 animate-spin mx-auto mb-4" />
+          <p className="text-gray-600">Loading profile...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 text-white">
-      <div className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="min-h-screen bg-white text-gray-900">
+      {/* Subtle Background Pattern */}
+      <div className="fixed inset-0 bg-gradient-to-b from-gray-50 to-white -z-10"></div>
+      <div className="fixed inset-0 opacity-[0.03] -z-10">
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:14px_24px]"></div>
+      </div>
+
+      <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center space-x-4">
             <button
               onClick={handleBackToDashboard}
-              className="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition-colors"
+              className="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 transition-colors"
             >
-              <ArrowLeft className="w-5 h-5" />
+              <ArrowLeft className="w-5 h-5 text-gray-700" />
             </button>
             <div>
-              <h1 className="text-3xl font-bold">Student Profile</h1>
-              <p className="text-gray-300">Manage your academic information</p>
+              <h1 className="text-3xl font-bold text-gray-900">Student Profile</h1>
+              <p className="text-gray-600">Manage your academic information</p>
             </div>
           </div>
           {profile && !isEditing && (
             <button
               onClick={() => setIsEditing(true)}
-              className="px-4 py-2 bg-gradient-to-r from-cyan-500 to-purple-500 rounded-lg hover:from-cyan-600 hover:to-purple-600 transition-all duration-300 flex items-center space-x-2"
+              className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all duration-300 flex items-center space-x-2 shadow-sm"
             >
               <Edit className="w-4 h-4" />
               <span>Edit Profile</span>
@@ -226,12 +235,13 @@ const StudentProfile = () => {
           )}
         </div>
 
+        {/* Success/Error Message */}
         {message.text && (
           <div
             className={`mb-6 p-4 rounded-lg border flex items-center space-x-2 ${
               message.type === "success"
-                ? "bg-green-500/20 border-green-500/30 text-green-400"
-                : "bg-red-500/20 border-red-500/30 text-red-400"
+                ? "bg-green-50 border-green-200 text-green-700"
+                : "bg-red-50 border-red-200 text-red-700"
             }`}
           >
             {message.type === "success" ? (
@@ -239,41 +249,45 @@ const StudentProfile = () => {
             ) : (
               <AlertCircle className="w-5 h-5" />
             )}
-            <span>{message.text}</span>
+            <span className="font-medium">{message.text}</span>
           </div>
         )}
 
+        {/* Main Content Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Left Column - Profile Card */}
           <div className="lg:col-span-1">
-            <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-6 border border-white/10">
+            <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm">
               <div className="text-center mb-6">
-                <div className="w-20 h-20 bg-gradient-to-r from-cyan-500 to-purple-500 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <User className="w-10 h-10 text-white" />
+                <div className="w-24 h-24 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
+                  <User className="w-12 h-12 text-white" />
                 </div>
-                <h2 className="text-xl font-bold text-white">{currentUser?.name}</h2>
-                <p className="text-gray-300">{currentUser?.email}</p>
-                <div className="flex items-center justify-center mt-2 text-sm text-gray-400">
-                  <Shield className="w-4 h-4 mr-1" />
-                  Student
+                <h2 className="text-xl font-bold text-gray-900">{currentUser?.name}</h2>
+                <p className="text-gray-600 text-sm mt-1">{currentUser?.email}</p>
+                <div className="flex items-center justify-center mt-3 text-sm">
+                  <div className="px-3 py-1 bg-blue-50 text-blue-700 rounded-full flex items-center space-x-1">
+                    <Shield className="w-4 h-4" />
+                    <span className="font-medium">Student</span>
+                  </div>
                 </div>
               </div>
               {profile && (
-                <div className="space-y-3">
+                <div className="space-y-3 pt-4 border-t border-gray-200">
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-gray-300">Student ID:</span>
-                    <span className="text-white font-medium">
+                    <span className="text-gray-600">Student ID:</span>
+                    <span className="text-gray-900 font-semibold">
                       {profile.student_id}
                     </span>
                   </div>
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-gray-300">Current Semester:</span>
-                    <span className="text-white font-medium">
+                    <span className="text-gray-600">Current Semester:</span>
+                    <span className="text-gray-900 font-semibold">
                       {profile.semester}
                     </span>
                   </div>
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-gray-300">Admission Year:</span>
-                    <span className="text-white font-medium">
+                    <span className="text-gray-600">Admission Year:</span>
+                    <span className="text-gray-900 font-semibold">
                       {profile.year_of_admission}
                     </span>
                   </div>
@@ -282,10 +296,11 @@ const StudentProfile = () => {
             </div>
           </div>
 
+          {/* Right Column - Form/Details */}
           <div className="lg:col-span-2">
             {isEditing || !profile ? (
-              <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-6 border border-white/10">
-                <h3 className="text-xl font-bold mb-6">
+              <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm">
+                <h3 className="text-xl font-bold mb-6 text-gray-900">
                   {profile ? "Edit Profile" : "Create Profile"}
                 </h3>
                 <div className="space-y-6">
@@ -327,28 +342,28 @@ const StudentProfile = () => {
                     required
                     maxLength={4}
                   />
-                  <div className="flex space-x-4">
+                  <div className="flex space-x-4 pt-4">
                     <button
                       type="button"
                       onClick={handleSubmit}
                       disabled={saving}
-                      className="flex-1 px-6 py-3 bg-gradient-to-r from-cyan-500 to-purple-500 rounded-lg hover:from-cyan-600 hover:to-purple-600 transition-all duration-300 flex items-center justify-center space-x-2 disabled:opacity-50"
+                      className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all duration-300 flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
                     >
                       {saving ? (
                         <RefreshCw className="w-5 h-5 animate-spin" />
                       ) : (
                         <Save className="w-5 h-5" />
                       )}
-                      <span>{saving ? "Saving..." : "Save Profile"}</span>
+                      <span className="font-medium">{saving ? "Saving..." : "Save Profile"}</span>
                     </button>
                     {profile && (
                       <button
                         type="button"
                         onClick={handleCancel}
-                        className="px-6 py-3 border border-white/30 rounded-lg hover:bg-white/10 transition-colors flex items-center space-x-2"
+                        className="px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors flex items-center space-x-2 text-gray-700"
                       >
                         <X className="w-5 h-5" />
-                        <span>Cancel</span>
+                        <span className="font-medium">Cancel</span>
                       </button>
                     )}
                   </div>
@@ -356,49 +371,52 @@ const StudentProfile = () => {
               </div>
             ) : (
               <div className="space-y-6">
-                <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-6 border border-white/10">
-                  <h3 className="text-xl font-bold mb-6">Academic Information</h3>
+                {/* Academic Information */}
+                <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm">
+                  <h3 className="text-xl font-bold mb-6 text-gray-900">Academic Information</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <ProfileField
                       icon={User}
                       label="Student ID"
                       value={profile.student_id}
-                      color="text-cyan-400"
+                      color="blue"
                     />
                     <ProfileField
                       icon={BookOpen}
                       label="Current Semester"
                       value={`Semester ${profile.semester}`}
-                      color="text-purple-400"
+                      color="purple"
                     />
                     <ProfileField
                       icon={Building}
                       label="Department"
                       value={profile.department}
-                      color="text-green-400"
+                      color="green"
                     />
                     <ProfileField
                       icon={Calendar}
                       label="Year of Admission"
                       value={profile.year_of_admission}
-                      color="text-yellow-400"
+                      color="orange"
                     />
                   </div>
                 </div>
-                <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-6 border border-white/10">
-                  <h3 className="text-xl font-bold mb-4">Account Information</h3>
+
+                {/* Account Information */}
+                <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm">
+                  <h3 className="text-xl font-bold mb-4 text-gray-900">Account Information</h3>
                   <div className="grid grid-cols-1 gap-4">
                     <ProfileField
                       icon={Mail}
                       label="Email Address"
                       value={currentUser?.email}
-                      color="text-cyan-400"
+                      color="blue"
                     />
                     <ProfileField
                       icon={Settings}
                       label="Account Role"
                       value="Student"
-                      color="text-purple-400"
+                      color="purple"
                     />
                   </div>
                 </div>

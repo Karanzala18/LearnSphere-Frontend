@@ -11,26 +11,15 @@ import {
   Users, 
   Calendar, 
   BarChart3, 
-  Settings, 
-  Search,
-  Filter,
   Clock,
-  FileText, 
-  Award, 
+  FileText,
   TrendingUp, 
   Eye, 
   Edit, 
   Trash2, 
   Copy, 
   Download, 
-  Bell, 
-  ChevronDown, 
-  ChevronRight, 
-  User, 
-  LogOut, 
-  Menu, 
-  X, 
-  Check 
+  X
 } from 'lucide-react';
 
 // Helper function for semester text

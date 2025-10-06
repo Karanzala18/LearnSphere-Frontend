@@ -5,9 +5,6 @@ import { authService } from '../../services/authService';
 import { 
   User, 
   Mail, 
-  Phone, 
-  MapPin, 
-  BookOpen, 
   Award, 
   Calendar, 
   Edit, 
@@ -17,7 +14,6 @@ import {
   AlertCircle,
   Brain,
   Building,
-  IdCard,
   GraduationCap,
   Users,
   ChevronDown,
@@ -25,7 +21,7 @@ import {
   LogOut,
   RefreshCw,
   ArrowLeft,
-  ImageOff
+  CreditCard
 } from 'lucide-react';
 
 const FacultyProfile = () => {
@@ -88,10 +84,8 @@ const FacultyProfile = () => {
     try {
       let response;
       if (profile) {
-        // Update existing profile
         response = await facultyProfileService.updateProfile(formData);
       } else {
-        // Create new profile
         response = await facultyProfileService.createProfile(formData);
       }
       
@@ -99,7 +93,6 @@ const FacultyProfile = () => {
       setSuccess(response.message);
       setEditing(false);
       
-      // Clear success message after 3 seconds
       setTimeout(() => setSuccess(''), 3000);
     } catch (error) {
       setError(error.message || 'Failed to save profile');
@@ -129,48 +122,54 @@ const FacultyProfile = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <RefreshCw className="w-8 h-8 text-cyan-400 animate-spin mx-auto mb-4" />
-          <p className="text-white">Loading profile...</p>
+          <RefreshCw className="w-8 h-8 text-blue-500 animate-spin mx-auto mb-4" />
+          <p className="text-gray-600">Loading profile...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 text-white">
+    <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <header className="bg-black/20 backdrop-blur-md border-b border-white/10 z-40 relative">
+      <header className="bg-black border-b border-gray-800 sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
             <div className="flex items-center space-x-4">
-              <Brain className="w-8 h-8 text-cyan-400" />
-              <span className="text-2xl font-bold bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent">
+              <Brain className="w-8 h-8 text-blue-500" />
+              <span className="text-2xl font-bold text-white">
                 LearnSphere AI
               </span>
-              <span className="text-gray-400">|</span>
-              <span className="text-lg font-medium">Faculty Profile</span>
+              <span className="text-gray-600">|</span>
+              <span className="text-lg font-medium text-gray-300">Faculty Profile</span>
             </div>
             
             <div className="flex items-center space-x-4">
-              <Bell className="w-6 h-6 text-gray-300 hover:text-cyan-400 cursor-pointer" />
+              <Bell className="w-6 h-6 text-gray-400 hover:text-blue-500 cursor-pointer transition-colors" />
               <div className="relative">
                 <button 
                   onClick={() => setIsMenuOpen(!isMenuOpen)}
-                  className="flex items-center space-x-2 bg-white/10 rounded-full px-4 py-2 hover:bg-white/20 transition-all"
+                  className="flex items-center space-x-2 bg-gray-900 rounded-lg px-4 py-2 hover:bg-gray-800 transition-all border border-gray-800"
                 >
-                  <User className="w-5 h-5" />
-                  <span>{user?.name || 'User'}</span>
-                  <ChevronDown className="w-4 h-4" />
+                  <User className="w-5 h-5 text-gray-300" />
+                  <span className="text-white">{user?.name || 'User'}</span>
+                  <ChevronDown className="w-4 h-4 text-gray-400" />
                 </button>
                 {isMenuOpen && (
-                  <div className="absolute right-0 mt-2 w-48 bg-white/10 backdrop-blur-sm rounded-lg shadow-lg border border-white/10 z-50">
-                    <a href="/faculty/dashboard" className="flex items-center space-x-2 px-4 py-2 text-gray-300 hover:bg-white/20">
+                  <div className="absolute right-0 mt-2 w-48 bg-black rounded-lg shadow-xl border border-gray-800 z-50">
+                    <button 
+                      onClick={() => navigate('/faculty/dashboard')}
+                      className="flex items-center space-x-2 w-full px-4 py-3 text-gray-300 hover:bg-gray-900 transition-colors text-left rounded-t-lg"
+                    >
                       <Building className="w-4 h-4" />
                       <span>Dashboard</span>
-                    </a>
-                    <button onClick={authService.logout} className="flex items-center space-x-2 w-full px-4 py-2 text-gray-300 hover:bg-white/20">
+                    </button>
+                    <button 
+                      onClick={() => authService.logout()}
+                      className="flex items-center space-x-2 w-full px-4 py-3 text-gray-300 hover:bg-gray-900 transition-colors text-left rounded-b-lg"
+                    >
                       <LogOut className="w-4 h-4" />
                       <span>Logout</span>
                     </button>
@@ -182,57 +181,62 @@ const FacultyProfile = () => {
         </div>
       </header>
 
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Alert Messages */}
         {error && (
-          <div className="mb-6 bg-red-500/10 border border-red-500/20 rounded-lg p-4 flex items-center space-x-3">
-            <AlertCircle className="w-5 h-5 text-red-400" />
+          <div className="mb-6 bg-red-900/20 border border-red-800 rounded-xl p-4 flex items-center space-x-3">
+            <AlertCircle className="w-5 h-5 text-red-500" />
             <span className="text-red-400">{error}</span>
           </div>
         )}
 
         {success && (
-          <div className="mb-6 bg-green-500/10 border border-green-500/20 rounded-lg p-4 flex items-center space-x-3">
-            <Check className="w-5 h-5 text-green-400" />
+          <div className="mb-6 bg-green-900/20 border border-green-800 rounded-xl p-4 flex items-center space-x-3">
+            <Check className="w-5 h-5 text-green-500" />
             <span className="text-green-400">{success}</span>
           </div>
         )}
-      <div className='flex items- justify between mb-3'>
-        <button 
-          onClick={handleBackToDashboard}
-          className="flex items-center space-x-2 text-cyan-400 hover:text-cyan-300"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          <span>Back to Dashboard</span>
-        </button>
-      </div>
-        {/* Profile Header */}
-        <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-6 border border-white/10 mb-8">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center space-x-4">
-              <div className="w-16 h-16 bg-gradient-to-br from-cyan-400 to-purple-400 rounded-full flex items-center justify-center">
-                <User className="w-8 h-8 text-white" />
+
+        {/* Back Button */}
+        <div className="flex items-center justify-between mb-6">
+          <button 
+            onClick={handleBackToDashboard}
+            className="flex items-center space-x-2 text-blue-500 hover:text-blue-400 transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span>Back to Dashboard</span>
+          </button>
+        </div>
+
+        {/* Profile Header Card */}
+        <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-200 mb-6">
+          <div className="flex items-start justify-between mb-8">
+            <div className="flex items-center space-x-6">
+              <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center shadow-lg">
+                <User className="w-10 h-10 text-white" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-white">{user?.name}</h1>
-                <p className="text-gray-300">{user?.email}</p>
-                <p className="text-sm text-cyan-400">{profile?.designation || 'Faculty Member'}</p>
+                <h1 className="text-3xl font-bold text-gray-900 mb-1">{user?.name}</h1>
+                <p className="text-gray-600 mb-1">{user?.email}</p>
+                <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-50 text-blue-600 border border-blue-200">
+                  {profile?.designation || 'Faculty Member'}
+                </span>
               </div>
             </div>
             
             {!editing ? (
               <button
                 onClick={() => setEditing(true)}
-                className="flex items-center space-x-2 bg-gradient-to-r from-cyan-500 to-purple-500 px-4 py-2 rounded-xl hover:from-cyan-600 hover:to-purple-600 transition-all"
+                className="flex items-center space-x-2 bg-blue-500 text-white px-5 py-2.5 rounded-xl hover:bg-blue-600 transition-all shadow-sm"
               >
                 <Edit className="w-4 h-4" />
                 <span>Edit Profile</span>
               </button>
             ) : (
-              <div className="flex space-x-2">
+              <div className="flex space-x-3">
                 <button
                   onClick={handleCancel}
-                  className="flex items-center space-x-2 bg-white/10 hover:bg-white/20 px-4 py-2 rounded-xl transition-all"
+                  className="flex items-center space-x-2 bg-gray-100 hover:bg-gray-200 text-gray-700 px-5 py-2.5 rounded-xl transition-all"
                 >
                   <X className="w-4 h-4" />
                   <span>Cancel</span>
@@ -240,7 +244,7 @@ const FacultyProfile = () => {
                 <button
                   onClick={handleSubmit}
                   disabled={saving}
-                  className="flex items-center space-x-2 bg-gradient-to-r from-green-500 to-green-600 px-4 py-2 rounded-xl hover:from-green-600 hover:to-green-700 transition-all disabled:opacity-50"
+                  className="flex items-center space-x-2 bg-green-500 text-white px-5 py-2.5 rounded-xl hover:bg-green-600 transition-all disabled:opacity-50 shadow-sm"
                 >
                   <Save className="w-4 h-4" />
                   <span>{saving ? 'Saving...' : 'Save Changes'}</span>
@@ -249,53 +253,68 @@ const FacultyProfile = () => {
             )}
           </div>
 
-          {/* User Basic Info */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-4">
-              <div className="flex items-center space-x-3">
-                <Mail className="w-5 h-5 text-cyan-400" />
-                <div>
-                  <p className="text-sm text-gray-400">Email</p>
-                  <p className="text-white">{user?.email}</p>
+          {/* User Basic Info Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <div className="bg-gray-50 rounded-xl p-4">
+              <div className="flex items-center space-x-3 mb-2">
+                <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                  <Mail className="w-5 h-5 text-blue-600" />
                 </div>
-              </div>
-              <div className="flex items-center space-x-3">
-                <Calendar className="w-5 h-5 text-purple-400" />
-                <div>
-                  <p className="text-sm text-gray-400">Member Since</p>
-                  <p className="text-white">{new Date(user?.created_at).toLocaleDateString()}</p>
+                <div className="flex-1">
+                  <p className="text-xs text-gray-500 font-medium mb-1">Email</p>
+                  <p className="text-sm text-gray-900 font-medium truncate">{user?.email}</p>
                 </div>
               </div>
             </div>
-            <div className="space-y-4">
-              <div className="flex items-center space-x-3">
-                <Users className="w-5 h-5 text-orange-400" />
-                <div>
-                  <p className="text-sm text-gray-400">Role</p>
-                  <p className="text-white capitalize">{user?.role}</p>
+            
+            <div className="bg-gray-50 rounded-xl p-4">
+              <div className="flex items-center space-x-3 mb-2">
+                <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                  <Calendar className="w-5 h-5 text-purple-600" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-xs text-gray-500 font-medium mb-1">Member Since</p>
+                  <p className="text-sm text-gray-900 font-medium">{new Date(user?.created_at).toLocaleDateString()}</p>
                 </div>
               </div>
-              <div className="flex items-center space-x-3">
-                <Check className="w-5 h-5 text-green-400" />
-                <div>
-                  <p className="text-sm text-gray-400">Account Status</p>
-                  <p className="text-green-400">Active</p>
+            </div>
+            
+            <div className="bg-gray-50 rounded-xl p-4">
+              <div className="flex items-center space-x-3 mb-2">
+                <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
+                  <Users className="w-5 h-5 text-orange-600" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-xs text-gray-500 font-medium mb-1">Role</p>
+                  <p className="text-sm text-gray-900 font-medium capitalize">{user?.role}</p>
+                </div>
+              </div>
+            </div>
+            
+            <div className="bg-gray-50 rounded-xl p-4">
+              <div className="flex items-center space-x-3 mb-2">
+                <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                  <Check className="w-5 h-5 text-green-600" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-xs text-gray-500 font-medium mb-1">Status</p>
+                  <p className="text-sm text-green-600 font-medium">Active</p>
                 </div>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Profile Details Form */}
-        <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-6 border border-white/10">
-          <h2 className="text-xl font-bold text-cyan-400 mb-6">Professional Information</h2>
+        {/* Professional Information Card */}
+        <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-200 mb-6">
+          <h2 className="text-2xl font-bold text-gray-900 mb-6">Professional Information</h2>
           
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Department */}
               <div>
-                <label className="flex items-center space-x-2 text-sm font-medium text-gray-300 mb-2">
-                  <Building className="w-4 h-4" />
+                <label className="flex items-center space-x-2 text-sm font-semibold text-gray-700 mb-3">
+                  <Building className="w-4 h-4 text-blue-500" />
                   <span>Department</span>
                 </label>
                 {editing ? (
@@ -305,20 +324,20 @@ const FacultyProfile = () => {
                     value={formData.department}
                     onChange={handleInputChange}
                     required
-                    className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                    className="w-full bg-gray-50 border border-gray-300 rounded-xl px-4 py-3 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                     placeholder="Enter your department"
                   />
                 ) : (
-                  <div className="bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-white">
-                    {profile?.department || 'Not specified'}
+                  <div className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-gray-900 font-medium">
+                    {profile?.department || <span className="text-gray-400">Not specified</span>}
                   </div>
                 )}
               </div>
 
               {/* Designation */}
               <div>
-                <label className="flex items-center space-x-2 text-sm font-medium text-gray-300 mb-2">
-                  <Award className="w-4 h-4" />
+                <label className="flex items-center space-x-2 text-sm font-semibold text-gray-700 mb-3">
+                  <Award className="w-4 h-4 text-blue-500" />
                   <span>Designation</span>
                 </label>
                 {editing ? (
@@ -327,20 +346,20 @@ const FacultyProfile = () => {
                     name="designation"
                     value={formData.designation}
                     onChange={handleInputChange}
-                    className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                    className="w-full bg-gray-50 border border-gray-300 rounded-xl px-4 py-3 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                     placeholder="e.g., Assistant Professor, Professor"
                   />
                 ) : (
-                  <div className="bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-white">
-                    {profile?.designation || 'Not specified'}
+                  <div className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-gray-900 font-medium">
+                    {profile?.designation || <span className="text-gray-400">Not specified</span>}
                   </div>
                 )}
               </div>
 
               {/* Employee ID */}
               <div>
-                <label className="flex items-center space-x-2 text-sm font-medium text-gray-300 mb-2">
-                  <IdCard className="w-4 h-4" />
+                <label className="flex items-center space-x-2 text-sm font-semibold text-gray-700 mb-3">
+                  <CreditCard className="w-4 h-4 text-blue-500" />
                   <span>Employee ID</span>
                 </label>
                 {editing ? (
@@ -350,20 +369,20 @@ const FacultyProfile = () => {
                     value={formData.employee_id}
                     onChange={handleInputChange}
                     required
-                    className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                    className="w-full bg-gray-50 border border-gray-300 rounded-xl px-4 py-3 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                     placeholder="Enter your employee ID"
                   />
                 ) : (
-                  <div className="bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-white">
-                    {profile?.employee_id || 'Not specified'}
+                  <div className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-gray-900 font-medium">
+                    {profile?.employee_id || <span className="text-gray-400">Not specified</span>}
                   </div>
                 )}
               </div>
 
               {/* Qualification */}
               <div>
-                <label className="flex items-center space-x-2 text-sm font-medium text-gray-300 mb-2">
-                  <GraduationCap className="w-4 h-4" />
+                <label className="flex items-center space-x-2 text-sm font-semibold text-gray-700 mb-3">
+                  <GraduationCap className="w-4 h-4 text-blue-500" />
                   <span>Qualification</span>
                 </label>
                 {editing ? (
@@ -372,65 +391,83 @@ const FacultyProfile = () => {
                     name="qualification"
                     value={formData.qualification}
                     onChange={handleInputChange}
-                    className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                    className="w-full bg-gray-50 border border-gray-300 rounded-xl px-4 py-3 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                     placeholder="e.g., PhD in Computer Science, M.Tech"
                   />
                 ) : (
-                  <div className="bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-white">
-                    {profile?.qualification || 'Not specified'}
+                  <div className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-gray-900 font-medium">
+                    {profile?.qualification || <span className="text-gray-400">Not specified</span>}
                   </div>
                 )}
               </div>
             </div>
 
             {editing && (
-              <div className="flex justify-end space-x-4 pt-6 border-t border-white/10">
+              <div className="flex justify-end space-x-4 pt-6 border-t border-gray-200">
                 <button
                   type="button"
                   onClick={handleCancel}
-                  className="flex items-center space-x-2 bg-white/10 hover:bg-white/20 px-6 py-3 rounded-xl transition-all"
+                  className="flex items-center space-x-2 bg-gray-100 hover:bg-gray-200 text-gray-700 px-6 py-3 rounded-xl transition-all font-medium"
                 >
                   <X className="w-4 h-4" />
                   <span>Cancel</span>
                 </button>
                 <button
-                  type="submit"
+                  onClick={handleSubmit}
                   disabled={saving}
-                  className="flex items-center space-x-2 bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-600 hover:to-purple-600 px-6 py-3 rounded-xl transition-all disabled:opacity-50"
+                  className="flex items-center space-x-2 bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-xl transition-all disabled:opacity-50 font-medium shadow-sm"
                 >
                   <Save className="w-4 h-4" />
                   <span>{saving ? 'Saving...' : 'Save Changes'}</span>
                 </button>
               </div>
             )}
-          </form>
+          </div>
         </div>
 
-        {/* Profile Completion Status */}
-        <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-6 border border-white/10 mt-8">
-          <h3 className="text-lg font-semibold text-cyan-400 mb-4">Profile Completion</h3>
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-gray-300">Basic Information</span>
-              <Check className="w-5 h-5 text-green-400" />
+        {/* Profile Completion Card */}
+        <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-200">
+          <h3 className="text-xl font-bold text-gray-900 mb-6">Profile Completion</h3>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
+              <span className="text-gray-700 font-medium">Basic Information</span>
+              <div className="flex items-center space-x-2">
+                <Check className="w-5 h-5 text-green-500" />
+                <span className="text-sm text-green-600 font-medium">Complete</span>
+              </div>
             </div>
-            <div className="flex items-center justify-between">
-              <span className="text-gray-300">Professional Details</span>
+            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
+              <span className="text-gray-700 font-medium">Professional Details</span>
               {profile ? (
-                <Check className="w-5 h-5 text-green-400" />
+                <div className="flex items-center space-x-2">
+                  <Check className="w-5 h-5 text-green-500" />
+                  <span className="text-sm text-green-600 font-medium">Complete</span>
+                </div>
               ) : (
-                <X className="w-5 h-5 text-red-400" />
+                <div className="flex items-center space-x-2">
+                  <X className="w-5 h-5 text-red-500" />
+                  <span className="text-sm text-red-600 font-medium">Incomplete</span>
+                </div>
               )}
             </div>
-            <div className="w-full bg-white/10 rounded-full h-2 mt-4">
-              <div 
-                className="bg-gradient-to-r from-cyan-400 to-purple-400 h-2 rounded-full transition-all duration-300"
-                style={{ width: profile ? '100%' : '50%' }}
-              />
+            
+            <div className="pt-4">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium text-gray-700">Overall Progress</span>
+                <span className="text-sm font-bold text-blue-500">{profile ? '100%' : '50%'}</span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-3">
+                <div 
+                  className="bg-gradient-to-r from-blue-500 to-blue-600 h-3 rounded-full transition-all duration-500 shadow-sm"
+                  style={{ width: profile ? '100%' : '50%' }}
+                />
+              </div>
+              <p className="text-sm text-gray-600 mt-3">
+                {profile 
+                  ? '🎉 Your profile is complete!' 
+                  : '📝 Complete your professional information to unlock all features'}
+              </p>
             </div>
-            <p className="text-sm text-gray-400 mt-2">
-              {profile ? 'Profile completed' : 'Complete your professional information to unlock all features'}
-            </p>
           </div>
         </div>
       </div>

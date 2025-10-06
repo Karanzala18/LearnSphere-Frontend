@@ -9,27 +9,11 @@ import {
   FileText, 
   Upload, 
   Plus, 
-  Search,
-  Bell,
-  User,
-  Settings,
-  LogOut,
-  ChevronRight,
   Award,
   TrendingUp,
   Zap,
-  Users,
-  Play,
-  CheckCircle,
   AlertCircle,
-  Download,
-  Eye,
-  BarChart3,
-  Star,
-  Filter,
   RefreshCw,
-  Menu,
-  X
 } from 'lucide-react';
 import { subjectService } from '../../services/subjectService';
 import StudentNavbar from '../../components/Navbar/StudentNavbar';

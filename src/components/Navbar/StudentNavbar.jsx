@@ -8,7 +8,6 @@ import {
   Plus,
   Bell,
   User,
-  Settings,
   LogOut,
   BarChart3,
   Menu,
@@ -106,16 +105,6 @@ const StudentNavbar = ({ activeTab, setActiveTab, onJoinCourse }) => {
                   </button>
                   <button 
                     onClick={() => {
-                      navigate('/student/settings');
-                      setIsMenuOpen(false);
-                    }}
-                    className="w-full px-4 py-2 text-left hover:bg-gray-800 transition-colors flex items-center space-x-2 text-gray-300 hover:text-blue-500"
-                  >
-                    <Settings className="w-4 h-4" />
-                    <span>Settings</span>
-                  </button>
-                  <button 
-                    onClick={() => {
                       authService.logout();
                       navigate('/');
                     }} 
@@ -183,16 +172,6 @@ const StudentNavbar = ({ activeTab, setActiveTab, onJoinCourse }) => {
               >
                 <User className="w-4 h-4" />
                 <span>Profile</span>
-              </button>
-              <button 
-                onClick={() => {
-                  navigate('/student/settings');
-                  setIsMenuOpen(false);
-                }}
-                className="flex items-center space-x-2 px-4 py-2 text-gray-300 hover:text-blue-500 hover:bg-gray-800 rounded-lg transition-colors"
-              >
-                <Settings className="w-4 h-4" />
-                <span>Settings</span>
               </button>
               <button 
                 onClick={() => {
