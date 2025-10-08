@@ -7,36 +7,36 @@
   import SignUpPage from './pages/Authentication/SignUp';
   import ForgotPassword from './pages/Authentication/ForgotPassword';
   // Dashboard components
-  import StudentDashboard from './pages/Dashboard/StudentDashboard';
-  import FacultyDashboard from './pages/Dashboard/FacultyDashboard';
-  import AdminDashboard from './pages/Dashboard/AdminDashboard';
+  import StudentDashboard from './pages/Student/Dashboard/StudentDashboard';
+  import FacultyDashboard from './pages/Faculty/Dashboard/FacultyDashboard';
+  import AdminDashboard from './pages/Admin/Dashboard/AdminDashboard';
   // Profile components
-  import StudentProfile from './pages/Profile/StudentProfile';
-  import FacultyProfile from './pages/Profile/FacultyProfile';
+  import StudentProfile from './pages/Student/Profile/StudentProfile';
+  import FacultyProfile from './pages/Faculty/Profile/FacultyProfile';
   //Subject components
   // FIX: Corrected the typo in the import path
-  import CourseDetails from './pages/Subject/CourseDetails';
-  import SubjectDetailsView from './pages/Subject/SubjectDetailsView';
-  import EnrolledStudentsView from './pages/Subject/EnrolledStudentsView';
+  import CourseDetails from './pages/Student/Subject/CourseDetails';
+  import SubjectDetailsView from './pages/Faculty/Subject/SubjectDetailsView';
+  import EnrolledStudentsView from './pages/Faculty/Subject/Student/EnrolledStudentsView';
 
   // Quiz components
-  import CreateQuizPage from './pages/Quiz/CreateQuizPage';
-  import QuizListPage from './pages/Quiz/QuizListPage';
-  import QuizViewPage from './pages/Quiz/QuizViewPage';
-  import EditQuizPage from './pages/Quiz/EditQuizPage';
-  import CreateQuestionPage from './pages/Quiz/CreateQuestionPage'; 
-  import StudentQuizView from './pages/Quiz/StudentQuizView';
+  import CreateQuizPage from './pages/Faculty/Subject/Quiz/CreateQuizPage';
+  import QuizListPage from './pages/Faculty/Subject/Quiz/QuizListPage';
+  import QuizViewPage from './pages/Faculty/Subject/Quiz/QuizViewPage';
+  import EditQuizPage from './pages/Faculty/Subject/Quiz/EditQuizPage';
+  import CreateQuestionPage from './pages/Faculty/Subject/Quiz/CreateQuestionPage'; 
+  import StudentQuizView from './pages/Student/Subject/Quiz/StudentQuizView';
 
 // Faculty Assignment components
-import FacultyAssignment from './pages/Assignment/FacultyAssignment';
+import FacultyAssignment from './pages/Faculty/Subject/Assignment/FacultyAssignment';
 
   // Protection components
   import ProtectedRoute from './components/ProtectedRoute';
   import AuthRoute from './components/AuthRoute';
-import QuizAttemptPage from './pages/Quiz/QuizAttemptPage';
-import QuizResultPage from './pages/Quiz/QuizResultPage';
-import QuizScorecardPage from './pages/Quiz/QuizScorecardPage';
-import StudentAssignment from './pages/Assignment/StudentAssignment';
+import QuizAttemptPage from './pages/Student/Subject/Quiz/QuizAttemptPage';
+import QuizResultPage from './pages/Student/Subject/Quiz/QuizResultPage';
+import QuizScorecardPage from './pages/Faculty/Subject/Quiz/QuizScorecardPage';
+import StudentAssignment from './pages/Student/Subject/Assignment/StudentAssignment';
 
 
 
