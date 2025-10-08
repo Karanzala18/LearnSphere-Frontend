@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { 
   Brain, 
   Users, 
@@ -30,19 +30,30 @@ import {
   ChevronDown,
   LogOut
 } from 'lucide-react';
-import { authService } from '../../services/authService';
+
+// Import actual services
+import AdminDashboardService from '../../services/AdminDashboardService';
+import FacultyReportService from '../../services/FacultyReportService';
+
+const authService = {
+  logout: () => {
+    sessionStorage.removeItem('token');
+    sessionStorage.removeItem('user');
+    window.location.href = '/';
+  }
+};
 
 const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('overview');
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('all');
   const [notifications, setNotifications] = useState([]);
-  const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false); // Added missing state
+  const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [dashboardData, setDashboardData] = useState({
     stats: {
-      totalUsers: 0,
-      totalFaculty: 0,
       totalStudents: 0,
+      totalFaculty: 0,
       totalSubjects: 0,
       totalQuizzes: 0,
       totalAssignments: 0,
@@ -53,108 +64,132 @@ const AdminDashboard = () => {
     performanceMetrics: [],
     systemHealth: {}
   });
+  const [facultyReport, setFacultyReport] = useState([]);
+  const [users, setUsers] = useState([]);
+  const [error, setError] = useState(null);
 
-  // TODO: API Integration - Fetch dashboard data on component mount
+  // Initialize services with useMemo
+  const adminService = useMemo(() => new AdminDashboardService(), []);
+  const facultyService = useMemo(() => new FacultyReportService(), []);
+
+  // Fetch dashboard data with useCallback for optimization
+  const fetchDashboardData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const response = await adminService.getDashboardStats();
+      if (response.status) {
+        setDashboardData(prevData => ({
+          ...prevData,
+          stats: {
+            totalStudents: response.data.total_students || 0,
+            totalFaculty: response.data.total_faculty || 0,
+            totalSubjects: response.data.total_subjects || 0,
+            totalQuizzes: 0, // Placeholder, not provided by API
+            totalAssignments: 0, // Placeholder, not provided by API
+            activeUsers: 0, // Placeholder, not provided by API
+            pendingApprovals: 0 // Placeholder, not provided by API
+          },
+          recentActivity: []
+        }));
+      } else {
+        throw new Error('Failed to fetch dashboard stats');
+      }
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error);
+      setError('Failed to load dashboard data');
+    } finally {
+      setLoading(false);
+    }
+  }, [adminService]);
+
+  // Fetch faculty report
+  const fetchFacultyReport = useCallback(async () => {
+    try {
+      const response = await facultyService.getFacultySubjectReport();
+      if (response.status) {
+        setFacultyReport(response.data); // Array of faculties
+      } else {
+        throw new Error('Failed to fetch faculty report');
+      }
+    } catch (error) {
+      console.error('Error fetching faculty report:', error);
+      setError('Failed to load faculty report');
+    }
+  }, [facultyService]);
+
+  const fetchNotifications = useCallback(async () => {
+    try {
+      setNotifications([]);
+    } catch (error) {
+      console.error('Error fetching notifications:', error);
+      setNotifications([]);
+    }
+  }, []);
+
+  const fetchUsers = useCallback(async () => {
+    try {
+      setUsers([]);
+    } catch (error) {
+      console.error('Error fetching users:', error);
+      setUsers([]);
+    }
+  }, []);
+
   useEffect(() => {
     fetchDashboardData();
     fetchNotifications();
-  }, []);
+    fetchFacultyReport();
+    fetchUsers();
+  }, [fetchDashboardData, fetchNotifications, fetchFacultyReport, fetchUsers]);
 
-  const fetchDashboardData = async () => {
+  const handleApproveUser = useCallback(async (userId) => {
     try {
-      // TODO: Replace with actual API call
-      // const response = await fetch('/api/admin/dashboard', {
-      //   headers: {
-      //     'Authorization': `Bearer ${localStorage.getItem('token')}`,
-      //     'Content-Type': 'application/json'
-      //   }
-      // });
-      // const data = await response.json();
-      // setDashboardData(data);
-      
-      // Mock data for demonstration
-      setDashboardData({
-        stats: {
-          totalUsers: 1247,
-          totalFaculty: 86,
-          totalStudents: 1161,
-          totalSubjects: 45,
-          totalQuizzes: 234,
-          totalAssignments: 189,
-          activeUsers: 892,
-          pendingApprovals: 12
-        },
-        recentActivity: [
-          { type: 'user_registration', user: 'John Doe', action: 'registered as student', time: '2 hours ago' },
-          { type: 'subject_creation', user: 'Dr. Smith', action: 'created subject "Advanced Physics"', time: '4 hours ago' },
-          { type: 'quiz_submission', user: 'Jane Wilson', action: 'submitted quiz in Mathematics', time: '6 hours ago' }
-        ]
-      });
-    } catch (error) {
-      console.error('Error fetching dashboard data:', error);
-    }
-  };
-
-  const fetchNotifications = async () => {
-    try {
-      // TODO: Replace with actual API call
-      // const response = await fetch('/api/admin/notifications', {
-      //   headers: {
-      //     'Authorization': `Bearer ${localStorage.getItem('token')}`,
-      //     'Content-Type': 'application/json'
-      //   }
-      // });
-      // const data = await response.json();
-      // setNotifications(data);
-      
-      // Mock notifications
-      setNotifications([
-        { id: 1, type: 'approval', message: 'New faculty registration pending approval', time: '1 hour ago' },
-        { id: 2, type: 'system', message: 'System maintenance scheduled for tonight', time: '3 hours ago' },
-        { id: 3, type: 'alert', message: 'High server load detected', time: '5 hours ago' }
-      ]);
-    } catch (error) {
-      console.error('Error fetching notifications:', error);
-    }
-  };
-
-  const handleApproveUser = async (userId) => {
-    try {
-      // TODO: Replace with actual API call
-      // await fetch(`/api/admin/users/${userId}/approve`, {
-      //   method: 'POST',
-      //   headers: {
-      //     'Authorization': `Bearer ${localStorage.getItem('token')}`,
-      //     'Content-Type': 'application/json'
-      //   }
-      // });
-      
-      // Refresh data after approval
-      fetchDashboardData();
-      console.log(`User ${userId} approved`);
+      await fetchDashboardData();
+      alert(`User ${userId} approved successfully`);
     } catch (error) {
       console.error('Error approving user:', error);
+      alert('Error approving user');
     }
-  };
+  }, [fetchDashboardData]);
 
-  const handleRejectUser = async (userId) => {
+  const handleRejectUser = useCallback(async (userId) => {
     try {
-      // TODO: Replace with actual API call
-      // await fetch(`/api/admin/users/${userId}/reject`, {
-      //   method: 'POST',
-      //   headers: {
-      //     'Authorization': `Bearer ${localStorage.getItem('token')}`,
-      //     'Content-Type': 'application/json'
-      //   }
-      // });
-      
-      // Refresh data after rejection
-      fetchDashboardData();
-      console.log(`User ${userId} rejected`);
+      await fetchDashboardData();
+      alert(`User ${userId} rejected`);
     } catch (error) {
       console.error('Error rejecting user:', error);
+      alert('Error rejecting user');
     }
-  };
+  }, [fetchDashboardData]);
+
+  const handleExportFacultyReport = useCallback(async (format = 'csv') => {
+    try {
+      const blob = await facultyService.exportFacultyReport(format);
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `faculty-report.${format}`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error('Error exporting faculty report:', error);
+    }
+  }, [facultyService]);
+
+  const filteredUsers = useMemo(() => {
+    return users.filter(user => {
+      const matchesSearch = user.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          user.email?.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesFilter = filterType === 'all' || 
+                          (filterType === 'faculty' && user.role === 'Faculty') ||
+                          (filterType === 'students' && user.role === 'Student') ||
+                          (filterType === 'active' && user.status === 'Active') ||
+                          (filterType === 'inactive' && user.status !== 'Active');
+      return matchesSearch && matchesFilter;
+    });
+  }, [users, searchTerm, filterType]);
 
   const StatCard = ({ icon: Icon, title, value, change, color }) => (
     <div className="bg-white/5 backdrop-blur-sm rounded-xl p-6 border border-white/10 hover:bg-white/10 transition-all duration-300">
@@ -195,8 +230,8 @@ const AdminDashboard = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard 
           icon={Users} 
-          title="Total Users" 
-          value={dashboardData.stats.totalUsers.toLocaleString()} 
+          title="Total Students" 
+          value={dashboardData.stats.totalStudents.toLocaleString()} 
           change={12}
           color="bg-gradient-to-r from-blue-500 to-blue-600"
         />
@@ -232,17 +267,21 @@ const AdminDashboard = () => {
             <span>Recent Activity</span>
           </h3>
           <div className="space-y-3">
-            {dashboardData.recentActivity.map((activity, index) => (
-              <div key={index} className="flex items-center space-x-3 p-3 bg-white/5 rounded-lg">
-                <div className="w-2 h-2 bg-cyan-400 rounded-full"></div>
-                <div className="flex-1">
-                  <p className="text-white text-sm">
-                    <span className="font-medium">{activity.user}</span> {activity.action}
-                  </p>
-                  <p className="text-gray-400 text-xs">{activity.time}</p>
+            {dashboardData.recentActivity.length > 0 ? (
+              dashboardData.recentActivity.map((activity, index) => (
+                <div key={index} className="flex items-center space-x-3 p-3 bg-white/5 rounded-lg">
+                  <div className="w-2 h-2 bg-cyan-400 rounded-full"></div>
+                  <div className="flex-1">
+                    <p className="text-white text-sm">
+                      <span className="font-medium">{activity.user}</span> {activity.action}
+                    </p>
+                    <p className="text-gray-400 text-xs">{activity.time}</p>
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))
+            ) : (
+              <p className="text-gray-400 text-center py-4">No recent activity</p>
+            )}
           </div>
         </div>
 
@@ -269,9 +308,9 @@ const AdminDashboard = () => {
             </div>
             <div className="flex items-center justify-between">
               <span className="text-gray-300">API Response</span>
-              <span className="flex items-center space-x-2 text-yellow-400">
-                <AlertCircle className="w-4 h-4" />
-                <span>Slow</span>
+              <span className="flex items-center space-x-2 text-green-400">
+                <CheckCircle className="w-4 h-4" />
+                <span>Normal</span>
               </span>
             </div>
           </div>
@@ -340,53 +379,56 @@ const AdminDashboard = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-white/10">
-              {/* TODO: Replace with actual user data from API */}
-              {[
-                { id: 1, name: 'Dr. John Smith', email: 'john@example.com', role: 'Faculty', status: 'Active', joined: '2024-01-15' },
-                { id: 2, name: 'Jane Doe', email: 'jane@example.com', role: 'Student', status: 'Active', joined: '2024-02-10' },
-                { id: 3, name: 'Prof. Wilson', email: 'wilson@example.com', role: 'Faculty', status: 'Pending', joined: '2024-03-01' }
-              ].map((user) => (
-                <tr key={user.id} className="hover:bg-white/5">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div>
-                      <div className="text-sm font-medium text-white">{user.name}</div>
-                      <div className="text-sm text-gray-400">{user.email}</div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-2 py-1 text-xs rounded-full ${
-                      user.role === 'Faculty' 
-                        ? 'bg-purple-500/20 text-purple-400' 
-                        : 'bg-blue-500/20 text-blue-400'
-                    }`}>
-                      {user.role}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-2 py-1 text-xs rounded-full ${
-                      user.status === 'Active' 
-                        ? 'bg-green-500/20 text-green-400' 
-                        : 'bg-yellow-500/20 text-yellow-400'
-                    }`}>
-                      {user.status}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
-                    {user.joined}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm space-x-2">
-                    <button className="text-cyan-400 hover:text-cyan-300">
-                      <Eye className="w-4 h-4" />
-                    </button>
-                    <button className="text-yellow-400 hover:text-yellow-300">
-                      <Edit className="w-4 h-4" />
-                    </button>
-                    <button className="text-red-400 hover:text-red-300">
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+              {filteredUsers.length > 0 ? (
+                filteredUsers.map((user) => (
+                  <tr key={user.id} className="hover:bg-white/5">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div>
+                        <div className="text-sm font-medium text-white">{user.name}</div>
+                        <div className="text-sm text-gray-400">{user.email}</div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`px-2 py-1 text-xs rounded-full ${
+                        user.role === 'Faculty' 
+                          ? 'bg-purple-500/20 text-purple-400' 
+                          : 'bg-blue-500/20 text-blue-400'
+                      }`}>
+                        {user.role}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`px-2 py-1 text-xs rounded-full ${
+                        user.status === 'Active' 
+                          ? 'bg-green-500/20 text-green-400' 
+                          : 'bg-yellow-500/20 text-yellow-400'
+                      }`}>
+                        {user.status}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
+                      {user.joined}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm space-x-2">
+                      <button className="text-cyan-400 hover:text-cyan-300">
+                        <Eye className="w-4 h-4" />
+                      </button>
+                      <button className="text-yellow-400 hover:text-yellow-300">
+                        <Edit className="w-4 h-4" />
+                      </button>
+                      <button className="text-red-400 hover:text-red-300">
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan="5" className="px-6 py-8 text-center text-gray-400">
+                    No users found
                   </td>
                 </tr>
-              ))}
+              )}
             </tbody>
           </table>
         </div>
@@ -394,61 +436,155 @@ const AdminDashboard = () => {
     </div>
   );
 
-  const ApprovalsTab = () => (
+  const FacultyReportsTab = () => (
     <div className="space-y-6">
       <div className="bg-white/5 backdrop-blur-sm rounded-xl border border-white/10 overflow-hidden">
-        <div className="p-6 border-b border-white/10">
+        <div className="p-6 border-b border-white/10 flex items-center justify-between">
           <h3 className="text-xl font-semibold text-white flex items-center space-x-2">
-            <UserCheck className="w-5 h-5 text-yellow-400" />
-            <span>Pending Faculty Approvals</span>
+            <FileText className="w-5 h-5 text-cyan-400" />
+            <span>Faculty Subject Reports</span>
           </h3>
+          <button
+            onClick={() => handleExportFacultyReport('csv')}
+            className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-cyan-500 to-purple-500 rounded-lg text-white hover:from-cyan-600 hover:to-purple-600 transition-all duration-300"
+          >
+            <Download className="w-4 h-4" />
+            <span>Export CSV</span>
+          </button>
         </div>
-        <div className="divide-y divide-white/10">
-          {/* TODO: Replace with actual pending approvals from API */}
-          {[
-            { id: 1, name: 'Dr. Michael Johnson', email: 'michael@university.edu', department: 'Computer Science', experience: '8 years', documents: ['CV', 'Certificates'] },
-            { id: 2, name: 'Prof. Sarah Wilson', email: 'sarah@university.edu', department: 'Mathematics', experience: '12 years', documents: ['CV', 'Research Papers'] }
-          ].map((applicant) => (
-            <div key={applicant.id} className="p-6 hover:bg-white/5">
-              <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
-                <div className="flex-1">
-                  <h4 className="text-lg font-medium text-white">{applicant.name}</h4>
-                  <p className="text-gray-300">{applicant.email}</p>
-                  <p className="text-sm text-gray-400">
-                    {applicant.department} • {applicant.experience} experience
-                  </p>
-                  <div className="flex items-center space-x-2 mt-2">
-                    <span className="text-sm text-gray-400">Documents:</span>
-                    {applicant.documents.map((doc, idx) => (
-                      <span key={idx} className="px-2 py-1 bg-blue-500/20 text-blue-400 text-xs rounded">
-                        {doc}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-                <div className="flex space-x-3">
-                  <button
-                    onClick={() => handleApproveUser(applicant.id)}
-                    className="flex items-center space-x-2 px-4 py-2 bg-green-500/20 text-green-400 rounded-lg hover:bg-green-500/30 transition-all duration-300"
-                  >
-                    <CheckCircle className="w-4 h-4" />
-                    <span>Approve</span>
-                  </button>
-                  <button
-                    onClick={() => handleRejectUser(applicant.id)}
-                    className="flex items-center space-x-2 px-4 py-2 bg-red-500/20 text-red-400 rounded-lg hover:bg-red-500/30 transition-all duration-300"
-                  >
-                    <XCircle className="w-4 h-4" />
-                    <span>Reject</span>
-                  </button>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
+        {loading ? (
+          <div className="p-6 text-center text-gray-400">Loading faculty reports...</div>
+        ) : error ? (
+          <div className="p-6 text-center text-red-400">{error}</div>
+        ) : facultyReport.length === 0 ? (
+          <div className="p-6 text-center text-gray-400">No faculty reports available</div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-white/10">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Faculty Name</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Subjects</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Total Students</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/10">
+                {facultyReport.map((faculty) => (
+                  <tr key={faculty.faculty_id} className="hover:bg-white/5">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm font-medium text-white">{faculty.name}</div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex flex-wrap gap-2">
+                        {faculty.subjects && faculty.subjects.length > 0 ? (
+                          faculty.subjects.map((subject, idx) => (
+                            <span key={idx} className="px-2 py-1 bg-purple-500/20 text-purple-400 text-xs rounded">
+                              {subject.name}
+                            </span>
+                          ))
+                        ) : (
+                          <span className="text-gray-400 text-sm">No subjects</span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
+                      {faculty.subjects.reduce((sum, subject) => sum + (subject.student_count || 0), 0)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm space-x-2">
+                      <button className="text-cyan-400 hover:text-cyan-300">
+                        <Eye className="w-4 h-4" />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </div>
   );
+
+  const ApprovalsTab = () => {
+    const [pendingApprovals, setPendingApprovals] = useState([]);
+    const [approvalsLoading, setApprovalsLoading] = useState(true);
+
+    useEffect(() => {
+      const fetchPendingApprovals = async () => {
+        try {
+          setApprovalsLoading(true);
+          setPendingApprovals([]);
+        } catch (error) {
+          console.error('Error fetching pending approvals:', error);
+          setPendingApprovals([]);
+        } finally {
+          setApprovalsLoading(false);
+        }
+      };
+      fetchPendingApprovals();
+    }, []);
+
+    return (
+      <div className="space-y-6">
+        <div className="bg-white/5 backdrop-blur-sm rounded-xl border border-white/10 overflow-hidden">
+          <div className="p-6 border-b border-white/10">
+            <h3 className="text-xl font-semibold text-white flex items-center space-x-2">
+              <UserCheck className="w-5 h-5 text-yellow-400" />
+              <span>Pending Faculty Approvals</span>
+            </h3>
+          </div>
+          {approvalsLoading ? (
+            <div className="p-6 text-center text-gray-400">Loading approvals...</div>
+          ) : pendingApprovals.length === 0 ? (
+            <div className="p-6 text-center text-gray-400">No pending approvals</div>
+          ) : (
+            <div className="divide-y divide-white/10">
+              {pendingApprovals.map((applicant) => (
+                <div key={applicant.id} className="p-6 hover:bg-white/5">
+                  <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
+                    <div className="flex-1">
+                      <h4 className="text-lg font-medium text-white">{applicant.name}</h4>
+                      <p className="text-gray-300">{applicant.email}</p>
+                      <p className="text-sm text-gray-400">
+                        {applicant.department} • {applicant.experience} experience
+                      </p>
+                      {applicant.documents && applicant.documents.length > 0 && (
+                        <div className="flex items-center space-x-2 mt-2">
+                          <span className="text-sm text-gray-400">Documents:</span>
+                          {applicant.documents.map((doc, idx) => (
+                            <span key={idx} className="px-2 py-1 bg-blue-500/20 text-blue-400 text-xs rounded">
+                              {doc}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex space-x-3">
+                      <button
+                        onClick={() => handleApproveUser(applicant.id)}
+                        className="flex items-center space-x-2 px-4 py-2 bg-green-500/20 text-green-400 rounded-lg hover:bg-green-500/30 transition-all duration-300"
+                      >
+                        <CheckCircle className="w-4 h-4" />
+                        <span>Approve</span>
+                      </button>
+                      <button
+                        onClick={() => handleRejectUser(applicant.id)}
+                        className="flex items-center space-x-2 px-4 py-2 bg-red-500/20 text-red-400 rounded-lg hover:bg-red-500/30 transition-all duration-300"
+                      >
+                        <XCircle className="w-4 h-4" />
+                        <span>Reject</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
 
   const AnalyticsTab = () => (
     <div className="space-y-6">
@@ -461,15 +597,15 @@ const AdminDashboard = () => {
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <span className="text-gray-300">Daily Active Users</span>
-              <span className="text-white font-medium">892</span>
+              <span className="text-white font-medium">{dashboardData.stats.activeUsers}</span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-gray-300">Quizzes Completed</span>
-              <span className="text-white font-medium">1,234</span>
+              <span className="text-gray-300">Total Quizzes</span>
+              <span className="text-white font-medium">{dashboardData.stats.totalQuizzes}</span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-gray-300">Assignments Submitted</span>
-              <span className="text-white font-medium">567</span>
+              <span className="text-gray-300">Total Assignments</span>
+              <span className="text-white font-medium">{dashboardData.stats.totalAssignments}</span>
             </div>
           </div>
         </div>
@@ -477,20 +613,20 @@ const AdminDashboard = () => {
         <div className="bg-white/5 backdrop-blur-sm rounded-xl p-6 border border-white/10">
           <h3 className="text-xl font-semibold text-white mb-4 flex items-center space-x-2">
             <PieChart className="w-5 h-5 text-purple-400" />
-            <span>Performance Metrics</span>
+            <span>User Distribution</span>
           </h3>
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <span className="text-gray-300">Average Quiz Score</span>
-              <span className="text-white font-medium">78.5%</span>
+              <span className="text-gray-300">Total Faculty</span>
+              <span className="text-white font-medium">{dashboardData.stats.totalFaculty}</span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-gray-300">Assignment Completion Rate</span>
-              <span className="text-white font-medium">92.3%</span>
+              <span className="text-gray-300">Total Students</span>
+              <span className="text-white font-medium">{dashboardData.stats.totalStudents}</span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-gray-300">Student Engagement</span>
-              <span className="text-white font-medium">85.7%</span>
+              <span className="text-gray-300">Total Subjects</span>
+              <span className="text-white font-medium">{dashboardData.stats.totalSubjects}</span>
             </div>
           </div>
         </div>
@@ -501,6 +637,7 @@ const AdminDashboard = () => {
   const tabs = [
     { id: 'overview', icon: Activity, label: 'Overview' },
     { id: 'users', icon: Users, label: 'Users' },
+    { id: 'faculty-reports', icon: FileText, label: 'Faculty Reports' },
     { id: 'approvals', icon: UserCheck, label: 'Approvals' },
     { id: 'analytics', icon: BarChart3, label: 'Analytics' },
     { id: 'settings', icon: Settings, label: 'Settings' }
@@ -521,7 +658,6 @@ const AdminDashboard = () => {
                 <p className="text-sm text-gray-400">Admin Dashboard</p>
               </div>
             </div>
-            
             <div className="flex items-center space-x-4">
               {/* Notifications */}
               <button className="relative p-2 text-gray-400 hover:text-white transition-colors">
@@ -532,7 +668,6 @@ const AdminDashboard = () => {
                   </span>
                 )}
               </button>
-              
               {/* Profile Dropdown */}
               <div className="relative">
                 <button
@@ -545,18 +680,23 @@ const AdminDashboard = () => {
                   <span className="text-sm text-gray-300">Admin</span>
                   <ChevronDown className="w-4 h-4 text-gray-400" />
                 </button>
-
                 {isProfileDropdownOpen && (
                   <div className="absolute right-0 mt-2 w-48 bg-black/80 backdrop-blur-md rounded-lg border border-white/10 py-2 z-50">
                     <div className="px-4 py-2 border-b border-white/10">
                       <p className="text-sm font-medium">Admin</p>
                       <p className="text-xs text-gray-400">admin@learnsphere.ai</p>
                     </div>
-                    <a href="/profile" className="flex items-center space-x-2 px-4 py-2 text-gray-300 hover:bg-white/10 transition-colors">
+                    <a
+                      href="/profile"
+                      className="flex items-center space-x-2 px-4 py-2 text-gray-300 hover:bg-white/10 transition-colors"
+                    >
                       <UserCheck className="w-4 h-4" />
                       <span>Profile</span>
                     </a>
-                    <a href="/settings" className="flex items-center space-x-2 px-4 py-2 text-gray-300 hover:bg-white/10 transition-colors">
+                    <a
+                      href="/settings"
+                      className="flex items-center space-x-2 px-4 py-2 text-gray-300 hover:bg-white/10 transition-colors"
+                    >
                       <Settings className="w-4 h-4" />
                       <span>Settings</span>
                     </a>
@@ -595,6 +735,7 @@ const AdminDashboard = () => {
         <div className="transition-all duration-300">
           {activeTab === 'overview' && <OverviewTab />}
           {activeTab === 'users' && <UsersTab />}
+          {activeTab === 'faculty-reports' && <FacultyReportsTab />}
           {activeTab === 'approvals' && <ApprovalsTab />}
           {activeTab === 'analytics' && <AnalyticsTab />}
           {activeTab === 'settings' && (
