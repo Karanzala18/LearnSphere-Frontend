@@ -192,6 +192,67 @@ const studentAssignmentService = {
       throw error;
     }
   },
+
+  // Delete assignment submission (all files + submission record)
+  deleteAssignmentSubmission: async (assignmentId, submissionId) => {
+    try {
+      const response = await api.delete(`/student/assignments/${assignmentId}/submissions/${submissionId}`);
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Download assignment file
+  downloadAssignmentFile: async (assignmentId, fileId) => {
+    try {
+      const response = await api.get(`/student/assignments/${assignmentId}/files/${fileId}/download`, {
+        responseType: 'blob',
+      });
+      return response;
+    } catch (error) {
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Delete single assignment file
+  deleteAssignmentFile: async (assignmentId, fileId) => {
+    try {
+      const response = await api.delete(`/student/assignments/${assignmentId}/files/${fileId}`);
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Helper function to handle file download
+
+   handleFileDownload: (response, defaultFileName = 'download') => {
+    // Get the content type from response headers
+    const contentType = response.headers['content-type'] || 'application/octet-stream';
+    
+    // Create blob with correct content type
+    const url = window.URL.createObjectURL(new Blob([response.data], { type: contentType }));
+    const link = document.createElement('a');
+    link.href = url;
+    
+    // Try to get filename from Content-Disposition header
+    const contentDisposition = response.headers['content-disposition'];
+    let fileName = defaultFileName;
+    
+    if (contentDisposition) {
+      const fileNameMatch = contentDisposition.match(/filename="?(.+)"?/);
+      if (fileNameMatch && fileNameMatch[1]) {
+        fileName = fileNameMatch[1];
+      }
+    }
+    
+    link.setAttribute('download', fileName);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
+  },
 };
 
 export default studentAssignmentService;

@@ -11,30 +11,11 @@ import {
   X,
   File,
   User,
-  BookOpen
+  BookOpen,
+  Download
 } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
-
-// Mock service - replace with your actual studentAssignmentService import
-const studentAssignmentService = {
-  getAllAssignments: async () => [],
-  getUpcomingAssignments: async () => [],
-  getPastDueAssignments: async () => [],
-  getAssignmentStats: async () => ({ total: 0, upcoming: 0, pastDue: 0, completed: 0 }),
-  getAssignment: async (id) => ({}),
-  getAssignmentSubmission: async (id) => null,
-  submitAssignment: async (id, data) => ({}),
-  deleteAssignmentSubmission: async (assignmentId, submissionId) => {},
-  formatAssignmentData: (assignment) => ({
-    ...assignment,
-    due_date_formatted: assignment.due_date ? new Date(assignment.due_date).toLocaleDateString() : 'N/A',
-    due_time_formatted: assignment.due_date ? new Date(assignment.due_date).toLocaleTimeString() : 'N/A',
-    days_until_due: assignment.due_date ? Math.ceil((new Date(assignment.due_date) - new Date()) / (1000 * 60 * 60 * 24)) : 0
-  }),
-  validateFiles: (files, maxSize) => ({ isValid: true, errors: [] }),
-  isSubmittable: (assignment) => ({ canSubmit: true, reason: '', isLate: false }),
-  formatFileSize: (bytes) => `${(bytes / 1024 / 1024).toFixed(2)} MB`
-};
+import studentAssignmentService from '../../services/studentAssignmentService';
 
 const StudentAssignment = () => {
   const [assignments, setAssignments] = useState([]);
@@ -53,10 +34,10 @@ const StudentAssignment = () => {
     files: []
   });
   const navigate = useNavigate();
-  const { courseId } = useParams(); // Replace with actual courseId from route params or context
+  const { courseId } = useParams();
 
   useEffect(() => {
-    if (!courseId)  console.error('No courseId provided');
+    if (!courseId) console.error('No courseId provided');
     loadAssignments();
     loadStats();
   }, [courseId]);
@@ -158,6 +139,36 @@ const StudentAssignment = () => {
     }
   };
 
+  const handleDownloadFile = async (fileId, fileName) => {
+    if (!selectedAssignment) return;
+    
+    try {
+      const response = await studentAssignmentService.downloadAssignmentFile(selectedAssignment.id, fileId);
+      studentAssignmentService.handleFileDownload(response, fileName);
+      setSuccess('File downloaded successfully');
+    } catch (err) {
+      setError('Failed to download file');
+    }
+  };
+
+  const handleDeleteFile = async (fileId) => {
+    if (!selectedAssignment || !window.confirm('Are you sure you want to delete this file?')) return;
+    
+    setLoading(true);
+    try {
+      await studentAssignmentService.deleteAssignmentFile(selectedAssignment.id, fileId);
+      
+      // Refresh submission data
+      const submission = await studentAssignmentService.getAssignmentSubmission(selectedAssignment.id);
+      setCurrentSubmission(submission);
+      setSuccess('File deleted successfully');
+    } catch (err) {
+      setError('Failed to delete file');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const getAssignmentsByTab = () => {
     switch (activeTab) {
       case 'upcoming': return upcomingAssignments;
@@ -171,7 +182,7 @@ const StudentAssignment = () => {
   };
 
   const handleBackNavigation = () => {
-    navigate(`/student/subjects/${courseId}`  );
+    navigate(`/student/subjects/${courseId}`);
   };
 
   const StatCard = ({ icon: Icon, title, value, color }) => (
@@ -360,14 +371,12 @@ const StudentAssignment = () => {
 
   return (
     <div className="min-h-screen bg-white text-gray-900">
-      {/* Background Pattern */}
       <div className="fixed inset-0 bg-gradient-to-b from-gray-50 to-white -z-10"></div>
       <div className="fixed inset-0 opacity-[0.03] -z-10">
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:14px_24px]"></div>
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header */}
         <div className="mb-8">
           <button
             onClick={handleBackNavigation}
@@ -380,7 +389,6 @@ const StudentAssignment = () => {
           <p className="text-gray-600 mt-2">View and submit your assignments</p>
         </div>
         
-        {/* Statistics */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <StatCard icon={FileText} title="Total" value={stats.total || 0} color="from-blue-500 to-blue-600" />
           <StatCard icon={Clock} title="Upcoming" value={stats.upcoming || 0} color="from-purple-500 to-purple-600" />
@@ -388,7 +396,6 @@ const StudentAssignment = () => {
           <StatCard icon={CheckCircle} title="Completed" value={stats.completed || 0} color="from-green-500 to-green-600" />
         </div>
 
-        {/* Alerts */}
         {error && (
           <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3 mb-6 flex items-start justify-between">
             <div className="flex items-start">
@@ -414,9 +421,7 @@ const StudentAssignment = () => {
         )}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Assignment List */}
           <div className="lg:col-span-1">
-            {/* Tabs */}
             <div className="flex border-b border-gray-200 mb-6">
               {[
                 { key: 'all', label: 'All' },
@@ -458,7 +463,6 @@ const StudentAssignment = () => {
             </div>
           </div>
 
-          {/* Assignment Details */}
           <div className="lg:col-span-2">
             {selectedAssignment ? (
               <div className="bg-white rounded-xl p-8 border border-gray-200 shadow-sm">
@@ -511,7 +515,6 @@ const StudentAssignment = () => {
                   </div>
                 </div>
 
-                {/* Current Submission */}
                 {currentSubmission ? (
                   <div className="bg-green-50 border border-green-200 rounded-xl p-6 mb-6">
                     <div className="flex items-center mb-4">
@@ -543,10 +546,28 @@ const StudentAssignment = () => {
                         <div>
                           <p className="text-gray-600 font-medium mb-2">Files:</p>
                           <div className="space-y-2">
-                            {currentSubmission.files.map((file, index) => (
-                              <div key={index} className="flex items-center bg-white rounded-lg px-3 py-2">
-                                <File className="w-4 h-4 text-blue-600 mr-2" />
-                                <span className="text-gray-900">{file.original_name}</span>
+                            {currentSubmission.files.map((file) => (
+                              <div key={file.id} className="flex items-center justify-between bg-white rounded-lg px-3 py-2">
+                                <div className="flex items-center">
+                                  <File className="w-4 h-4 text-blue-600 mr-2" />
+                                  <span className="text-gray-900">{file.original_name}</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <button
+                                    onClick={() => handleDownloadFile(file.id, file.original_name)}
+                                    className="text-blue-600 hover:text-blue-700 transition-colors"
+                                    title="Download file"
+                                  >
+                                    <Download className="w-4 h-4" />
+                                  </button>
+                                  <button
+                                    onClick={() => handleDeleteFile(file.id)}
+                                    className="text-red-600 hover:text-red-700 transition-colors"
+                                    title="Delete file"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </button>
+                                </div>
                               </div>
                             ))}
                           </div>
@@ -559,7 +580,7 @@ const StudentAssignment = () => {
                       className="mt-4 flex items-center text-red-600 hover:text-red-700 font-medium transition-colors"
                     >
                       <Trash2 className="w-4 h-4 mr-2" />
-                      Delete Submission
+                      Delete Entire Submission
                     </button>
                   </div>
                 ) : (
@@ -569,7 +590,6 @@ const StudentAssignment = () => {
                   </div>
                 )}
 
-                {/* Submit Button */}
                 {(() => {
                   const submittable = isSubmittable(selectedAssignment);
                   return (
@@ -618,7 +638,6 @@ const StudentAssignment = () => {
         </div>
       </div>
 
-      {/* Submission Modal */}
       {showSubmissionModal && <SubmissionModal />}
     </div>
   );

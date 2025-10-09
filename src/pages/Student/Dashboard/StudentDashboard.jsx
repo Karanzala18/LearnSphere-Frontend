@@ -15,7 +15,7 @@ import {
   AlertCircle,
   RefreshCw,
 } from 'lucide-react';
-import { subjectService } from '../../Faculty/services/subjectService';
+import { subjectService } from '../../Student/services/subjectService';
 import StudentNavbar from './components/StudentNavbar';
 
 const StudentDashboard = () => {
