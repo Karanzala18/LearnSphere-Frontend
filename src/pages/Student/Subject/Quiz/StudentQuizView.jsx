@@ -22,8 +22,8 @@ import {
   Target,
   CheckSquare
 } from 'lucide-react';
-import studentQuizService from '../../../../services/studentQuizService';
-import { subjectService } from '../../../../services/subjectService';
+import studentQuizService from '../../services/studentQuizService';
+import { subjectService } from '../../../Faculty/services/subjectService';
 
 const StudentQuizView = () => {
   const { courseId } = useParams();

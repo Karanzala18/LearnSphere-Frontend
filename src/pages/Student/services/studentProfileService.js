@@ -1,5 +1,5 @@
 // services/studentProfileService.js
-import api from './api';
+import api from '../../../services/api';
 
 export const studentProfileService = {
   // Get student profile

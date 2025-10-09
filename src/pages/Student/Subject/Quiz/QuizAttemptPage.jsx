@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Clock, CheckCircle, AlertCircle, ArrowLeft, ArrowRight, CheckSquare, Award, TrendingUp, Target, FileText } from 'lucide-react';
-import studentQuizService from '../../../../services/studentQuizService';
+import studentQuizService from '../../services/studentQuizService';
 
 const QuizAttemptPage = () => {
   const { attemptId } = useParams();

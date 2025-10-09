@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import quizService from '../../../../services/quizService';
+import quizService from '../../services/quizService';
 import { ArrowLeft, Plus, FileText, Calendar, Clock, Users, Edit, Trash2, Eye } from 'lucide-react';
 
 const QuizListPage = () => {

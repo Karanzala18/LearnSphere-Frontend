@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import quizService from '../../../../services/quizService';
-import { timezoneUtils } from '../../../../services/quizService';
+import quizService from '../../services/quizService';
+import { timezoneUtils } from '../../services/quizService';
 import { ArrowLeft, Edit, Trash2, FileText, Clock, Calendar, Award, Plus, Users, CheckCircle, XCircle, AlertCircle, Timer } from 'lucide-react';
 
 const QuizViewPage = () => {

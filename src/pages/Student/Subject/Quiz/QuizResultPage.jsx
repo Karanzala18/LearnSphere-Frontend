@@ -15,7 +15,7 @@ import {
   BookOpen,
   AlertCircle
 } from 'lucide-react';
-import studentQuizService from '../../../../services/studentQuizService';
+import studentQuizService from '../../services/studentQuizService';
 
 const QuizResultPage = () => {
   const { attemptId } = useParams();

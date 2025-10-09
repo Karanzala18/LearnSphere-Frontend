@@ -17,7 +17,7 @@ import {
   Calendar,
 } from "lucide-react";
 import { authService } from "../../../services/authService";
-import { studentProfileService } from "../../../services/studentProfileService";
+import { studentProfileService } from "../services/studentProfileService";
 
 // Modern FormField component with light theme
 const FormField = React.memo(({ icon: Icon, label, name, type = "text", value, onChange, required = false, options = null }) => {

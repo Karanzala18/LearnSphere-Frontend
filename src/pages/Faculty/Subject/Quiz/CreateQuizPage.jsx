@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import quizService from '../../../../services/quizService';
-import { timezoneUtils } from '../../../../services/quizService';
+import quizService from '../../services/quizService';
+import { timezoneUtils } from '../../services/quizService';
 import { ArrowLeft, Save, FileText, Plus, Trash2, Edit3, Check, AlertCircle } from 'lucide-react';
 
 const CreateQuizPage = () => {

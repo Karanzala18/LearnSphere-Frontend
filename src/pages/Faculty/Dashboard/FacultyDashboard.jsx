@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import facultyDashboardService from '../../../services/facultyDashboardService';
-import { subjectService } from '../../../services/subjectService';
+import facultyDashboardService from '../services/facultyDashboardService';
+import { subjectService } from '../services/subjectService';
 import FacultyNavbar from './components/FacultyNavbar';
 import StatsCards from './components/StatsCards';
 import SubjectsTab from './components/SubjectsTab';

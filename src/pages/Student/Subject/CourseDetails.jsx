@@ -20,8 +20,8 @@ import {
   Timer,
   ChevronRight
 } from 'lucide-react';
-import { subjectService } from '../../../services/subjectService';
-import studentQuizService from '../../../services/studentQuizService';
+import { subjectService } from '../services/subjectService';
+import studentQuizService from '../services/studentQuizService';
 
 const CourseDetails = () => {
   const { courseId } = useParams();

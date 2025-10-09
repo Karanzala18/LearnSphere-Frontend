@@ -32,8 +32,8 @@ import {
 } from 'lucide-react';
 
 // Import actual services
-import AdminDashboardService from '../../../services/AdminDashboardService';
-import FacultyReportService from '../../../services/FacultyReportService';
+import AdminDashboardService from '../services/adminDashboardService';
+import FacultyReportService from '../services/facultyReportService';
 
 const authService = {
   logout: () => {

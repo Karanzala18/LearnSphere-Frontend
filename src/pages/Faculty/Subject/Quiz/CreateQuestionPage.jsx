@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import quizService from '../../../../services/quizService';
+import quizService from '../../services/quizService';
 import { ArrowLeft, Save, FileText } from 'lucide-react';
 
 const CreateQuestionPage = () => {

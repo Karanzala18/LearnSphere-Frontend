@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import facultyAssignmentService from '../../../../services/facultyAssignmentService';
+import facultyAssignmentService from '../../services/facultyAssignmentService';
 
 const FacultyAssignment = () => {
   const { subjectId } = useParams();

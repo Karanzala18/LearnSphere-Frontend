@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { facultyProfileService } from '../../../services/facultyProfileService';
+import { facultyProfileService } from '../services/facultyProfileService';
 import { authService } from '../../../services/authService';
 import { 
   User, 

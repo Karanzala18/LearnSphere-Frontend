@@ -1,4 +1,4 @@
-import api from './api.js';
+import api from '../../../services/api.js';
 
 const timezoneUtils = {
   // Get IST offset in minutes (5 hours 30 minutes = 330 minutes)
