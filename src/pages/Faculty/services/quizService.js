@@ -7,13 +7,9 @@ const timezoneUtils = {
   // Convert datetime-local input to UTC string for API
   localToUTC: (localDateTimeString) => {
     if (!localDateTimeString) return null;
-    
-    console.log('Converting local to UTC:', localDateTimeString);
-    
+        
     // Create date object from local input (browser assumes local timezone)
     const localDate = new Date(localDateTimeString);
-    console.log('Local date object:', localDate);
-    console.log('Local date ISO (UTC):', localDate.toISOString());
     
     // Return ISO string (automatically in UTC)
     return localDate.toISOString();
@@ -23,11 +19,8 @@ const timezoneUtils = {
   utcToLocal: (utcDateTimeString) => {
     if (!utcDateTimeString) return '';
     
-    console.log('Converting UTC to local:', utcDateTimeString);
-    
     // Create date object from UTC string
     const utcDate = new Date(utcDateTimeString);
-    console.log('UTC date object:', utcDate);
     
     // Get local time components (browser handles timezone conversion automatically)
     const year = utcDate.getFullYear();
@@ -37,7 +30,6 @@ const timezoneUtils = {
     const minutes = String(utcDate.getMinutes()).padStart(2, '0');
     
     const localString = `${year}-${month}-${day}T${hours}:${minutes}`;
-    console.log('Converted to local string:', localString);
     
     return localString;
   },
@@ -46,7 +38,6 @@ const timezoneUtils = {
   utcToLocalInput: (utcDateTimeString) => {
     if (!utcDateTimeString) return '';
     
-    console.log('Converting UTC to local input format:', utcDateTimeString);
     
     // Create date object from UTC string
     const utcDate = new Date(utcDateTimeString);
@@ -65,13 +56,7 @@ const timezoneUtils = {
     const hours = String(utcDate.getHours()).padStart(2, '0');
     const minutes = String(utcDate.getMinutes()).padStart(2, '0');
     
-    const localInputString = `${year}-${month}-${day}T${hours}:${minutes}`;
-    console.log('UTC to local input conversion:', {
-      utc: utcDateTimeString,
-      localInput: localInputString,
-      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
-    });
-    
+    const localInputString = `${year}-${month}-${day}T${hours}:${minutes}`;    
     return localInputString;
   },
 
@@ -173,13 +158,6 @@ const timezoneUtils = {
     const startTime = new Date(quiz.start_time); // UTC from database
     const endTime = new Date(quiz.end_time); // UTC from database
     
-    console.log('Quiz availability check:', {
-      now: now.toISOString(),
-      startTime: startTime.toISOString(),
-      endTime: endTime.toISOString(),
-      isAvailable: now >= startTime && now <= endTime
-    });
-    
     return now >= startTime && now <= endTime;
   },
 
@@ -193,11 +171,6 @@ const timezoneUtils = {
     const endTime = new Date(quiz.end_time); // UTC from database
     const timeDiff = endTime - now;
 
-    console.log('Time remaining calculation:', {
-      now: now.toISOString(),
-      endTime: endTime.toISOString(),
-      timeDiff: timeDiff
-    });
 
     if (timeDiff <= 0) {
       return { expired: true, remaining: 0, formatted: '0s' };

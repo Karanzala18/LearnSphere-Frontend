@@ -1,4 +1,22 @@
 import React, { useState, useEffect } from 'react';
+import { 
+  ArrowLeft, 
+  Calendar, 
+  FileText, 
+  CheckCircle, 
+  AlertCircle,
+  Trash2,
+  X,
+  File,
+  Edit,
+  ToggleLeft,
+  ToggleRight,
+  Upload,
+  BarChart2,
+  Users,
+  BookOpen,
+  Download
+} from 'lucide-react';
 import { useParams, useNavigate } from 'react-router-dom';
 import facultyAssignmentService from '../../services/facultyAssignmentService';
 
@@ -9,6 +27,7 @@ const FacultyAssignment = () => {
   const [assignments, setAssignments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [success, setSuccess] = useState('');
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [editingAssignment, setEditingAssignment] = useState(null);
   const [viewingSubmissions, setViewingSubmissions] = useState(null);
@@ -51,13 +70,14 @@ const FacultyAssignment = () => {
 
   useEffect(() => {
     if (viewingSubmissions) {
-      fetchAssignmentStats(viewingSubmissions.id);
+      fetchSubmissions(viewingSubmissions.id);
+      fetchAssignmentStats(viewingSubmissions.id); // Initial fetch when viewing submissions
     }
   }, [viewingSubmissions]);
 
   const fetchAssignments = async () => {
+    setLoading(true);
     try {
-      setLoading(true);
       const data = await facultyAssignmentService.getAssignments(subjectId);
       setAssignments(data);
     } catch (error) {
@@ -72,6 +92,7 @@ const FacultyAssignment = () => {
       setSubmissionsLoading(true);
       const data = await facultyAssignmentService.getAssignmentSubmissions(assignmentId);
       setSubmissions(data);
+      if (viewingSubmissions) fetchAssignmentStats(assignmentId); // Update stats when submissions change
     } catch (error) {
       setError(error.message);
     } finally {
@@ -90,7 +111,6 @@ const FacultyAssignment = () => {
 
   const fetchAssignmentStats = async (assignmentId) => {
     try {
-      // Mock stats - replace with actual API call
       const mockStats = {
         total_students: submissions.length || 0,
         submitted: submissions.filter(s => s.status === 'submitted').length || 0,
@@ -104,17 +124,13 @@ const FacultyAssignment = () => {
     }
   };
 
-  // AI Grading Functions
   const handleAIGrade = async (assignmentId, studentId) => {
     try {
       setGradingInProgress(true);
       const result = await facultyAssignmentService.gradeWithAI(assignmentId, studentId);
       setGradingResults(result);
-      
-      // Refresh submissions to show updated grades
-      await fetchSubmissions(assignmentId);
-      
-      alert('AI Grading completed successfully!');
+      await fetchSubmissions(assignmentId); // Refresh submissions and stats
+      setSuccess('AI Grading completed successfully!');
     } catch (error) {
       setError('AI Grading failed: ' + error.message);
     } finally {
@@ -124,25 +140,22 @@ const FacultyAssignment = () => {
 
   const handleBatchAIGrade = async () => {
     if (selectedStudents.length === 0) {
-      alert('Please select at least one student for batch grading.');
+      setError('Please select at least one student for batch grading.');
       return;
     }
 
     try {
       setGradingInProgress(true);
       const results = [];
-      
       for (const studentId of selectedStudents) {
         const result = await facultyAssignmentService.gradeWithAI(viewingSubmissions.id, studentId);
         results.push(result);
       }
-      
       setGradingResults(results);
-      await fetchSubmissions(viewingSubmissions.id);
+      await fetchSubmissions(viewingSubmissions.id); // Refresh submissions and stats
       setSelectedStudents([]);
       setShowBatchGrade(false);
-      
-      alert(`Batch AI Grading completed for ${results.length} students!`);
+      setSuccess(`Batch AI Grading completed for ${results.length} students!`);
     } catch (error) {
       setError('Batch AI Grading failed: ' + error.message);
     } finally {
@@ -150,29 +163,22 @@ const FacultyAssignment = () => {
     }
   };
 
-  // Manual Grading Functions
-const handleManualGrade = async (assignmentId, studentId, marks, feedback) => {
-  try {
-    const gradeData = {
-      marks: parseInt(marks, 10),
-      feedback: feedback || null
-    };
-    
-    await facultyAssignmentService.gradeSubmission(assignmentId, studentId, gradeData);
-    
-    // Refresh submissions to show updated grade
-    await fetchSubmissions(assignmentId);
-    
-    // Close the form and reset
-    setShowGradingForm(false);
-    setGradingData({ marks: '', feedback: '' });
-    setSelectedSubmission(null);
-    
-    alert('Manual grading saved successfully!');
-  } catch (error) {
-    setError('Manual grading failed: ' + (error.message || 'Unknown error'));
-  }
-};
+  const handleManualGrade = async (assignmentId, studentId, marks, feedback) => {
+    try {
+      const gradeData = {
+        marks: parseInt(marks, 10),
+        feedback: feedback || null
+      };
+      await facultyAssignmentService.gradeSubmission(assignmentId, studentId, gradeData);
+      await fetchSubmissions(assignmentId); // Refresh submissions and stats
+      setShowGradingForm(false);
+      setGradingData({ marks: '', feedback: '' });
+      setSelectedSubmission(null);
+      setSuccess('Manual grading saved successfully!');
+    } catch (error) {
+      setError('Manual grading failed: ' + (error.message || 'Unknown error'));
+    }
+  };
 
   const handleStudentSelection = (studentId, isSelected) => {
     if (isSelected) {
@@ -190,7 +196,6 @@ const handleManualGrade = async (assignmentId, studentId, marks, feedback) => {
     }
   };
 
-  // Original functions
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
     setFormData(prev => ({
@@ -212,8 +217,10 @@ const handleManualGrade = async (assignmentId, studentId, marks, feedback) => {
     try {
       if (editingAssignment) {
         await facultyAssignmentService.updateAssignment(editingAssignment.id, formData);
+        setSuccess('Assignment updated successfully!');
       } else {
         await facultyAssignmentService.createAssignment(subjectId, formData);
+        setSuccess('Assignment created successfully!');
       }
       await fetchAssignments();
       resetForm();
@@ -244,6 +251,7 @@ const handleManualGrade = async (assignmentId, studentId, marks, feedback) => {
     if (window.confirm('Are you sure you want to delete this assignment?')) {
       try {
         await facultyAssignmentService.deleteAssignment(assignmentId);
+        setSuccess('Assignment deleted successfully!');
         await fetchAssignments();
       } catch (error) {
         setError(error.message);
@@ -254,6 +262,7 @@ const handleManualGrade = async (assignmentId, studentId, marks, feedback) => {
   const handleToggleStatus = async (assignmentId, currentStatus) => {
     try {
       await facultyAssignmentService.toggleAssignmentStatus(assignmentId, !currentStatus);
+      setSuccess(`Assignment ${currentStatus ? 'deactivated' : 'activated'} successfully!`);
       await fetchAssignments();
     } catch (error) {
       setError(error.message);
@@ -305,1040 +314,777 @@ const handleManualGrade = async (assignmentId, studentId, marks, feedback) => {
     return new Date(dateString).toLocaleString();
   };
 
-  if (loading) {
-    return (
-      <div style={{ padding: '20px', textAlign: 'center' }}>
-        <p>Loading assignments...</p>
+  const StatCard = ({ icon: Icon, title, value, color }) => (
+    <div className="bg-white rounded-xl p-6 border border-gray-200 hover:border-blue-300 hover:shadow-lg transition-all duration-300">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-gray-600 text-sm font-medium">{title}</p>
+          <p className="text-3xl font-bold text-gray-900 mt-2">{value}</p>
+        </div>
+        <div className={`p-3 rounded-xl bg-gradient-to-br ${color}`}>
+          <Icon className="w-6 h-6 text-white" />
+        </div>
       </div>
-    );
-  }
+    </div>
+  );
 
-  return (
-    <div style={{ padding: '20px', maxWidth: '1200px', margin: '0 auto' }}>
-      {/* Header */}
-      <div style={{ marginBottom: '30px', borderBottom: '1px solid #ddd', paddingBottom: '20px' }}>
-        <button 
-          onClick={() => navigate(-1)}
-          style={{
-            background: 'none',
-            border: '1px solid #ccc',
-            padding: '8px 16px',
-            cursor: 'pointer',
-            marginBottom: '10px'
+  const AssignmentCard = ({ assignment }) => (
+    <div 
+      className={`bg-white rounded-xl p-6 border border-gray-200 hover:border-blue-300 hover:shadow-lg transition-all duration-300 cursor-pointer ${
+        viewingSubmissions?.id === assignment.id ? 'border-blue-500 shadow-lg' : ''
+      }`}
+      onClick={() => handleViewSubmissions(assignment)}
+    >
+      <div className="flex justify-between items-start mb-3">
+        <h3 className="text-lg font-semibold text-gray-900">{assignment.title}</h3>
+        <span className={`px-3 py-1 text-xs font-medium rounded-full ${
+          assignment.is_active ? 'bg-green-50 text-green-600' : 'bg-gray-100 text-gray-600'
+        }`}>
+          {assignment.is_active ? 'Active' : 'Inactive'}
+        </span>
+      </div>
+      
+      {assignment.description && (
+        <p className="text-gray-600 text-sm mb-4 line-clamp-2">{assignment.description}</p>
+      )}
+      
+      <div className="space-y-2 text-sm text-gray-600">
+        <div className="flex items-center">
+          <Calendar className="w-4 h-4 mr-2" />
+          <span>Due: {formatDate(assignment.due_date)}</span>
+        </div>
+        <div className="flex items-center">
+          <FileText className="w-4 h-4 mr-2" />
+          <span>File Types: {assignment.allowed_file_types || 'Any'}</span>
+        </div>
+        <div className="flex items-center">
+          <Upload className="w-4 h-4 mr-2" />
+          <span>Max: {assignment.max_file_size_mb}MB</span>
+        </div>
+      </div>
+      
+      <div className="mt-4 flex gap-2 flex-wrap">
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            handleEdit(assignment);
           }}
+          className="px-3 py-1 text-sm bg-gray-50 border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors"
         >
-          ← Back
+          <Edit className="w-4 h-4 inline mr-1" /> Edit
         </button>
-        <h1 style={{ margin: '0', fontSize: '24px', fontWeight: 'bold' }}>
-          Subject Assignments
-        </h1>
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            handleToggleStatus(assignment.id, assignment.is_active);
+          }}
+          className={`px-3 py-1 text-sm rounded-lg text-white ${
+            assignment.is_active ? 'bg-gray-600 hover:bg-gray-700' : 'bg-green-600 hover:bg-green-700'
+          }`}
+        >
+          {assignment.is_active ? (
+            <ToggleLeft className="w-4 h-4 inline mr-1" />
+          ) : (
+            <ToggleRight className="w-4 h-4 inline mr-1" />
+          )}
+          {assignment.is_active ? 'Deactivate' : 'Activate'}
+        </button>
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            handleDelete(assignment.id);
+          }}
+          className="px-3 py-1 text-sm bg-red-50 text-red-600 border border-red-200 rounded-lg hover:bg-red-100 transition-colors"
+        >
+          <Trash2 className="w-4 h-4 inline mr-1" /> Delete
+        </button>
       </div>
+    </div>
+  );
 
-      {error && (
-        <div style={{
-          background: '#ffebee',
-          border: '1px solid #f44336',
-          padding: '10px',
-          marginBottom: '20px',
-          borderRadius: '4px'
-        }}>
-          {error}
+  const GradingModal = () => (
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl p-8 max-w-2xl w-full border border-gray-200 shadow-2xl max-h-[90vh] overflow-y-auto">
+        <div className="flex justify-between items-start mb-6">
+          <h2 className="text-2xl font-bold text-gray-900">
+            Grade Submission: {selectedSubmission?.student_name || `ID: ${selectedSubmission?.student_id}`}
+          </h2>
+          <button
+            onClick={() => {
+              setShowGradingForm(false);
+              setGradingData({ marks: '', feedback: '' });
+            }}
+            className="text-gray-400 hover:text-gray-600 transition-colors"
+          >
+            <X className="w-6 h-6" />
+          </button>
         </div>
-      )}
-
-      {/* AI Grading Progress */}
-      {gradingInProgress && (
-        <div style={{
-          background: '#e3f2fd',
-          border: '1px solid #2196f3',
-          padding: '15px',
-          marginBottom: '20px',
-          borderRadius: '4px',
-          textAlign: 'center'
+        
+        <form onSubmit={(e) => {
+          e.preventDefault();
+          handleManualGrade(
+            viewingSubmissions.id,
+            selectedSubmission.student_id,
+            gradingData.marks,
+            gradingData.feedback
+          );
         }}>
-          <p>🤖 AI Grading in progress... Please wait.</p>
-        </div>
-      )}
-
-      {/* Submissions View */}
-      {viewingSubmissions && (
-        <div style={{
-          background: '#f9f9f9',
-          border: '1px solid #ddd',
-          padding: '20px',
-          marginBottom: '30px',
-          borderRadius: '4px'
-        }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-            <h2 style={{ margin: '0' }}>
-              Submissions for: {viewingSubmissions.title}
-            </h2>
-            <div style={{ display: 'flex', gap: '10px' }}>
-              <button
-                onClick={() => setShowStats(!showStats)}
-                style={{
-                  background: '#17a2b8',
-                  color: 'white',
-                  border: 'none',
-                  padding: '8px 16px',
-                  cursor: 'pointer',
-                  borderRadius: '4px'
-                }}
-              >
-                {showStats ? 'Hide Stats' : 'Show Stats'}
-              </button>
-              <button
-                onClick={() => setShowBatchGrade(!showBatchGrade)}
-                style={{
-                  background: '#ffc107',
-                  color: 'black',
-                  border: 'none',
-                  padding: '8px 16px',
-                  cursor: 'pointer',
-                  borderRadius: '4px'
-                }}
-              >
-                Batch Grade
-              </button>
-              <button
-                onClick={resetSubmissionsView}
-                style={{
-                  background: '#666',
-                  color: 'white',
-                  border: 'none',
-                  padding: '8px 16px',
-                  cursor: 'pointer',
-                  borderRadius: '4px'
-                }}
-              >
-                Close Submissions
-              </button>
+          <div className="space-y-6">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Marks (out of {viewingSubmissions.total_marks})
+              </label>
+              <input
+                type="number"
+                name="marks"
+                value={gradingData.marks}
+                onChange={handleGradingInputChange}
+                min="0"
+                max={viewingSubmissions.total_marks}
+                step="0.01"
+                required
+                className={`w-full px-4 py-3 bg-gray-50 rounded-lg border ${
+                  gradingData.marks && (parseFloat(gradingData.marks) > viewingSubmissions.total_marks)
+                    ? 'border-red-500'
+                    : 'border-gray-300'
+                } text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+              />
+              {gradingData.marks && (parseFloat(gradingData.marks) > viewingSubmissions.total_marks) && (
+                <p className="text-red-600 text-sm mt-2">
+                  Marks cannot exceed {viewingSubmissions.total_marks}
+                </p>
+              )}
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Feedback (Optional)
+              </label>
+              <textarea
+                name="feedback"
+                value={gradingData.feedback}
+                onChange={handleGradingInputChange}
+                rows="4"
+                className="w-full px-4 py-3 bg-gray-50 rounded-lg border border-gray-300 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="Add feedback for the student..."
+              />
             </div>
           </div>
+          
+          <div className="flex gap-3 mt-8">
+            <button
+              type="submit"
+              className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all duration-200 font-medium"
+            >
+              Save Grade
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setShowGradingForm(false);
+                setGradingData({ marks: '', feedback: '' });
+              }}
+              className="px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-gray-700 font-medium"
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
 
-          {/* Assignment Statistics */}
-          {showStats && assignmentStats && (
-            <div style={{
-              background: '#fff',
-              border: '1px solid #ddd',
-              borderRadius: '4px',
-              padding: '15px',
-              marginBottom: '20px'
-            }}>
-              <h3 style={{ marginTop: '0' }}>Assignment Statistics</h3>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '15px' }}>
-                <div style={{ textAlign: 'center', padding: '10px', background: '#e3f2fd', borderRadius: '4px' }}>
-                  <div style={{ fontSize: '24px', fontWeight: 'bold' }}>{assignmentStats.total_students}</div>
-                  <div>Total Students</div>
+  return (
+    <div className="min-h-screen bg-white text-gray-900 flex items-center justify-center">
+      <div className="fixed inset-0 bg-gradient-to-b from-gray-50 to-white -z-10"></div>
+      <div className="fixed inset-0 opacity-[0.03] -z-10">
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:14px_24px]"></div>
+      </div>
+
+      <div className="max-w-7xl w-full px-4 sm:px-6 lg:px-8 py-8">
+        <div className="mb-8 text-center">
+          <button
+            onClick={() => navigate(-1)}
+            className="flex items-center text-gray-600 hover:text-gray-900 mb-4 transition-colors group mx-auto"
+          >
+            <ArrowLeft className="w-5 h-5 mr-2 group-hover:-translate-x-1 transition-transform" />
+            <span className="font-medium">Back to Dashboard</span>
+          </button>
+          <h1 className="text-4xl font-bold text-gray-900">Subject Assignments</h1>
+          <p className="text-gray-600 mt-2">Manage assignments and grade submissions</p>
+        </div>
+
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3 mb-6 flex items-start justify-between mx-auto max-w-2xl">
+            <div className="flex items-start">
+              <AlertCircle className="w-5 h-5 text-red-600 mr-3 mt-0.5" />
+              <p className="text-red-700">{error}</p>
+            </div>
+            <button onClick={() => setError('')} className="text-red-500 hover:text-red-700">
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+        )}
+
+        {success && (
+          <div className="bg-green-50 border border-green-200 rounded-lg px-4 py-3 mb-6 flex items-start justify-between mx-auto max-w-2xl">
+            <div className="flex items-start">
+              <CheckCircle className="w-5 h-5 text-green-600 mr-3 mt-0.5" />
+              <p className="text-green-700">{success}</p>
+            </div>
+            <button onClick={() => setSuccess('')} className="text-green-500 hover:text-green-700">
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+        )}
+
+        {gradingInProgress && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg px-4 py-3 mb-6 flex items-start mx-auto max-w-2xl">
+            <CheckCircle className="w-5 h-5 text-blue-600 mr-3 mt-0.5" />
+            <p className="text-blue-700">🤖 AI Grading in progress... Please wait.</p>
+          </div>
+        )}
+
+        {gradingResults && (
+          <div className="bg-green-50 border border-green-200 rounded-lg px-4 py-3 mb-6 flex items-start justify-between mx-auto max-w-2xl">
+            <div className="flex items-start">
+              <CheckCircle className="w-5 h-5 text-green-600 mr-3 mt-0.5" />
+              <p className="text-green-700">
+                {Array.isArray(gradingResults) 
+                  ? `${gradingResults.length} submissions graded successfully!`
+                  : 'Submission graded successfully!'
+                }
+              </p>
+            </div>
+            <button onClick={() => setGradingResults(null)} className="text-green-500 hover:text-green-700">
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="lg:col-span-1">
+            {!viewingSubmissions && (
+              <div className="mb-6 text-center">
+                <button
+                  onClick={() => setShowCreateForm(true)}
+                  className="w-full max-w-xs mx-auto px-6 py-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all duration-200 font-medium shadow-sm hover:shadow-md"
+                >
+                  Create New Assignment
+                </button>
+              </div>
+            )}
+
+            {loading && (
+              <div className="text-center py-12">
+                <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                <p className="text-gray-600 mt-4">Loading assignments...</p>
+              </div>
+            )}
+
+            {!loading && !viewingSubmissions && assignments.length === 0 && (
+              <div className="text-center py-12 bg-white rounded-xl border-2 border-dashed border-gray-300 mx-auto max-w-xl">
+                <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                <p className="text-gray-600">No assignments created yet</p>
+                <button
+                  onClick={() => setShowCreateForm(true)}
+                  className="mt-4 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all duration-200 font-medium"
+                >
+                  Create First Assignment
+                </button>
+              </div>
+            )}
+
+            {!viewingSubmissions && (
+              <div className="space-y-4">
+                {!loading && assignments.map(assignment => (
+                  <AssignmentCard key={assignment.id} assignment={assignment} />
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="lg:col-span-2">
+            {viewingSubmissions ? (
+              <div className="bg-white rounded-xl p-8 border border-gray-200 shadow-sm text-center">
+                <div className="flex justify-between items-start mb-6">
+                  <h2 className="text-2xl font-bold text-gray-900">
+                    Submissions for: {viewingSubmissions.title}
+                  </h2>
+                  <button
+                    onClick={resetSubmissionsView}
+                    className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-gray-700 font-medium"
+                  >
+                    Close Submissions
+                  </button>
                 </div>
-                <div style={{ textAlign: 'center', padding: '10px', background: '#e8f5e8', borderRadius: '4px' }}>
-                  <div style={{ fontSize: '24px', fontWeight: 'bold' }}>{assignmentStats.submitted}</div>
-                  <div>Submitted</div>
-                </div>
-                <div style={{ textAlign: 'center', padding: '10px', background: '#fff3cd', borderRadius: '4px' }}>
-                  <div style={{ fontSize: '24px', fontWeight: 'bold' }}>{assignmentStats.graded}</div>
-                  <div>Graded</div>
-                </div>
-                <div style={{ textAlign: 'center', padding: '10px', background: '#f8d7da', borderRadius: '4px' }}>
-                  <div style={{ fontSize: '24px', fontWeight: 'bold' }}>{assignmentStats.late_submissions}</div>
-                  <div>Late Submissions</div>
-                </div>
-                <div style={{ textAlign: 'center', padding: '10px', background: '#d1ecf1', borderRadius: '4px' }}>
-                  <div style={{ fontSize: '24px', fontWeight: 'bold' }}>
-                    {assignmentStats.average_marks ? assignmentStats.average_marks.toFixed(1) : '0'}
+
+                {showStats && assignmentStats && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
+                    <StatCard 
+                      icon={Users} 
+                      title="Total Students" 
+                      value={assignmentStats.total_students} 
+                      color="from-blue-500 to-blue-600" 
+                    />
+                    <StatCard 
+                      icon={FileText} 
+                      title="Submitted" 
+                      value={assignmentStats.submitted} 
+                      color="from-green-500 to-green-600" 
+                    />
+                    <StatCard 
+                      icon={CheckCircle} 
+                      title="Graded" 
+                      value={assignmentStats.graded} 
+                      color="from-purple-500 to-purple-600" 
+                    />
+                    <StatCard 
+                      icon={AlertCircle} 
+                      title="Late Submissions" 
+                      value={assignmentStats.late_submissions} 
+                      color="from-red-500 to-red-600" 
+                    />
+                    <StatCard 
+                      icon={BarChart2} 
+                      title="Average Marks" 
+                      value={assignmentStats.average_marks ? assignmentStats.average_marks.toFixed(1) : '0'} 
+                      color="from-yellow-500 to-yellow-600" 
+                    />
                   </div>
-                  <div>Average Marks</div>
+                )}
+
+                <div className="mb-6 flex gap-3 justify-center">
+                  <button
+                    onClick={() => setShowStats(!showStats)}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all duration-200 font-medium"
+                  >
+                    <BarChart2 className="w-4 h-4 inline mr-2" />
+                    {showStats ? 'Hide Stats' : 'Show Stats'}
+                  </button>
+                  <button
+                    onClick={() => setShowBatchGrade(!showBatchGrade)}
+                    className="px-4 py-2 bg-yellow-500 text-black rounded-lg hover:bg-yellow-600 transition-all duration-200 font-medium"
+                  >
+                    <Users className="w-4 h-4 inline mr-2" />
+                    Batch Grade
+                  </button>
                 </div>
-              </div>
-            </div>
-          )}
 
-          {/* Batch Grading Panel */}
-          {showBatchGrade && (
-            <div style={{
-              background: '#fff',
-              border: '2px solid #ffc107',
-              borderRadius: '4px',
-              padding: '15px',
-              marginBottom: '20px'
-            }}>
-              <h3 style={{ marginTop: '0' }}>Batch AI Grading</h3>
-              <div style={{ marginBottom: '15px' }}>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
-                  <input
-                    type="checkbox"
-                    checked={selectedStudents.length === submissions.length && submissions.length > 0}
-                    onChange={(e) => handleSelectAllStudents(e.target.checked)}
-                  />
-                  <span>Select All ({submissions.length} students)</span>
-                </label>
-                <p style={{ fontSize: '14px', color: '#666', margin: '0' }}>
-                  Selected: {selectedStudents.length} students
-                </p>
-              </div>
-              <div style={{ display: 'flex', gap: '10px' }}>
-                <button
-                  onClick={handleBatchAIGrade}
-                  disabled={gradingInProgress || selectedStudents.length === 0}
-                  style={{
-                    background: selectedStudents.length === 0 ? '#ccc' : '#28a745',
-                    color: 'white',
-                    border: 'none',
-                    padding: '8px 16px',
-                    cursor: selectedStudents.length === 0 ? 'not-allowed' : 'pointer',
-                    borderRadius: '4px'
-                  }}
-                >
-                  🤖 Start Batch AI Grading
-                </button>
-                <button
-                  onClick={() => setShowBatchGrade(false)}
-                  style={{
-                    background: '#6c757d',
-                    color: 'white',
-                    border: 'none',
-                    padding: '8px 16px',
-                    cursor: 'pointer',
-                    borderRadius: '4px'
-                  }}
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          )}
-
-          {submissionsLoading ? (
-            <p>Loading submissions...</p>
-          ) : submissions.length === 0 ? (
-            <div style={{
-              textAlign: 'center',
-              padding: '20px',
-              border: '1px solid #ddd',
-              borderRadius: '4px',
-              background: '#fff'
-            }}>
-              <p>No submissions yet for this assignment.</p>
-            </div>
-          ) : (
-            <div style={{ display: 'grid', gap: '15px' }}>
-              {submissions.map((submission) => (
-                <div
-                  key={submission.id}
-                  style={{
-                    border: '1px solid #ddd',
-                    borderRadius: '4px',
-                    padding: '15px',
-                    background: '#fff'
-                  }}
-                >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '10px' }}>
-                    <div style={{ display: 'flex', alignItems: 'start', gap: '10px' }}>
-                      {showBatchGrade && (
+                {showBatchGrade && (
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-6 mb-6">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Batch AI Grading</h3>
+                    <div className="mb-4">
+                      <label className="flex items-center gap-2 mb-2">
                         <input
                           type="checkbox"
-                          checked={selectedStudents.includes(submission.student_id)}
-                          onChange={(e) => handleStudentSelection(submission.student_id, e.target.checked)}
-                          style={{ marginTop: '5px' }}
+                          checked={selectedStudents.length === submissions.length && submissions.length > 0}
+                          onChange={(e) => handleSelectAllStudents(e.target.checked)}
+                          className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                         />
-                      )}
-                      <div>
-                        <h4 style={{ margin: '0 0 5px 0' }}>
-                          {submission.student_name || `Student ID: ${submission.student_id}`}
-                        </h4>
-                        <p style={{ margin: '0', fontSize: '14px', color: '#666' }}>
-                          Submitted: {formatDateTime(submission.submitted_at)}
-                        </p>
-                        {submission.is_late && (
-                          <span style={{
-                            background: '#ff9800',
-                            color: 'white',
-                            padding: '2px 8px',
-                            fontSize: '12px',
-                            borderRadius: '12px',
-                            marginTop: '5px',
-                            display: 'inline-block'
-                          }}>
-                            Late Submission
-                          </span>
-                        )}
-                      </div>
+                        <span className="text-sm font-medium text-gray-700">
+                          Select All ({submissions.length} students)
+                        </span>
+                      </label>
+                      <p className="text-sm text-gray-600">Selected: {selectedStudents.length} students</p>
                     </div>
-                    <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap' }}>
+                    <div className="flex gap-3 justify-center">
                       <button
-                        onClick={() => handleViewSubmission(viewingSubmissions.id, submission.student_id)}
-                        style={{
-                          background: '#000',
-                          color: 'white',
-                          border: 'none',
-                          padding: '5px 10px',
-                          cursor: 'pointer',
-                          borderRadius: '4px',
-                          fontSize: '12px'
-                        }}
+                        onClick={handleBatchAIGrade}
+                        disabled={gradingInProgress || selectedStudents.length === 0}
+                        className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
+                          selectedStudents.length === 0 || gradingInProgress
+                            ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                            : 'bg-green-600 text-white hover:bg-green-700'
+                        }`}
                       >
-                        View Details
+                        <CheckCircle className="w-4 h-4 inline mr-2" />
+                        Start Batch AI Grading
                       </button>
                       <button
-                        onClick={() => handleAIGrade(viewingSubmissions.id, submission.student_id)}
-                        disabled={gradingInProgress}
-                        style={{
-                          background: gradingInProgress ? '#ccc' : '#17a2b8',
-                          color: 'white',
-                          border: 'none',
-                          padding: '5px 10px',
-                          cursor: gradingInProgress ? 'not-allowed' : 'pointer',
-                          borderRadius: '4px',
-                          fontSize: '12px'
-                        }}
+                        onClick={() => setShowBatchGrade(false)}
+                        className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-gray-700 font-medium"
                       >
-                        🤖 AI Grade
-                      </button>
-                      <button
-                        onClick={() => {
-                          setSelectedSubmission(submission);
-                          setGradingData({
-                            marks: submission.marks_obtained || submission.marks || '',
-                            feedback: submission.feedback || ''
-                          });
-                          setShowGradingForm(true);
-                        }}
-                        style={{
-                          background: '#28a745',
-                          color: 'white',
-                          border: 'none',
-                          padding: '5px 10px',
-                          cursor: 'pointer',
-                          borderRadius: '4px',
-                          fontSize: '12px'
-                        }}
-                      >
-                        {submission.marks ? 'Edit Grade' : 'Manual Grade'}
+                        Cancel
                       </button>
                     </div>
                   </div>
-                  
-                  <div style={{ fontSize: '14px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '10px' }}>
-                    <div>
-                      <strong>Files:</strong> {submission.files_count || 0}
+                )}
+
+                {submissionsLoading ? (
+                  <div className="text-center py-12">
+                    <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                    <p className="text-gray-600 mt-4">Loading submissions...</p>
+                  </div>
+                ) : submissions.length === 0 ? (
+                  <div className="text-center py-12 bg-white rounded-xl border-2 border-dashed border-gray-300">
+                    <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                    <p className="text-gray-600">No submissions yet for this assignment</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {submissions.map((submission) => (
+                      <div
+                        key={submission.id}
+                        className="bg-white rounded-xl p-6 border border-gray-200 hover:border-blue-300 transition-all duration-300"
+                      >
+                        <div className="flex justify-between items-start mb-3">
+                          <div className="flex items-start gap-3">
+                            {showBatchGrade && (
+                              <input
+                                type="checkbox"
+                                checked={selectedStudents.includes(submission.student_id)}
+                                onChange={(e) => handleStudentSelection(submission.student_id, e.target.checked)}
+                                className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 mt-1"
+                              />
+                            )}
+                            <div>
+                              <h4 className="text-lg font-semibold text-gray-900">
+                                {submission.student_name || `Student ID: ${submission.student_id}`}
+                              </h4>
+                              <p className="text-sm text-gray-600">Submitted: {formatDateTime(submission.submitted_at)}</p>
+                              {submission.is_late && (
+                                <span className="inline-block mt-2 px-3 py-1 text-xs font-medium rounded-full bg-red-50 text-red-600">
+                                  Late Submission
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex gap-2 flex-wrap">
+                            <button
+                              onClick={() => handleViewSubmission(viewingSubmissions.id, submission.student_id)}
+                              className="px-3 py-1 text-sm bg-gray-50 border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors"
+                            >
+                              <FileText className="w-4 h-4 inline mr-1" /> View Details
+                            </button>
+                            <button
+                              onClick={() => handleAIGrade(viewingSubmissions.id, submission.student_id)}
+                              disabled={gradingInProgress}
+                              className={`px-3 py-1 text-sm rounded-lg text-white ${
+                                gradingInProgress
+                                  ? 'bg-gray-300 cursor-not-allowed'
+                                  : 'bg-blue-600 hover:bg-blue-700'
+                              }`}
+                            >
+                              <CheckCircle className="w-4 h-4 inline mr-1" /> AI Grade
+                            </button>
+                            <button
+                              onClick={() => {
+                                setSelectedSubmission(submission);
+                                setGradingData({
+                                  marks: submission.marks_obtained || submission.marks || '',
+                                  feedback: submission.feedback || ''
+                                });
+                                setShowGradingForm(true);
+                              }}
+                              className="px-3 py-1 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                            >
+                              <Edit className="w-4 h-4 inline mr-1" />
+                              {submission.marks ? 'Edit Grade' : 'Manual Grade'}
+                            </button>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-sm text-gray-600">
+                          <div>
+                            <span className="font-medium">Files:</span> {submission.files_count || 0}
+                          </div>
+                          <div>
+                            <span className="font-medium">Total Size:</span> {submission.total_size_mb || 0}MB
+                          </div>
+                          <div>
+                            <span className="font-medium">Status:</span> {submission.status || 'Submitted'}
+                          </div>
+                          {submission.marks && (
+                            <div>
+                              <span className="font-medium">Marks:</span> {submission.marks}/{viewingSubmissions.total_marks}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {selectedSubmission && !showGradingForm && (
+                  <div className="mt-8 bg-white rounded-xl p-6 border border-gray-200 text-center">
+                    <div className="flex justify-between items-start mb-6">
+                      <h3 className="text-xl font-semibold text-gray-900">Submission Details</h3>
+                      <button
+                        onClick={() => setSelectedSubmission(null)}
+                        className="text-gray-400 hover:text-gray-600 transition-colors"
+                      >
+                        <X className="w-6 h-6" />
+                      </button>
                     </div>
-                    <div>
-                      <strong>Total Size:</strong> {submission.total_size_mb || 0}MB
+                    
+                    <div className="space-y-4 mb-6">
+                      <div className="flex items-start justify-center">
+                        <Users className="w-5 h-5 text-blue-600 mr-3 mt-1" />
+                        <div>
+                          <p className="text-sm text-gray-600 font-medium">Student</p>
+                          <p className="text-gray-900">{selectedSubmission.student_name || `ID: ${selectedSubmission.student_id}`}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start justify-center">
+                        <Calendar className="w-5 h-5 text-blue-600 mr-3 mt-1" />
+                        <div>
+                          <p className="text-sm text-gray-600 font-medium">Submitted</p>
+                          <p className="text-gray-900">{formatDateTime(selectedSubmission.submitted_at)}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start justify-center">
+                        <FileText className="w-5 h-5 text-blue-600 mr-3 mt-1" />
+                        <div>
+                          <p className="text-sm text-gray-600 font-medium">Status</p>
+                          <p className="text-gray-900">{selectedSubmission.status}</p>
+                        </div>
+                      </div>
+                      {selectedSubmission.is_late && (
+                        <p className="text-red-600 font-medium">⚠️ Late Submission</p>
+                      )}
                     </div>
-                    <div>
-                      <strong>Status:</strong> {submission.status || 'Submitted'}
-                    </div>
-                    {submission.marks && (
+
+                    {selectedSubmission.submission_text && (
+                      <div className="mb-6">
+                        <p className="text-sm text-gray-600 font-medium mb-2">Submission Text</p>
+                        <div className="bg-gray-50 rounded-lg p-4 text-gray-900 whitespace-pre-wrap">
+                          {selectedSubmission.submission_text}
+                        </div>
+                      </div>
+                    )}
+
+                    {selectedSubmission.files && selectedSubmission.files.length > 0 && (
+                      <div className="mb-6">
+                        <p className="text-sm text-gray-600 font-medium mb-2">Submitted Files</p>
+                        <div className="space-y-2">
+                          {selectedSubmission.files.map((file, index) => (
+                            <div key={index} className="flex items-center justify-between bg-gray-50 rounded-lg px-4 py-3">
+                              <div className="flex items-center">
+                                <File className="w-4 h-4 text-blue-600 mr-3" />
+                                <span className="text-sm text-gray-900">{file.original_name}</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs text-gray-500">
+                                  {file.size_mb}MB | {file.file_type}
+                                </span>
+                                <button
+                                  onClick={() => window.open(file.download_url, '_blank')}
+                                  className="text-blue-600 hover:text-blue-700 transition-colors"
+                                >
+                                  <Download className="w-4 h-4" />
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {selectedSubmission.feedback && (
+                      <div className="mb-6">
+                        <p className="text-sm text-gray-600 font-medium mb-2">Feedback</p>
+                        <div className="bg-blue-50 rounded-lg p-4 text-gray-900">
+                          {selectedSubmission.feedback}
+                        </div>
+                      </div>
+                    )}
+
+                    {selectedSubmission.marks && (
                       <div>
-                        <strong>Marks:</strong> {submission.marks}/{viewingSubmissions.total_marks}
+                        <p className="text-sm text-gray-600 font-medium mb-2">Grade</p>
+                        <div className="bg-green-50 rounded-lg p-4 text-gray-900 font-semibold">
+                          {selectedSubmission.marks} / {viewingSubmissions.total_marks}
+                        </div>
                       </div>
                     )}
                   </div>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* Manual Grading Form */}
-          {showGradingForm && selectedSubmission && (
-            <div style={{
-              position: 'fixed',
-              top: '0',
-              left: '0',
-              right: '0',
-              bottom: '0',
-              background: 'rgba(0,0,0,0.5)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              zIndex: 1000
-            }}>
-              <div style={{
-                background: '#fff',
-                padding: '20px',
-                borderRadius: '8px',
-                maxWidth: '500px',
-                width: '90%'
-              }}>
-                <h3 style={{ marginTop: '0' }}>
-                  Grade Submission: {selectedSubmission.student_name || `ID: ${selectedSubmission.student_id}`}
-                </h3>
-                <form onSubmit={(e) => {
-                  e.preventDefault();
-                  handleManualGrade(
-                    viewingSubmissions.id,
-                    selectedSubmission.student_id,
-                    gradingData.marks,
-                    gradingData.feedback
-                  );
-                }}>
-                  <div style={{ marginBottom: '15px' }}>
-  <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
-    Marks (out of {viewingSubmissions.total_marks})
-  </label>
-  <input
-    type="number"
-    name="marks"
-    value={gradingData.marks}
-    onChange={handleGradingInputChange}
-    min="0"
-    max={viewingSubmissions.total_marks}
-    step="0.01"
-    required
-    style={{
-      width: '100%',
-      padding: '8px',
-      border: gradingData.marks && (parseFloat(gradingData.marks) > viewingSubmissions.total_marks) ? '1px solid #dc3545' : '1px solid #ccc',
-      borderRadius: '4px'
-    }}
-  />
-  {gradingData.marks && (parseFloat(gradingData.marks) > viewingSubmissions.total_marks) && (
-    <div style={{ color: '#dc3545', fontSize: '12px', marginTop: '5px' }}>
-      Marks cannot exceed {viewingSubmissions.total_marks}
-    </div>
-  )}
-</div>
-                  <div style={{ display: 'flex', gap: '10px' }}>
+                )}
+              </div>
+            ) : showCreateForm ? (
+              <div className="bg-white rounded-xl p-8 border border-gray-200 shadow-sm text-center">
+                <h2 className="text-2xl font-bold text-gray-900 mb-6">
+                  {editingAssignment ? 'Edit Assignment' : 'Create New Assignment'}
+                </h2>
+                
+                <form onSubmit={handleSubmit}>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Title *
+                      </label>
+                      <input
+                        type="text"
+                        name="title"
+                        value={formData.title}
+                        onChange={handleInputChange}
+                        required
+                        className="w-full px-4 py-3 bg-gray-50 rounded-lg border border-gray-300 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Total Marks *
+                      </label>
+                      <input
+                        type="number"
+                        name="total_marks"
+                        value={formData.total_marks}
+                        onChange={handleInputChange}
+                        required
+                        min="0"
+                        className="w-full px-4 py-3 bg-gray-50 rounded-lg border border-gray-300 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Due Date *
+                      </label>
+                      <input
+                        type="date"
+                        name="due_date"
+                        value={formData.due_date}
+                        onChange={handleInputChange}
+                        required
+                        className="w-full px-4 py-3 bg-gray-50 rounded-lg border border-gray-300 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Allowed File Types
+                      </label>
+                      <input
+                        type="text"
+                        name="allowed_file_types"
+                        value={formData.allowed_file_types}
+                        onChange={handleInputChange}
+                        placeholder="pdf,docx,doc,txt"
+                        className="w-full px-4 py-3 bg-gray-50 rounded-lg border border-gray-300 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Max File Size (MB)
+                      </label>
+                      <input
+                        type="number"
+                        name="max_file_size_mb"
+                        value={formData.max_file_size_mb}
+                        onChange={handleInputChange}
+                        min="1"
+                        className="w-full px-4 py-3 bg-gray-50 rounded-lg border border-gray-300 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Max Files Count
+                      </label>
+                      <input
+                        type="number"
+                        name="max_files_count"
+                        value={formData.max_files_count}
+                        onChange={handleInputChange}
+                        min="1"
+                        className="w-full px-4 py-3 bg-gray-50 rounded-lg border border-gray-300 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Total Max Size (MB)
+                      </label>
+                      <input
+                        type="number"
+                        name="total_max_size_mb"
+                        value={formData.total_max_size_mb}
+                        onChange={handleInputChange}
+                        min="1"
+                        className="w-full px-4 py-3 bg-gray-50 rounded-lg border border-gray-300 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                    </div>
+                    <div>
+                      <label className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          name="allow_late_submission"
+                          checked={formData.allow_late_submission}
+                          onChange={handleInputChange}
+                          className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                        />
+                        <span className="text-sm font-medium text-gray-700">Allow Late Submission</span>
+                      </label>
+                    </div>
+                    {formData.allow_late_submission && (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Late Penalty (%)
+                        </label>
+                        <input
+                          type="number"
+                          name="late_penalty_percent"
+                          value={formData.late_penalty_percent}
+                          onChange={handleInputChange}
+                          min="0"
+                          max="100"
+                          className="w-full px-4 py-3 bg-gray-50 rounded-lg border border-gray-300 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        />
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="mb-6">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Description
+                    </label>
+                    <textarea
+                      name="description"
+                      value={formData.description}
+                      onChange={handleInputChange}
+                      rows="3"
+                      className="w-full px-4 py-3 bg-gray-50 rounded-lg border border-gray-300 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
+                  
+                  <div className="mb-6">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Instructions
+                    </label>
+                    <textarea
+                      name="instructions"
+                      value={formData.instructions}
+                      onChange={handleInputChange}
+                      rows="4"
+                      className="w-full px-4 py-3 bg-gray-50 rounded-lg border border-gray-300 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
+                  
+                  <div className="flex gap-3 justify-center">
                     <button
                       type="submit"
-                      style={{
-                        background: '#28a745',
-                        color: 'white',
-                        border: 'none',
-                        padding: '10px 20px',
-                        cursor: 'pointer',
-                        borderRadius: '4px'
-                      }}
+                      className="flex-1 max-w-xs px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all duration-200 font-medium"
                     >
-                      Save Grade
+                      {editingAssignment ? 'Update Assignment' : 'Create Assignment'}
                     </button>
                     <button
                       type="button"
-                      onClick={() => {
-                        setShowGradingForm(false);
-                        setGradingData({ marks: '', feedback: '' });
-                      }}
-                      style={{
-                        background: '#6c757d',
-                        color: 'white',
-                        border: 'none',
-                        padding: '10px 20px',
-                        cursor: 'pointer',
-                        borderRadius: '4px'
-                      }}
+                      onClick={resetForm}
+                      className="px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-gray-700 font-medium"
                     >
                       Cancel
                     </button>
                   </div>
                 </form>
               </div>
-            </div>
-          )}
-
-          {/* Selected Submission Details */}
-          {selectedSubmission && !showGradingForm && (
-            <div style={{
-              marginTop: '20px',
-              padding: '20px',
-              border: '2px solid #000',
-              borderRadius: '4px',
-              background: '#fff'
-            }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-                <h3 style={{ margin: '0' }}>Submission Details</h3>
-                <button
-                  onClick={() => setSelectedSubmission(null)}
-                  style={{
-                    background: 'none',
-                    border: '1px solid #ccc',
-                    padding: '5px 10px',
-                    cursor: 'pointer',
-                    borderRadius: '4px'
-                  }}
-                >
-                  Close
-                </button>
+            ) : (
+              <div className="bg-white rounded-xl p-12 border-2 border-dashed border-gray-300 text-center">
+                <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-xl font-semibold text-gray-900 mb-2">No Assignment Selected</h3>
+                <p className="text-gray-600">Select an assignment from the list to view submissions or create a new one</p>
               </div>
-              
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '15px' }}>
-                <div>
-                  <p><strong>Student:</strong> {selectedSubmission.student_name || `ID: ${selectedSubmission.student_id}`}</p>
-                  <p><strong>Submitted:</strong> {formatDateTime(selectedSubmission.submitted_at)}</p>
-                  <p><strong>Status:</strong> {selectedSubmission.status}</p>
-                </div>
-                <div>
-                  <p><strong>Files Count:</strong> {selectedSubmission.files?.length || 0}</p>
-                  <p><strong>Total Size:</strong> {selectedSubmission.total_size_mb || 0}MB</p>
-                  {selectedSubmission.is_late && <p style={{ color: '#ff9800' }}><strong>Late Submission</strong></p>}
-                </div>
-              </div>
-
-              {selectedSubmission.submission_text && (
-                <div style={{ marginBottom: '15px' }}>
-                  <strong>Submission Text:</strong>
-                  <div style={{ 
-                    background: '#f9f9f9', 
-                    padding: '10px', 
-                    borderRadius: '4px', 
-                    marginTop: '5px',
-                    whiteSpace: 'pre-wrap'
-                  }}>
-                    {selectedSubmission.submission_text}
-                  </div>
-                </div>
-              )}
-
-              {selectedSubmission.files && selectedSubmission.files.length > 0 && (
-                <div>
-                  <strong>Submitted Files:</strong>
-                  <div style={{ marginTop: '10px' }}>
-                    {selectedSubmission.files.map((file, index) => (
-                      <div
-                        key={index}
-                        style={{
-                          border: '1px solid #ddd',
-                          padding: '10px',
-                          marginBottom: '10px',
-                          borderRadius: '4px',
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'center'
-                        }}
-                      >
-                        <div>
-                          <div><strong>{file.original_name}</strong></div>
-                          <div style={{ fontSize: '12px', color: '#666' }}>
-                            Size: {file.size_mb}MB | Type: {file.file_type}
-                          </div>
-                        </div>
-                        <button
-                          onClick={() => window.open(file.download_url, '_blank')}
-                          style={{
-                            background: '#000',
-                            color: 'white',
-                            border: 'none',
-                            padding: '5px 10px',
-                            cursor: 'pointer',
-                            borderRadius: '4px',
-                            fontSize: '12px'
-                          }}
-                        >
-                          Download
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {selectedSubmission.feedback && (
-                <div style={{ marginTop: '15px' }}>
-                  <strong>Feedback:</strong>
-                  <div style={{ 
-                    background: '#e3f2fd', 
-                    padding: '10px', 
-                    borderRadius: '4px', 
-                    marginTop: '5px'
-                  }}>
-                    {selectedSubmission.feedback}
-                  </div>
-                </div>
-              )}
-
-              {selectedSubmission.marks && (
-                <div style={{ marginTop: '15px' }}>
-                  <strong>Grade:</strong>
-                  <div style={{ 
-                    background: '#e8f5e8', 
-                    padding: '10px', 
-                    borderRadius: '4px', 
-                    marginTop: '5px',
-                    fontSize: '16px',
-                    fontWeight: 'bold'
-                  }}>
-                    {selectedSubmission.marks} / {viewingSubmissions.total_marks}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Create Assignment Button */}
-      {!viewingSubmissions && (
-        <div style={{ marginBottom: '20px' }}>
-          <button
-            onClick={() => setShowCreateForm(true)}
-            style={{
-              background: '#000',
-              color: 'white',
-              border: 'none',
-              padding: '10px 20px',
-              cursor: 'pointer',
-              borderRadius: '4px'
-            }}
-          >
-            Create New Assignment
-          </button>
-        </div>
-      )}
-
-      {/* Create/Edit Form */}
-      {showCreateForm && !viewingSubmissions && (
-        <div style={{
-          background: '#f9f9f9',
-          border: '1px solid #ddd',
-          padding: '20px',
-          marginBottom: '30px',
-          borderRadius: '4px'
-        }}>
-          <h2 style={{ marginTop: '0' }}>
-            {editingAssignment ? 'Edit Assignment' : 'Create New Assignment'}
-          </h2>
-          
-          <form onSubmit={handleSubmit}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-              {/* Left Column */}
-              <div>
-                <div style={{ marginBottom: '15px' }}>
-                  <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
-                    Title *
-                  </label>
-                  <input
-                    type="text"
-                    name="title"
-                    value={formData.title}
-                    onChange={handleInputChange}
-                    required
-                    style={{
-                      width: '100%',
-                      padding: '8px',
-                      border: '1px solid #ccc',
-                      borderRadius: '4px'
-                    }}
-                  />
-                </div>
-
-                <div style={{ marginBottom: '15px' }}>
-                  <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
-                    Total Marks *
-                  </label>
-                  <input
-                    type="number"
-                    name="total_marks"
-                    value={formData.total_marks}
-                    onChange={handleInputChange}
-                    required
-                    min="0"
-                    style={{
-                      width: '100%',
-                      padding: '8px',
-                      border: '1px solid #ccc',
-                      borderRadius: '4px'
-                    }}
-                  />
-                </div>
-
-                <div style={{ marginBottom: '15px' }}>
-                  <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
-                    Due Date *
-                  </label>
-                  <input
-                    type="date"
-                    name="due_date"
-                    value={formData.due_date}
-                    onChange={handleInputChange}
-                    required
-                    style={{
-                      width: '100%',
-                      padding: '8px',
-                      border: '1px solid #ccc',
-                      borderRadius: '4px'
-                    }}
-                  />
-                </div>
-
-                <div style={{ marginBottom: '15px' }}>
-                  <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
-                    Allowed File Types
-                  </label>
-                  <input
-                    type="text"
-                    name="allowed_file_types"
-                    value={formData.allowed_file_types}
-                    onChange={handleInputChange}
-                    placeholder="pdf,docx,doc,txt"
-                    style={{
-                      width: '100%',
-                      padding: '8px',
-                      border: '1px solid #ccc',
-                      borderRadius: '4px'
-                    }}
-                  />
-                </div>
-              </div>
-
-              {/* Right Column */}
-              <div>
-                <div style={{ marginBottom: '15px' }}>
-                  <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
-                    Max File Size (MB)
-                  </label>
-                  <input
-                    type="number"
-                    name="max_file_size_mb"
-                    value={formData.max_file_size_mb}
-                    onChange={handleInputChange}
-                    min="1"
-                    style={{
-                      width: '100%',
-                      padding: '8px',
-                      border: '1px solid #ccc',
-                      borderRadius: '4px'
-                    }}
-                  />
-                </div>
-
-                <div style={{ marginBottom: '15px' }}>
-                  <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
-                    Max Files Count
-                  </label>
-                  <input
-                    type="number"
-                    name="max_files_count"
-                    value={formData.max_files_count}
-                    onChange={handleInputChange}
-                    min="1"
-                    style={{
-                      width: '100%',
-                      padding: '8px',
-                      border: '1px solid #ccc',
-                      borderRadius: '4px'
-                    }}
-                  />
-                </div>
-
-                <div style={{ marginBottom: '15px' }}>
-                  <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
-                    Total Max Size (MB)
-                  </label>
-                  <input
-                    type="number"
-                    name="total_max_size_mb"
-                    value={formData.total_max_size_mb}
-                    onChange={handleInputChange}
-                    min="1"
-                    style={{
-                      width: '100%',
-                      padding: '8px',
-                      border: '1px solid #ccc',
-                      borderRadius: '4px'
-                    }}
-                  />
-                </div>
-
-                <div style={{ marginBottom: '15px' }}>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <input
-                      type="checkbox"
-                      name="allow_late_submission"
-                      checked={formData.allow_late_submission}
-                      onChange={handleInputChange}
-                    />
-                    <span style={{ fontWeight: 'bold' }}>Allow Late Submission</span>
-                  </label>
-                </div>
-
-                {formData.allow_late_submission && (
-                  <div style={{ marginBottom: '15px' }}>
-                    <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
-                      Late Penalty (%)
-                    </label>
-                    <input
-                      type="number"
-                      name="late_penalty_percent"
-                      value={formData.late_penalty_percent}
-                      onChange={handleInputChange}
-                      min="0"
-                      max="100"
-                      style={{
-                        width: '100%',
-                        padding: '8px',
-                        border: '1px solid #ccc',
-                        borderRadius: '4px'
-                      }}
-                    />
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Full Width Fields */}
-            <div style={{ marginBottom: '15px' }}>
-              <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
-                Description
-              </label>
-              <textarea
-                name="description"
-                value={formData.description}
-                onChange={handleInputChange}
-                rows="3"
-                style={{
-                  width: '100%',
-                  padding: '8px',
-                  border: '1px solid #ccc',
-                  borderRadius: '4px',
-                  resize: 'vertical'
-                }}
-              />
-            </div>
-
-            <div style={{ marginBottom: '15px' }}>
-              <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
-                Instructions
-              </label>
-              <textarea
-                name="instructions"
-                value={formData.instructions}
-                onChange={handleInputChange}
-                rows="4"
-                style={{
-                  width: '100%',
-                  padding: '8px',
-                  border: '1px solid #ccc',
-                  borderRadius: '4px',
-                  resize: 'vertical'
-                }}
-              />
-            </div>
-
-            {/* Form Buttons */}
-            <div style={{ display: 'flex', gap: '10px' }}>
-              <button
-                type="submit"
-                style={{
-                  background: '#000',
-                  color: 'white',
-                  border: 'none',
-                  padding: '10px 20px',
-                  cursor: 'pointer',
-                  borderRadius: '4px'
-                }}
-              >
-                {editingAssignment ? 'Update Assignment' : 'Create Assignment'}
-              </button>
-              <button
-                type="button"
-                onClick={resetForm}
-                style={{
-                  background: '#fff',
-                  color: '#000',
-                  border: '1px solid #ccc',
-                  padding: '10px 20px',
-                  cursor: 'pointer',
-                  borderRadius: '4px'
-                }}
-              >
-                Cancel
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
-
-      {/* Assignments List */}
-      {!viewingSubmissions && (
-        <div>
-          <h2 style={{ marginBottom: '20px' }}>Assignments ({assignments.length})</h2>
-          
-          {assignments.length === 0 ? (
-            <div style={{
-              textAlign: 'center',
-              padding: '40px',
-              border: '1px solid #ddd',
-              borderRadius: '4px',
-              background: '#f9f9f9'
-            }}>
-              <p>No assignments created yet.</p>
-              <button
-                onClick={() => setShowCreateForm(true)}
-                style={{
-                  background: '#000',
-                  color: 'white',
-                  border: 'none',
-                  padding: '10px 20px',
-                  cursor: 'pointer',
-                  borderRadius: '4px',
-                  marginTop: '10px'
-                }}
-              >
-                Create First Assignment
-              </button>
-            </div>
-          ) : (
-            <div style={{ display: 'grid', gap: '20px' }}>
-              {assignments.map((assignment) => (
-                <div
-                  key={assignment.id}
-                  style={{
-                    border: '1px solid #ddd',
-                    borderRadius: '4px',
-                    padding: '20px',
-                    background: assignment.is_active ? '#fff' : '#f5f5f5'
-                  }}
-                >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '15px' }}>
-                    <div>
-                      <h3 style={{ margin: '0 0 10px 0', fontSize: '18px' }}>
-                        {assignment.title}
-                        {!assignment.is_active && (
-                          <span style={{
-                            background: '#666',
-                            color: 'white',
-                            padding: '2px 8px',
-                            fontSize: '12px',
-                            borderRadius: '12px',
-                            marginLeft: '10px'
-                          }}>
-                            Inactive
-                          </span>
-                        )}
-                      </h3>
-                      {assignment.description && (
-                        <p style={{ margin: '0 0 10px 0', color: '#666' }}>
-                          {assignment.description}
-                        </p>
-                      )}
-                    </div>
-                    <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-                      <button
-                        onClick={() => handleViewSubmissions(assignment)}
-                        style={{
-                          background: '#28a745',
-                          color: 'white',
-                          border: 'none',
-                          padding: '5px 10px',
-                          cursor: 'pointer',
-                          borderRadius: '4px',
-                          fontSize: '12px'
-                        }}
-                      >
-                        View Submissions
-                      </button>
-                      <button
-                        onClick={() => handleEdit(assignment)}
-                        style={{
-                          background: 'none',
-                          border: '1px solid #ccc',
-                          padding: '5px 10px',
-                          cursor: 'pointer',
-                          borderRadius: '4px',
-                          fontSize: '12px'
-                        }}
-                      >
-                        Edit
-                      </button>
-                      <button
-                        onClick={() => handleToggleStatus(assignment.id, assignment.is_active)}
-                        style={{
-                          background: assignment.is_active ? '#666' : '#000',
-                          color: 'white',
-                          border: 'none',
-                          padding: '5px 10px',
-                          cursor: 'pointer',
-                          borderRadius: '4px',
-                          fontSize: '12px'
-                        }}
-                      >
-                        {assignment.is_active ? 'Deactivate' : 'Activate'}
-                      </button>
-                      <button
-                        onClick={() => handleDelete(assignment.id)}
-                        style={{
-                          background: '#dc3545',
-                          color: 'white',
-                          border: 'none',
-                          padding: '5px 10px',
-                          cursor: 'pointer',
-                          borderRadius: '4px',
-                          fontSize: '12px'
-                        }}
-                      >
-                        Delete
-                      </button>
-                    </div>
-                  </div>
-
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px', fontSize: '14px' }}>
-                    <div>
-                      <strong>Total Marks:</strong> {assignment.total_marks}
-                    </div>
-                    <div>
-                      <strong>Due Date:</strong> {formatDate(assignment.due_date)}
-                    </div>
-                    <div>
-                      <strong>File Types:</strong> {assignment.allowed_file_types || 'Any'}
-                    </div>
-                    <div>
-                      <strong>Max Files:</strong> {assignment.max_files_count || 'Unlimited'}
-                    </div>
-                    <div>
-                      <strong>Max Size:</strong> {assignment.max_file_size_mb}MB per file
-                    </div>
-                    <div>
-                      <strong>Late Submission:</strong> {assignment.allow_late_submission ? 'Allowed' : 'Not Allowed'}
-                    </div>
-                  </div>
-
-                  {assignment.instructions && (
-                    <div style={{ marginTop: '15px', padding: '10px', background: '#f9f9f9', borderRadius: '4px' }}>
-                      <strong>Instructions:</strong>
-                      <p style={{ margin: '5px 0 0 0', fontSize: '14px' }}>{assignment.instructions}</p>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Grading Results Display */}
-      {gradingResults && (
-        <div style={{
-          position: 'fixed',
-          top: '20px',
-          right: '20px',
-          background: '#d4edda',
-          border: '1px solid #c3e6cb',
-          padding: '15px',
-          borderRadius: '4px',
-          maxWidth: '300px',
-          zIndex: 1001
-        }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <strong>🤖 AI Grading Complete</strong>
-            <button
-              onClick={() => setGradingResults(null)}
-              style={{
-                background: 'none',
-                border: 'none',
-                fontSize: '16px',
-                cursor: 'pointer'
-              }}
-            >
-              ×
-            </button>
+            )}
           </div>
-          <p style={{ margin: '10px 0 0 0', fontSize: '14px' }}>
-            {Array.isArray(gradingResults) 
-              ? `${gradingResults.length} submissions graded successfully!`
-              : 'Submission graded successfully!'
-            }
-          </p>
         </div>
-      )}
+
+        {showGradingForm && <GradingModal />}
+      </div>
     </div>
   );
 };
