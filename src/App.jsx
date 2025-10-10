@@ -38,6 +38,10 @@ import QuizResultPage from './pages/Student/Subject/Quiz/QuizResultPage';
 import QuizScorecardPage from './pages/Faculty/Subject/Quiz/QuizScorecardPage';
 import StudentAssignment from './pages/Student/Subject/Assignment/StudentAssignment';
 
+import PdfDetailPage from './pages/Student/Dashboard/components/PdfDetailPage';
+import FlashcardsPage from './pages/Student/Dashboard/components/FlashcardPage';
+import PdfQuizPage from './pages/Student/Dashboard/components/PdfQuizPage';
+
 
 
   function App() {
@@ -87,6 +91,9 @@ import StudentAssignment from './pages/Student/Subject/Assignment/StudentAssignm
                     <Route path='quiz-attempts/:attemptId' element={<QuizAttemptPage />} />
                     <Route path='quiz-attempts/:attemptId/result' element={<QuizResultPage />} />
                     <Route path='course/:courseId/assignments' element={<StudentAssignment />} />
+                    <Route path="notes/:pdfId" element={<PdfDetailPage />} />
+    <Route path="notes/:pdfId/flashcards" element={<FlashcardsPage />} />
+    <Route path="pdf-quizzes/:quizId/start" element={<PdfQuizPage />} />
                     
                     {/* Redirect /student to /student/dashboard */}
                     <Route path="" element={<Navigate to="dashboard" replace />} />

@@ -30,6 +30,7 @@ const StudentDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [uploadedNotes, setUploadedNotes] = useState([]);
+  const [uploadingPdf, setUploadingPdf] = useState(false);
 
   const currentUser = useMemo(() => authService.getCurrentUser(), []);
 
@@ -48,16 +49,29 @@ const StudentDashboard = () => {
     try {
       setLoading(true);
       const response = await pdfService.getPdfs();
-      console.log('API Response from getPdfs:', response); // Log full response
-      if (response.success) {
-        const notes = response.data?.pdfs || response.data || []; // Adjust based on actual structure
-        console.log('Parsed notes for state:', notes); // Log parsed data
-        setUploadedNotes(notes);
-      } else {
-        console.error('API Error:', response.message);
+      console.log('Full API Response:', response);
+      console.log('Response structure:', JSON.stringify(response, null, 2));
+      
+      // Handle different response structures
+      let notes = [];
+      
+      if (response.status === true || response.status === 'true') {
+        // Check multiple possible data locations
+        notes = response.data?.data || response.data || [];
+      } else if (response.data) {
+        // If status is missing but data exists
+        notes = Array.isArray(response.data) ? response.data : 
+                response.data.data || [];
       }
+      
+      console.log('Extracted notes array:', notes);
+      console.log('Notes count:', notes.length);
+      
+      setUploadedNotes(Array.isArray(notes) ? notes : []);
     } catch (error) {
       console.error('Error fetching uploaded notes:', error);
+      console.error('Error details:', error.response?.data);
+      setUploadedNotes([]);
     } finally {
       setLoading(false);
     }
@@ -81,7 +95,7 @@ const StudentDashboard = () => {
   }, [fetchDashboardData]);
 
   useEffect(() => {
-    console.log('uploadedNotes updated:', uploadedNotes); // Track state changes
+    console.log('uploadedNotes state updated:', uploadedNotes);
   }, [uploadedNotes]);
 
   const handleJoinCourse = useCallback(async () => {
@@ -128,30 +142,72 @@ const StudentDashboard = () => {
       return;
     }
 
-    if (!file.type.includes('pdf') && !file.name.toLowerCase().endsWith('.pdf')) {
-      alert('Please select a valid PDF file. Only PDF files are supported.');
+    // Validate PDF file using pdfService
+    const validation = pdfService.validatePdfFile(file, 10);
+    if (!validation.isValid) {
+      alert(validation.error);
       event.target.value = '';
       return;
     }
 
     try {
-      const formData = new FormData();
-      formData.append('pdf', file);
+      setUploadingPdf(true);
+      
+      // Upload PDF using pdfService
       const response = await pdfService.uploadPdf(file);
-      console.log('Upload response:', response); // Log upload result
-      if (response.data?.status) {
-        alert('Notes uploaded successfully!');
-        await fetchUploadedNotes(); // Refresh list
+      console.log('Upload response:', response);
+      
+      if (response.status) {
+        const uploadedPdf = response.data;
+        alert(`Notes uploaded successfully! Processing status: ${uploadedPdf.processing_status}`);
+        
+        // Optionally poll for completion
+        if (uploadedPdf.processing_status === 'pending' || uploadedPdf.processing_status === 'processing') {
+          // Start polling in background
+          pollPdfProcessing(uploadedPdf.id);
+        }
+        
+        // Refresh the list
+        await fetchUploadedNotes();
+      } else {
+        alert('Failed to upload notes: ' + response.message);
       }
+      
+      event.target.value = '';
     } catch (error) {
-      console.error('Full upload error:', error.response?.data || error.message);
+      console.error('Upload error:', error);
+      
       if (error.response?.status === 422 && error.response?.data?.errors) {
         const errors = Object.values(error.response.data.errors).flat().join('\n');
         alert(`Validation Error:\n${errors}`);
       } else {
         alert(`Failed to upload notes: ${error.response?.data?.message || error.message}`);
       }
+      
       event.target.value = '';
+    } finally {
+      setUploadingPdf(false);
+    }
+  };
+
+  // Poll PDF processing status
+  const pollPdfProcessing = async (pdfId) => {
+    try {
+      await pdfService.waitForPdfProcessing(
+        pdfId,
+        30, // max attempts
+        3000, // 3 seconds interval
+        (progress) => {
+          console.log(`Processing PDF ${pdfId}: ${progress.attempt}/${progress.maxAttempts} - Status: ${progress.status}`);
+        }
+      );
+      
+      console.log(`PDF ${pdfId} processing completed!`);
+      // Refresh the list after completion
+      await fetchUploadedNotes();
+      
+    } catch (error) {
+      console.error(`PDF ${pdfId} processing failed:`, error.message);
     }
   };
 
@@ -163,8 +219,21 @@ const StudentDashboard = () => {
     navigate(`/student/notes/${pdfId}/flashcards`);
   };
 
-  const handleAIQuiz = (pdfId) => {
-    navigate(`/student/pdf-quizzes/${pdfId}/start`);
+  const handleAIQuiz = async (note) => {
+    // Check if PDF processing is complete
+    if (note.processing_status !== 'completed') {
+      alert(`This PDF is still ${note.processing_status}. Please wait for processing to complete.`);
+      return;
+    }
+
+    // Check if quiz exists
+    if (!note.generated_quizzes || note.generated_quizzes.length === 0) {
+      alert('No quiz available for this PDF yet. Please wait for AI processing to complete.');
+      return;
+    }
+
+    const quizId = note.generated_quizzes[0].id;
+    navigate(`/student/pdf-quizzes/${quizId}/start`);
   };
 
   const stats = useMemo(() => ({
@@ -248,39 +317,84 @@ const StudentDashboard = () => {
     );
   }, [navigate]);
 
-  const NotesCard = useCallback(({ note }) => (
-    <div className="bg-white rounded-xl p-6 border border-gray-200 hover:border-blue-300 hover:shadow-lg transition-all duration-300">
-      <div className="flex items-start justify-between mb-4">
-        <div>
-          <h3 className="text-xl font-semibold text-gray-900">{note.filename || note.name || 'Untitled Note'}</h3>
-          <p className="text-gray-600 text-sm mt-1">
-            Uploaded: {new Date(note.created_at || note.uploaded_at).toLocaleDateString()}
-          </p>
+  const getProcessingStatusBadge = (status) => {
+    const badge = pdfService.getStatusBadge(status);
+    const colorClasses = {
+      gray: 'bg-gray-100 text-gray-700',
+      blue: 'bg-blue-100 text-blue-700',
+      green: 'bg-green-100 text-green-700',
+      red: 'bg-red-100 text-red-700',
+    };
+
+    return (
+      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${colorClasses[badge.color]}`}>
+        <span className="mr-1">{badge.icon}</span>
+        {badge.text}
+      </span>
+    );
+  };
+
+  const NotesCard = useCallback(({ note }) => {
+    const isProcessingComplete = note.processing_status === 'completed';
+    const fileSize = pdfService.formatFileSize(note.file_size_kb);
+
+    return (
+      <div className="bg-white rounded-xl p-6 border border-gray-200 hover:border-blue-300 hover:shadow-lg transition-all duration-300">
+        <div className="flex items-start justify-between mb-4">
+          <div className="flex-1">
+            <h3 className="text-xl font-semibold text-gray-900 truncate">
+              {note.original_filename || 'Untitled Note'}
+            </h3>
+            <p className="text-gray-600 text-sm mt-1">
+              {fileSize} • {new Date(note.created_at || note.upload_date).toLocaleDateString()}
+            </p>
+            <div className="mt-2">
+              {getProcessingStatusBadge(note.processing_status)}
+            </div>
+          </div>
         </div>
-        <div className="w-3 h-3 rounded-full bg-green-500"></div>
+
+        {note.processing_status === 'failed' && note.error_message && (
+          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+            <p className="text-red-700 text-sm">{note.error_message}</p>
+          </div>
+        )}
+
+        <div className="flex flex-col space-y-2 mt-4">
+          <button
+            onClick={() => handleViewNotes(note.id)}
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200"
+          >
+            View Summary
+          </button>
+          
+          <button
+            onClick={() => handleGenerateFlashcards(note.id)}
+            disabled={!isProcessingComplete}
+            className={`w-full px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+              isProcessingComplete
+                ? 'bg-purple-600 hover:bg-purple-700 text-white'
+                : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+            }`}
+          >
+            View Flashcards ({note.flashcards?.length || 0})
+          </button>
+
+          <button
+            onClick={() => handleAIQuiz(note)}
+            disabled={!isProcessingComplete}
+            className={`w-full px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+              isProcessingComplete
+                ? 'bg-pink-600 hover:bg-pink-700 text-white'
+                : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+            }`}
+          >
+            Take AI Quiz
+          </button>
+        </div>
       </div>
-      <div className="flex space-x-2 mt-4">
-        <button
-          onClick={() => handleViewNotes(note.id)}
-          className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200"
-        >
-          View
-        </button>
-        <button
-          onClick={() => handleGenerateFlashcards(note.id)}
-          className="flex-1 bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200"
-        >
-          Generate Flashcards
-        </button>
-        <button
-          onClick={() => handleAIQuiz(note.id)}
-          className="flex-1 bg-pink-600 hover:bg-pink-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200"
-        >
-          AI Quiz
-        </button>
-      </div>
-    </div>
-  ), [navigate]);
+    );
+  }, []);
 
   const EmptyCoursesState = useMemo(() => (
     <div className="text-center py-16 bg-white rounded-xl border-2 border-dashed border-gray-300">
@@ -413,13 +527,23 @@ const StudentDashboard = () => {
                 <div>
                   <h2 className="text-xl font-bold mb-4 text-gray-900">Quick Actions</h2>
                   <div className="space-y-3">
-                    <button className="w-full bg-white rounded-xl p-4 border border-gray-200 hover:border-blue-300 hover:shadow-lg transition-all duration-300 flex items-center space-x-3 text-gray-700">
+                    <label className="w-full bg-white rounded-xl p-4 border border-gray-200 hover:border-blue-300 hover:shadow-lg transition-all duration-300 flex items-center space-x-3 text-gray-700 cursor-pointer">
                       <Upload className="w-5 h-5 text-blue-600" />
                       <span className="font-medium">Upload Notes</span>
-                    </button>
-                    <button className="w-full bg-white rounded-xl p-4 border border-gray-200 hover:border-blue-300 hover:shadow-lg transition-all duration-200 flex items-center space-x-3 text-gray-700">
+                      <input
+                        type="file"
+                        accept="application/pdf"
+                        onChange={handleUploadNotes}
+                        className="hidden"
+                        disabled={uploadingPdf}
+                      />
+                    </label>
+                    <button 
+                      onClick={() => setActiveTab('notes')}
+                      className="w-full bg-white rounded-xl p-4 border border-gray-200 hover:border-blue-300 hover:shadow-lg transition-all duration-200 flex items-center space-x-3 text-gray-700"
+                    >
                       <Zap className="w-5 h-5 text-purple-600" />
-                      <span className="font-medium">Generate Flashcards</span>
+                      <span className="font-medium">View My Notes</span>
                     </button>
                   </div>
                 </div>
@@ -466,24 +590,45 @@ const StudentDashboard = () => {
         {activeTab === 'notes' && (
           <div className="space-y-6">
             <div className="flex justify-between items-center">
-              <h2 className="text-3xl font-bold text-gray-900">My Notes (Count: {uploadedNotes.length})</h2>
-              <label className="flex items-center space-x-2 bg-blue-600 text-white px-5 py-3 rounded-lg hover:bg-blue-700 transition-all duration-200 font-medium shadow-sm cursor-pointer">
-                <Upload className="w-4 h-4" />
-                <span>Upload Notes</span>
-                <input
-                  type="file"
-                  accept="application/pdf"
-                  onChange={handleUploadNotes}
-                  className="hidden"
-                />
-              </label>
-              <button
-                onClick={fetchUploadedNotes}
-                className="ml-4 bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 transition-all duration-200 font-medium"
-              >
-                <RefreshCw className="w-4 h-4 inline mr-2" />
-                Refresh Notes
-              </button>
+              <h2 className="text-3xl font-bold text-gray-900">
+                My Notes 
+                <span className="text-lg text-gray-500 ml-2">({uploadedNotes.length})</span>
+              </h2>
+              <div className="flex space-x-3">
+                <label className={`flex items-center space-x-2 px-5 py-3 rounded-lg transition-all duration-200 font-medium shadow-sm cursor-pointer ${
+                  uploadingPdf
+                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                    : 'bg-blue-600 hover:bg-blue-700 text-white'
+                }`}>
+                  <Upload className="w-4 h-4" />
+                  <span>{uploadingPdf ? 'Uploading...' : 'Upload Notes'}</span>
+                  <input
+                    type="file"
+                    accept="application/pdf"
+                    onChange={handleUploadNotes}
+                    className="hidden"
+                    disabled={uploadingPdf}
+                  />
+                </label>
+                <button
+                  onClick={fetchUploadedNotes}
+                  disabled={loading}
+                  className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 transition-all duration-200 font-medium disabled:opacity-50"
+                >
+                  <RefreshCw className={`w-4 h-4 inline mr-2 ${loading ? 'animate-spin' : ''}`} />
+                  Refresh
+                </button>
+                <button
+                  onClick={async () => {
+                    const response = await pdfService.getPdfs();
+                    console.log('DEBUG - Direct API Call:', response);
+                    alert('Check console for API response');
+                  }}
+                  className="bg-yellow-500 text-white px-4 py-2 rounded-lg hover:bg-yellow-600 transition-all duration-200 font-medium"
+                >
+                  Debug API
+                </button>
+              </div>
             </div>
 
             {loading ? (
@@ -495,8 +640,8 @@ const StudentDashboard = () => {
               <div className="text-center py-20">
                 <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
                 <h3 className="text-xl font-semibold text-gray-900 mb-2">No Notes Uploaded</h3>
-                <p className="text-gray-600 mb-6">Upload your first note to get started!</p>
-                <label className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-all duration-200 font-medium cursor-pointer">
+                <p className="text-gray-600 mb-6">Upload your first note to get started with AI-powered learning!</p>
+                <label className="inline-block bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-all duration-200 font-medium cursor-pointer">
                   <input
                     type="file"
                     accept="application/pdf"
@@ -569,6 +714,5 @@ const StudentDashboard = () => {
       )}
     </div>
   );
-};
-
+}
 export default StudentDashboard;
