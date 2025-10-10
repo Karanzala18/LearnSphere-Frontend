@@ -223,6 +223,31 @@ const StudentDashboard = () => {
     // Check if PDF processing is complete
     if (note.processing_status !== 'completed') {
       alert(`This PDF is still ${note.processing_status}. Please wait for processing to complete.`);
+      
+      // Offer to wait and auto-refresh
+      if (note.processing_status === 'processing' && window.confirm('Would you like to wait and auto-refresh?')) {
+        const checkInterval = setInterval(async () => {
+          try {
+            const status = await pdfService.checkPdfStatus(note.id);
+            console.log('Checking status:', status);
+            
+            if (status.isComplete) {
+              clearInterval(checkInterval);
+              alert('Processing complete! Refreshing...');
+              await fetchUploadedNotes();
+            } else if (status.isFailed) {
+              clearInterval(checkInterval);
+              alert('Processing failed: ' + status.error);
+            }
+          } catch (error) {
+            console.error('Error checking status:', error);
+            clearInterval(checkInterval);
+          }
+        }, 3000); // Check every 3 seconds
+        
+        // Stop checking after 2 minutes
+        setTimeout(() => clearInterval(checkInterval), 120000);
+      }
       return;
     }
 
@@ -336,7 +361,20 @@ const StudentDashboard = () => {
 
   const NotesCard = useCallback(({ note }) => {
     const isProcessingComplete = note.processing_status === 'completed';
+    const isProcessing = note.processing_status === 'processing';
     const fileSize = pdfService.formatFileSize(note.file_size_kb);
+
+    // Auto-refresh if processing
+    useEffect(() => {
+      if (isProcessing) {
+        const interval = setInterval(async () => {
+          console.log('Auto-checking PDF status:', note.id);
+          await fetchUploadedNotes();
+        }, 5000); // Check every 5 seconds
+
+        return () => clearInterval(interval);
+      }
+    }, [isProcessing, note.id]);
 
     return (
       <div className="bg-white rounded-xl p-6 border border-gray-200 hover:border-blue-300 hover:shadow-lg transition-all duration-300">
@@ -348,8 +386,13 @@ const StudentDashboard = () => {
             <p className="text-gray-600 text-sm mt-1">
               {fileSize} • {new Date(note.created_at || note.upload_date).toLocaleDateString()}
             </p>
-            <div className="mt-2">
+            <div className="mt-2 flex items-center gap-2">
               {getProcessingStatusBadge(note.processing_status)}
+              {isProcessing && (
+                <span className="text-xs text-blue-600 animate-pulse">
+                  ⚙️ Processing... Auto-refreshing
+                </span>
+              )}
             </div>
           </div>
         </div>
