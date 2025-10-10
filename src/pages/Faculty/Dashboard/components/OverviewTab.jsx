@@ -7,26 +7,12 @@ const quickActions = [
     title: 'Create Subject',
     description: 'Add a new subject for the semester'
   },
-  {
-    type: 'quiz',
-    title: 'Create Quiz',
-    description: 'Design a new quiz for your students'
-  },
-  {
-    type: 'assignment',
-    title: 'Create Assignment',
-    description: 'Add a new assignment with auto-grading'
-  }
+  
 ];
 
 const OverviewTab = React.memo(({ openCreateModal }) => (
   <div className="space-y-8">
-    <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
-      <h3 className="text-xl font-semibold mb-4 text-gray-900">Recent Activity</h3>
-      <div className="space-y-4">
-        <p className="text-gray-600">No recent activity available</p>
-      </div>
-    </div>
+    
 
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
       {quickActions.map(({ type, title, description }) => (

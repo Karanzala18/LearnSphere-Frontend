@@ -23,10 +23,7 @@ const FacultyNavbar = ({ onRefresh, loading, activeTab, setActiveTab }) => {
   const navTabs = [
     { id: 'overview', label: 'Overview', icon: BarChart3 },
     { id: 'subjects', label: 'Subjects', icon: BookOpen },
-    { id: 'quizzes', label: 'Quizzes', icon: FileText },
-    { id: 'assignments', label: 'Assignments', icon: Award },
-    { id: 'calendar', label: 'Calendar', icon: Calendar },
-    { id: 'analytics', label: 'Analytics', icon: BarChart3 }
+    
   ];
 
   return (
@@ -74,10 +71,7 @@ const FacultyNavbar = ({ onRefresh, loading, activeTab, setActiveTab }) => {
               <BarChart3 className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
             </button>
             
-            {/* Notifications */}
-            <button className="p-2 text-gray-400 hover:text-blue-500 transition-colors rounded-lg hover:bg-gray-900">
-              <Bell className="w-6 h-6" />
-            </button>
+          
             
             {/* User Menu */}
             <div className="relative">

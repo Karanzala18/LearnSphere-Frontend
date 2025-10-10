@@ -9,20 +9,14 @@ const getSemesterText = (semester) => {
   return semesterMap[semester] || `Semester ${semester}`;
 };
 
-const SubjectCard = React.memo(({ subject, onDelete, onView, onCopyCode }) => (
+const SubjectCard = React.memo(({ subject, onDelete, onView}) => (
   <div className="bg-white rounded-xl p-6 border border-gray-200 hover:border-blue-300 hover:shadow-lg transition-all">
     <div className="flex justify-between items-start mb-4">
       <div>
         <h3 className="text-lg font-semibold text-gray-900">{subject.name}</h3>
-        <p className="text-blue-600 font-mono text-sm">{subject.code}</p>
-        {subject.team_code && (
-          <p className="text-blue-600 text-sm mt-1">Team Code: {subject.team_code}</p>
-        )}
+       
       </div>
       <div className="flex space-x-2">
-        <button className="text-gray-600 hover:text-blue-600">
-          <Edit className="w-4 h-4" />
-        </button>
         <button onClick={() => onDelete(subject.id)} className="text-gray-600 hover:text-red-600">
           <Trash2 className="w-4 h-4" />
         </button>
@@ -57,14 +51,7 @@ const SubjectCard = React.memo(({ subject, onDelete, onView, onCopyCode }) => (
       >
         View Details
       </button>
-      <button 
-        onClick={() => onCopyCode(subject.team_code)}
-        className="flex items-center space-x-1 px-3 py-2 bg-blue-50 text-blue-600 rounded-lg text-sm hover:bg-blue-100 transition-all"
-        disabled={!subject.team_code}
-      >
-        <Copy className="w-3 h-3" />
-        <span>Copy Code</span>
-      </button>
+
     </div>
   </div>
 ));

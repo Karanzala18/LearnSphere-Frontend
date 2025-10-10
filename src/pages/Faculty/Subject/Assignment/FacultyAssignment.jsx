@@ -502,13 +502,13 @@ const FacultyAssignment = () => {
       </div>
 
       <div className="max-w-7xl w-full px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-8 text-center">
+        <div className="mb-15">
           <button
             onClick={() => navigate(-1)}
-            className="flex items-center text-gray-600 hover:text-gray-900 mb-4 transition-colors group mx-auto"
+            className="flex items-center text-gray-600 hover:text-gray-900 mb-4 transition-colors group"
           >
             <ArrowLeft className="w-5 h-5 mr-2 group-hover:-translate-x-1 transition-transform" />
-            <span className="font-medium">Back to Dashboard</span>
+            <span className="font-medium">Back to Subject</span>
           </button>
           <h1 className="text-4xl font-bold text-gray-900">Subject Assignments</h1>
           <p className="text-gray-600 mt-2">Manage assignments and grade submissions</p>
@@ -606,7 +606,7 @@ const FacultyAssignment = () => {
 
           <div className="lg:col-span-2">
             {viewingSubmissions ? (
-              <div className="bg-white rounded-xl p-8 border border-gray-200 shadow-sm text-center">
+  <div className="max-w-4xl mx-auto bg-white rounded-xl p-8 border border-gray-200 shadow-sm">
                 <div className="flex justify-between items-start mb-6">
                   <h2 className="text-2xl font-bold text-gray-900">
                     Submissions for: {viewingSubmissions.title}
