@@ -89,7 +89,7 @@ const PdfQuizPage = () => {
           <h2 className="text-2xl font-bold text-gray-900 mb-2">Error</h2>
           <p className="text-gray-600 mb-6">{error}</p>
           <button
-            onClick={() => navigate('/student/dashboard')}
+            onClick={() => navigate('/student/dashboard', { state: { activeTab: 'notes' } })}
             className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-all duration-200 font-medium"
           >
             Back to Dashboard
@@ -235,7 +235,7 @@ const PdfQuizPage = () => {
           {/* Bottom Action */}
           <div className="mt-8 text-center">
             <button
-              onClick={() => navigate('/student/dashboard')}
+              onClick={() => navigate('/student/dashboard', { state: { activeTab: 'notes' } })}
               className="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl transition-all duration-200 font-medium shadow-md"
             >
               Back to Dashboard
@@ -254,7 +254,7 @@ const PdfQuizPage = () => {
           <h2 className="text-2xl font-bold text-gray-900 mb-2">No Quiz Data</h2>
           <p className="text-gray-600 mb-6">No quiz data available</p>
           <button
-            onClick={() => navigate('/student/dashboard')}
+            onClick={() => navigate('/student/dashboard', { state: { activeTab: 'notes' } })}
             className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-all duration-200 font-medium"
           >
             Back to Dashboard

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate , useLocation } from 'react-router-dom';
 import { authService } from '../../../services/authService';
 import { 
   Brain, 
@@ -14,6 +14,10 @@ import {
   Zap,
   AlertCircle,
   RefreshCw,
+  Trash2,
+  History,
+  X,
+  TrendingDown,
 } from 'lucide-react';
 import { subjectService } from '../../Student/services/subjectService';
 import pdfService from '../services/pdfService';
@@ -21,7 +25,8 @@ import StudentNavbar from './components/StudentNavbar';
 
 const StudentDashboard = () => {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState('overview');
+  const location = useLocation();
+  const [activeTab, setActiveTab] = useState(location.state?.activeTab || 'overview');
   const [joinCode, setJoinCode] = useState('');
   const [showJoinModal, setShowJoinModal] = useState(false);
   const [enrolledSubjects, setEnrolledSubjects] = useState([]);
@@ -31,13 +36,20 @@ const StudentDashboard = () => {
   const [error, setError] = useState('');
   const [uploadedNotes, setUploadedNotes] = useState([]);
   const [uploadingPdf, setUploadingPdf] = useState(false);
+  
+  // 🆕 Delete & Quiz History States
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [noteToDelete, setNoteToDelete] = useState(null);
+  const [deletingNote, setDeletingNote] = useState(false);
+  const [showQuizHistoryModal, setShowQuizHistoryModal] = useState(false);
+  const [quizHistoryData, setQuizHistoryData] = useState(null);
+  const [loadingQuizHistory, setLoadingQuizHistory] = useState(false);
 
   const currentUser = useMemo(() => authService.getCurrentUser(), []);
 
   const fetchEnrolledSubjects = useCallback(async () => {
     try {
       const response = await subjectService.getEnrolledSubjects();
-      console.log('Enrolled subjects response:', response);
       setEnrolledSubjects(response.data || response.subjects || []);
     } catch (error) {
       console.error('Error fetching enrolled subjects:', error);
@@ -49,28 +61,19 @@ const StudentDashboard = () => {
     try {
       setLoading(true);
       const response = await pdfService.getPdfs();
-      console.log('Full API Response:', response);
-      console.log('Response structure:', JSON.stringify(response, null, 2));
       
-      // Handle different response structures
       let notes = [];
       
       if (response.status === true || response.status === 'true') {
-        // Check multiple possible data locations
         notes = response.data?.data || response.data || [];
       } else if (response.data) {
-        // If status is missing but data exists
         notes = Array.isArray(response.data) ? response.data : 
                 response.data.data || [];
       }
       
-      console.log('Extracted notes array:', notes);
-      console.log('Notes count:', notes.length);
-      
       setUploadedNotes(Array.isArray(notes) ? notes : []);
     } catch (error) {
       console.error('Error fetching uploaded notes:', error);
-      console.error('Error details:', error.response?.data);
       setUploadedNotes([]);
     } finally {
       setLoading(false);
@@ -93,10 +96,6 @@ const StudentDashboard = () => {
   useEffect(() => {
     fetchDashboardData();
   }, [fetchDashboardData]);
-
-  useEffect(() => {
-    console.log('uploadedNotes state updated:', uploadedNotes);
-  }, [uploadedNotes]);
 
   const handleJoinCourse = useCallback(async () => {
     if (!joinCode.trim()) {
@@ -142,7 +141,6 @@ const StudentDashboard = () => {
       return;
     }
 
-    // Validate PDF file using pdfService
     const validation = pdfService.validatePdfFile(file, 10);
     if (!validation.isValid) {
       alert(validation.error);
@@ -153,21 +151,16 @@ const StudentDashboard = () => {
     try {
       setUploadingPdf(true);
       
-      // Upload PDF using pdfService
       const response = await pdfService.uploadPdf(file);
-      console.log('Upload response:', response);
       
       if (response.status) {
         const uploadedPdf = response.data;
         alert(`Notes uploaded successfully! Processing status: ${uploadedPdf.processing_status}`);
         
-        // Optionally poll for completion
         if (uploadedPdf.processing_status === 'pending' || uploadedPdf.processing_status === 'processing') {
-          // Start polling in background
           pollPdfProcessing(uploadedPdf.id);
         }
         
-        // Refresh the list
         await fetchUploadedNotes();
       } else {
         alert('Failed to upload notes: ' + response.message);
@@ -190,26 +183,77 @@ const StudentDashboard = () => {
     }
   };
 
-  // Poll PDF processing status
   const pollPdfProcessing = async (pdfId) => {
     try {
       await pdfService.waitForPdfProcessing(
         pdfId,
-        30, // max attempts
-        3000, // 3 seconds interval
+        30,
+        3000,
         (progress) => {
           console.log(`Processing PDF ${pdfId}: ${progress.attempt}/${progress.maxAttempts} - Status: ${progress.status}`);
         }
       );
       
-      console.log(`PDF ${pdfId} processing completed!`);
-      // Refresh the list after completion
       await fetchUploadedNotes();
       
     } catch (error) {
       console.error(`PDF ${pdfId} processing failed:`, error.message);
     }
   };
+
+  // 🆕 Delete Note Functions
+  const handleOpenDeleteModal = useCallback((note) => {
+    setNoteToDelete(note);
+    setShowDeleteModal(true);
+  }, []);
+
+  const handleCloseDeleteModal = useCallback(() => {
+    setShowDeleteModal(false);
+    setNoteToDelete(null);
+  }, []);
+
+  const handleDeleteNote = useCallback(async () => {
+    if (!noteToDelete) return;
+
+    try {
+      setDeletingNote(true);
+      await pdfService.deletePdf(noteToDelete.id);
+      
+      alert('Note deleted successfully!');
+      setShowDeleteModal(false);
+      setNoteToDelete(null);
+      
+      await fetchUploadedNotes();
+    } catch (error) {
+      console.error('Error deleting note:', error);
+      alert(`Failed to delete note: ${error.response?.data?.message || error.message}`);
+    } finally {
+      setDeletingNote(false);
+    }
+  }, [noteToDelete, fetchUploadedNotes]);
+
+  // 🆕 Quiz History Functions
+  const handleOpenQuizHistory = useCallback(async (note) => {
+    setShowQuizHistoryModal(true);
+    setLoadingQuizHistory(true);
+    setQuizHistoryData(null);
+
+    try {
+      const response = await pdfService.getPdfQuizAttempts(note.id);
+      setQuizHistoryData(response.data);
+    } catch (error) {
+      console.error('Error fetching quiz history:', error);
+      alert(`Failed to load quiz history: ${error.response?.data?.message || error.message}`);
+      setShowQuizHistoryModal(false);
+    } finally {
+      setLoadingQuizHistory(false);
+    }
+  }, []);
+
+  const handleCloseQuizHistory = useCallback(() => {
+    setShowQuizHistoryModal(false);
+    setQuizHistoryData(null);
+  }, []);
 
   const handleViewNotes = (pdfId) => {
     navigate(`/student/notes/${pdfId}`);
@@ -218,47 +262,36 @@ const StudentDashboard = () => {
   const handleGenerateFlashcards = (pdfId) => {
     navigate(`/student/notes/${pdfId}/flashcards`);
   };
-const handleAIQuiz = async (note) => {
-  console.log('Note object:', note);
-  
-  
-  // Try to get quizzes from the note object - check all possible property names
-  const quizzes = note.generated_quizzes || note.generatedQuizzes || [];
-  
-  console.log('Found quizzes:', quizzes);
-  
-  // Check if quiz exists
-  if (!quizzes || quizzes.length === 0) {
-    // If quizzes aren't loaded in the list, fetch the full PDF details
-    try {
-      console.log('Fetching full PDF details for quiz...');
-      const response = await pdfService.getPdfById(note.id);
-      console.log('Full PDF response:', response);
-      
-      const fullNote = response.data;
-      const fullQuizzes = fullNote.generated_quizzes || fullNote.generatedQuizzes || [];
-      
-      if (!fullQuizzes || fullQuizzes.length === 0) {
-        alert('No quiz available for this PDF yet. Please wait for AI processing to complete or try refreshing the page.');
+
+  const handleAIQuiz = async (note) => {
+    const quizzes = note.generated_quizzes || note.generatedQuizzes || [];
+    
+    if (!quizzes || quizzes.length === 0) {
+      try {
+        const response = await pdfService.getPdfById(note.id);
+        
+        const fullNote = response.data;
+        const fullQuizzes = fullNote.generated_quizzes || fullNote.generatedQuizzes || [];
+        
+        if (!fullQuizzes || fullQuizzes.length === 0) {
+          alert('No quiz available for this PDF yet. Please wait for AI processing to complete or try refreshing the page.');
+          return;
+        }
+        
+        const quizId = fullQuizzes[0].id;
+        navigate(`/student/pdf-quizzes/${quizId}/start`);
+        return;
+        
+      } catch (error) {
+        console.error('Error fetching PDF details:', error);
+        alert('Failed to load quiz. Please try again or refresh the page.');
         return;
       }
-      
-      const quizId = fullQuizzes[0].id;
-      console.log('Navigating to quiz:', quizId);
-      navigate(`/student/pdf-quizzes/${quizId}/start`);
-      return;
-      
-    } catch (error) {
-      console.error('Error fetching PDF details:', error);
-      alert('Failed to load quiz. Please try again or refresh the page.');
-      return;
     }
-  }
 
-  const quizId = quizzes[0].id;
-  console.log('Navigating to quiz:', quizId);
-  navigate(`/student/pdf-quizzes/${quizId}/start`);
-};
+    const quizId = quizzes[0].id;
+    navigate(`/student/pdf-quizzes/${quizId}/start`);
+  };
 
   const stats = useMemo(() => ({
     totalCourses: enrolledSubjects.length,
@@ -315,9 +348,7 @@ const handleAIQuiz = async (note) => {
             <Calendar className="w-4 h-4 inline mr-2" />
             {course.semester || course.term || 'Current Semester'}
           </p>
-          <p className="text-gray-600 text-sm">
-            Credits: {course.credits || course.credit_hours || course.units || 'N/A'}
-          </p>
+          
           {course.department && (
             <p className="text-gray-600 text-sm">
               Dept: {course.department}
@@ -331,10 +362,6 @@ const handleAIQuiz = async (note) => {
             className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200"
           >
             View Details
-          </button>
-          <button className="flex items-center space-x-1 bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200">
-            <FileText className="w-4 h-4" />
-            <span>Notes</span>
           </button>
         </div>
       </div>
@@ -360,20 +387,7 @@ const handleAIQuiz = async (note) => {
 
   const NotesCard = useCallback(({ note }) => {
     const isProcessingComplete = note.processing_status === 'completed';
-    const isProcessing = note.processing_status === 'processing';
     const fileSize = pdfService.formatFileSize(note.file_size_kb);
-
-    // Auto-refresh if processing
-    useEffect(() => {
-      if (isProcessing) {
-        const interval = setInterval(async () => {
-          console.log('Auto-checking PDF status:', note.id);
-          await fetchUploadedNotes();
-        }, 5000); // Check every 5 seconds
-
-        return () => clearInterval(interval);
-      }
-    }, [isProcessing, note.id]);
 
     return (
       <div className="bg-white rounded-xl p-6 border border-gray-200 hover:border-blue-300 hover:shadow-lg transition-all duration-300">
@@ -385,25 +399,18 @@ const handleAIQuiz = async (note) => {
             <p className="text-gray-600 text-sm mt-1">
               {fileSize} • {new Date(note.created_at || note.upload_date).toLocaleDateString()}
             </p>
-            <div className="mt-2 flex items-center gap-2">
+            <div className="mt-2">
               {getProcessingStatusBadge(note.processing_status)}
-              {isProcessing && (
-                <span className="text-xs text-blue-600 animate-pulse">
-                  ⚙️ Processing... Auto-refreshing
-                </span>
-              )}
             </div>
           </div>
+          <button
+            onClick={() => handleOpenDeleteModal(note)}
+            className="text-red-500 hover:text-red-700 p-2 hover:bg-red-50 rounded-lg transition-all"
+            title="Delete note"
+          >
+            <Trash2 className="w-5 h-5" />
+          </button>
         </div>
-        <button
-  onClick={() => {
-    console.log('Full note object:', JSON.stringify(note, null, 2));
-    alert('Check console for full note object');
-  }}
-  className="w-full bg-yellow-500 text-white px-4 py-2 rounded-lg"
->
-  Debug Note Object
-</button>
 
         {note.processing_status === 'failed' && note.error_message && (
           <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
@@ -442,10 +449,23 @@ const handleAIQuiz = async (note) => {
           >
             Take AI Quiz
           </button>
+
+          <button
+            onClick={() => handleOpenQuizHistory(note)}
+            disabled={!isProcessingComplete}
+            className={`w-full px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center justify-center ${
+              isProcessingComplete
+                ? 'bg-green-600 hover:bg-green-700 text-white'
+                : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+            }`}
+          >
+            <History className="w-4 h-4 mr-2" />
+            Quiz Result
+          </button>
         </div>
       </div>
     );
-  }, []);
+  }, [handleOpenDeleteModal, handleOpenQuizHistory]);
 
   const EmptyCoursesState = useMemo(() => (
     <div className="text-center py-16 bg-white rounded-xl border-2 border-dashed border-gray-300">
@@ -492,13 +512,11 @@ const handleAIQuiz = async (note) => {
 
   return (
     <div className="min-h-screen bg-white text-gray-900">
-      {/* Subtle Background Pattern */}
       <div className="fixed inset-0 bg-gradient-to-b from-gray-50 to-white -z-10"></div>
       <div className="fixed inset-0 opacity-[0.03] -z-10">
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:14px_24px]"></div>
       </div>
 
-      {/* Header */}
       <StudentNavbar 
         activeTab={activeTab}
         setActiveTab={setActiveTab}
@@ -506,17 +524,14 @@ const handleAIQuiz = async (note) => {
         tabs={['overview', 'courses', 'notes']}
       />
 
-      {/* Main Content */}
       <main className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-12">
         {activeTab === 'overview' && (
           <div className="space-y-8">
-            {/* Welcome Section */}
             <div>
               <h1 className="text-4xl font-bold mb-2 text-gray-900">Welcome back, {currentUser?.name || 'User'}!</h1>
               <p className="text-lg text-gray-600">Here's what's happening with your courses today.</p>
             </div>
 
-            {/* Stats Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               <StatCard
                 icon={BookOpen}
@@ -524,18 +539,7 @@ const handleAIQuiz = async (note) => {
                 value={stats.totalCourses}
                 color="from-blue-500 to-blue-600"
               />
-              <StatCard
-                icon={Award}
-                title="Completed Quizzes"
-                value={stats.completedQuizzes}
-                color="from-purple-500 to-purple-600"
-              />
-              <StatCard
-                icon={TrendingUp}
-                title="Average Score"
-                value={stats.averageScore}
-                color="from-green-500 to-green-600"
-              />
+              
               <StatCard
                 icon={FileText}
                 title="Total Notes"
@@ -544,11 +548,8 @@ const handleAIQuiz = async (note) => {
               />
             </div>
 
-            {/* Two Column Layout */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-              {/* Left Column */}
               <div className="lg:col-span-2 space-y-6">
-                {/* Courses */}
                 <div>
                   <h2 className="text-2xl font-bold mb-4 text-gray-900">Your Courses</h2>
                   {enrolledSubjects.length === 0 ? (
@@ -560,43 +561,6 @@ const handleAIQuiz = async (note) => {
                       ))}
                     </div>
                   )}
-                </div>
-              </div>
-
-              {/* Right Column */}
-              <div className="space-y-6">
-                {/* Upcoming Events */}
-                <div>
-                  <h2 className="text-xl font-bold mb-4 text-gray-900">Upcoming Events</h2>
-                  <div className="bg-white rounded-xl p-12 border border-gray-200 text-center">
-                    <Calendar className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                    <p className="text-gray-600">No upcoming events</p>
-                  </div>
-                </div>
-
-                {/* Quick Actions */}
-                <div>
-                  <h2 className="text-xl font-bold mb-4 text-gray-900">Quick Actions</h2>
-                  <div className="space-y-3">
-                    <label className="w-full bg-white rounded-xl p-4 border border-gray-200 hover:border-blue-300 hover:shadow-lg transition-all duration-300 flex items-center space-x-3 text-gray-700 cursor-pointer">
-                      <Upload className="w-5 h-5 text-blue-600" />
-                      <span className="font-medium">Upload Notes</span>
-                      <input
-                        type="file"
-                        accept="application/pdf"
-                        onChange={handleUploadNotes}
-                        className="hidden"
-                        disabled={uploadingPdf}
-                      />
-                    </label>
-                    <button 
-                      onClick={() => setActiveTab('notes')}
-                      className="w-full bg-white rounded-xl p-4 border border-gray-200 hover:border-blue-300 hover:shadow-lg transition-all duration-200 flex items-center space-x-3 text-gray-700"
-                    >
-                      <Zap className="w-5 h-5 text-purple-600" />
-                      <span className="font-medium">View My Notes</span>
-                    </button>
-                  </div>
                 </div>
               </div>
             </div>
@@ -669,16 +633,6 @@ const handleAIQuiz = async (note) => {
                   <RefreshCw className={`w-4 h-4 inline mr-2 ${loading ? 'animate-spin' : ''}`} />
                   Refresh
                 </button>
-                <button
-                  onClick={async () => {
-                    const response = await pdfService.getPdfs();
-                    console.log('DEBUG - Direct API Call:', response);
-                    alert('Check console for API response');
-                  }}
-                  className="bg-yellow-500 text-white px-4 py-2 rounded-lg hover:bg-yellow-600 transition-all duration-200 font-medium"
-                >
-                  Debug API
-                </button>
               </div>
             </div>
 
@@ -723,6 +677,7 @@ const handleAIQuiz = async (note) => {
         )}
       </main>
 
+      {/* Join Course Modal */}
       {showJoinModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl p-8 border border-gray-200 shadow-2xl max-w-md w-full">
@@ -763,7 +718,224 @@ const handleAIQuiz = async (note) => {
           </div>
         </div>
       )}
+
+      {/* 🆕 Delete Confirmation Modal */}
+      {showDeleteModal && noteToDelete && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl p-8 border border-gray-200 shadow-2xl max-w-md w-full">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-2xl font-bold text-gray-900">Delete Note</h3>
+              <button
+                onClick={handleCloseDeleteModal}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            
+            <div className="mb-6">
+              <div className="flex items-center justify-center w-16 h-16 bg-red-100 rounded-full mx-auto mb-4">
+                <Trash2 className="w-8 h-8 text-red-600" />
+              </div>
+              <p className="text-gray-700 text-center mb-2">
+                Are you sure you want to delete this note?
+              </p>
+              <p className="text-sm text-gray-500 text-center font-medium">
+                "{noteToDelete.original_filename}"
+              </p>
+              <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                <p className="text-sm text-yellow-800 text-center">
+                  ⚠️ This will permanently delete the note, summary, flashcards, quizzes, and all attempt history.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex space-x-4">
+              <button
+                onClick={handleCloseDeleteModal}
+                disabled={deletingNote}
+                className="flex-1 px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-gray-700 font-medium disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteNote}
+                disabled={deletingNote}
+                className="flex-1 px-4 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+              >
+                {deletingNote ? 'Deleting...' : 'Delete Note'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 🆕 Quiz History Modal */}
+      {showQuizHistoryModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto">
+          <div className="bg-white rounded-2xl p-8 border border-gray-200 shadow-2xl max-w-4xl w-full my-8">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center space-x-3">
+                <History className="w-6 h-6 text-blue-600" />
+                <h3 className="text-2xl font-bold text-gray-900">Quiz History</h3>
+              </div>
+              <button
+                onClick={handleCloseQuizHistory}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            {loadingQuizHistory ? (
+              <div className="text-center py-12">
+                <RefreshCw className="w-8 h-8 text-blue-600 animate-spin mx-auto mb-4" />
+                <p className="text-gray-600">Loading quiz history...</p>
+              </div>
+            ) : quizHistoryData ? (
+              <div className="space-y-6">
+                {/* PDF Info */}
+                <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                  <p className="text-sm text-gray-600">Document</p>
+                  <p className="text-lg font-semibold text-gray-900">
+                    {quizHistoryData.pdf.filename}
+                  </p>
+                </div>
+
+                {/* Statistics Summary */}
+                {quizHistoryData.attempts && quizHistoryData.attempts.length > 0 ? (
+                  <>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+                        <p className="text-sm text-blue-600 font-medium">Total Attempts</p>
+                        <p className="text-2xl font-bold text-blue-900">
+                          {quizHistoryData.total_attempts}
+                        </p>
+                      </div>
+                      
+                      <div className="bg-green-50 rounded-lg p-4 border border-green-200">
+                        <p className="text-sm text-green-600 font-medium">Best Score</p>
+                        <p className="text-2xl font-bold text-green-900">
+                          {quizHistoryData.best_score?.toFixed(1)}%
+                        </p>
+                      </div>
+                      
+                      <div className="bg-purple-50 rounded-lg p-4 border border-purple-200">
+                        <p className="text-sm text-purple-600 font-medium">Average Score</p>
+                        <p className="text-2xl font-bold text-purple-900">
+                          {quizHistoryData.average_score?.toFixed(1)}%
+                        </p>
+                      </div>
+                      
+                      <div className="bg-orange-50 rounded-lg p-4 border border-orange-200">
+                        <p className="text-sm text-orange-600 font-medium">Improvement</p>
+                        <p className={`text-2xl font-bold ${
+                          (quizHistoryData.attempts[quizHistoryData.attempts.length - 1]?.percentage - 
+                           quizHistoryData.attempts[0]?.percentage) >= 0 
+                            ? 'text-green-900' 
+                            : 'text-red-900'
+                        }`}>
+                          {quizHistoryData.attempts.length > 1 
+                            ? `${(quizHistoryData.attempts[quizHistoryData.attempts.length - 1]?.percentage - 
+                                 quizHistoryData.attempts[0]?.percentage).toFixed(1)}%`
+                            : 'N/A'
+                          }
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Attempts List */}
+                    <div>
+                      <h4 className="text-lg font-semibold text-gray-900 mb-4">
+                        Attempt History ({quizHistoryData.attempts.length})
+                      </h4>
+                      <div className="space-y-3 max-h-96 overflow-y-auto pr-2">
+                        {quizHistoryData.attempts.map((attempt, index) => (
+                          <div
+                            key={attempt.id}
+                            className="bg-white border border-gray-200 rounded-lg p-4 hover:border-blue-300 transition-all"
+                          >
+                            <div className="flex items-center justify-between mb-3">
+                              <div className="flex items-center space-x-3">
+                                <span className="flex items-center justify-center w-8 h-8 bg-blue-100 text-blue-700 rounded-full font-bold text-sm">
+                                  #{quizHistoryData.attempts.length - index}
+                                </span>
+                                <div>
+                                  <p className="font-medium text-gray-900">
+                                    {attempt.quiz_title || 'Quiz Attempt'}
+                                  </p>
+                                  <p className="text-xs text-gray-500">
+                                    {pdfService.formatDate(attempt.submitted_at)}
+                                  </p>
+                                </div>
+                              </div>
+                              <div className={`text-right ${pdfService.getScoreColor(attempt.percentage)}`}>
+                                <p className="text-2xl font-bold">
+                                  {attempt.percentage.toFixed(1)}%
+                                </p>
+                                <p className="text-xs font-medium">
+                                  {pdfService.getGradeLabel(attempt.percentage)}
+                                </p>
+                              </div>
+                            </div>
+                            
+                            <div className="grid grid-cols-3 gap-4 pt-3 border-t border-gray-100">
+                              <div>
+                                <p className="text-xs text-gray-500">Score</p>
+                                <p className="text-sm font-semibold text-gray-900">
+                                  {attempt.marks_obtained}/{attempt.total_marks}
+                                </p>
+                              </div>
+                              <div>
+                                <p className="text-xs text-gray-500">Time Taken</p>
+                                <p className="text-sm font-semibold text-gray-900">
+                                  {pdfService.formatDuration(attempt.time_taken_minutes)}
+                                </p>
+                              </div>
+                              <div>
+                                <p className="text-xs text-gray-500">Status</p>
+                                <p className="text-sm font-semibold text-green-600">
+                                  {attempt.is_completed ? 'Completed' : 'In Progress'}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <div className="text-center py-12">
+                    <History className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                    <h4 className="text-lg font-semibold text-gray-900 mb-2">
+                      No Quiz Attempts Yet
+                    </h4>
+                    <p className="text-gray-600 mb-6">
+                      Take the quiz to see your attempt history here.
+                    </p>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
+                <p className="text-gray-600">Failed to load quiz history</p>
+              </div>
+            )}
+
+            <div className="mt-6 flex justify-end">
+              <button
+                onClick={handleCloseQuizHistory}
+                className="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-all duration-200 font-medium"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
+
 export default StudentDashboard;

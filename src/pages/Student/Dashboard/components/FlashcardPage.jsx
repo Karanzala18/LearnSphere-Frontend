@@ -66,12 +66,12 @@ const FlashcardsPage = () => {
           <div className="bg-red-50 border border-red-200 rounded-lg p-6">
             <h2 className="text-2xl font-bold text-red-600 mb-4">Error</h2>
             <p className="text-gray-700 mb-6">{error}</p>
-            <button 
-              onClick={() => navigate('/student/dashboard')}
-              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
-            >
-              Back to Dashboard
-            </button>
+            <button
+            onClick={() => navigate('/student/dashboard', { state: { activeTab: 'notes' } })}
+            className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-all duration-200 font-medium"
+          >
+            Back to Dashboard
+          </button>
           </div>
         </div>
       </div>

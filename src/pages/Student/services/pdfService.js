@@ -49,6 +49,26 @@ const pdfService = {
     return response.data;
   },
 
+  /**
+   * 🆕 Delete a PDF note and all related data
+   * @param {number} pdfId - The PDF ID to delete
+   * @returns {Promise} Response confirming deletion
+   */
+  deletePdf: async (pdfId) => {
+    const response = await api.delete(`/student/pdfs/${pdfId}`);
+    return response.data;
+  },
+
+  /**
+   * 🆕 Get quiz attempt history for a specific PDF
+   * @param {number} pdfId - The PDF ID
+   * @returns {Promise} Response with attempt history and statistics
+   */
+  getPdfQuizAttempts: async (pdfId) => {
+    const response = await api.get(`/student/pdfs/${pdfId}/quiz-attempts`);
+    return response.data;
+  },
+
   // ========================================
   // PDF Quiz Attempts
   // ========================================
@@ -278,6 +298,106 @@ const pdfService = {
     };
 
     return badges[status] || badges.pending;
+  },
+
+  /**
+   * 🆕 Get grade/score color based on percentage
+   * @param {number} percentage - Score percentage
+   * @returns {string} Tailwind color class
+   */
+  getScoreColor: (percentage) => {
+    if (percentage >= 90) return 'text-green-600';
+    if (percentage >= 75) return 'text-blue-600';
+    if (percentage >= 60) return 'text-yellow-600';
+    if (percentage >= 50) return 'text-orange-600';
+    return 'text-red-600';
+  },
+
+  /**
+   * 🆕 Get grade label based on percentage
+   * @param {number} percentage - Score percentage
+   * @returns {string} Grade label
+   */
+  getGradeLabel: (percentage) => {
+    if (percentage >= 90) return 'Excellent';
+    if (percentage >= 75) return 'Good';
+    if (percentage >= 60) return 'Average';
+    if (percentage >= 50) return 'Below Average';
+    return 'Needs Improvement';
+  },
+
+  /**
+   * 🆕 Format date/time for display
+   * @param {string} dateString - ISO date string
+   * @returns {string} Formatted date string
+   */
+  formatDate: (dateString) => {
+    if (!dateString) return 'N/A';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  },
+
+  /**
+   * 🆕 Format duration in minutes to readable string
+   * @param {number} minutes - Duration in minutes
+   * @returns {string} Formatted duration
+   */
+  formatDuration: (minutes) => {
+    if (minutes < 1) return 'Less than a minute';
+    if (minutes === 1) return '1 minute';
+    if (minutes < 60) return `${minutes} minutes`;
+    
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    
+    if (mins === 0) return `${hours} ${hours === 1 ? 'hour' : 'hours'}`;
+    return `${hours}h ${mins}m`;
+  },
+
+  /**
+   * 🆕 Get statistics for quiz attempts
+   * @param {Array} attempts - Array of quiz attempt objects
+   * @returns {Object} Statistics including best, worst, average, total attempts
+   */
+  getAttemptStatistics: (attempts) => {
+    if (!attempts || attempts.length === 0) {
+      return {
+        totalAttempts: 0,
+        bestScore: 0,
+        worstScore: 0,
+        averageScore: 0,
+        totalTimeSpent: 0,
+        improvementRate: 0
+      };
+    }
+
+    const percentages = attempts.map(a => a.percentage);
+    const times = attempts.map(a => a.time_taken_minutes || 0);
+
+    const bestScore = Math.max(...percentages);
+    const worstScore = Math.min(...percentages);
+    const averageScore = percentages.reduce((a, b) => a + b, 0) / percentages.length;
+    const totalTimeSpent = times.reduce((a, b) => a + b, 0);
+
+    // Calculate improvement (difference between first and last attempt)
+    const improvementRate = attempts.length > 1 
+      ? percentages[percentages.length - 1] - percentages[0]
+      : 0;
+
+    return {
+      totalAttempts: attempts.length,
+      bestScore: Math.round(bestScore * 100) / 100,
+      worstScore: Math.round(worstScore * 100) / 100,
+      averageScore: Math.round(averageScore * 100) / 100,
+      totalTimeSpent,
+      improvementRate: Math.round(improvementRate * 100) / 100
+    };
   },
 };
 

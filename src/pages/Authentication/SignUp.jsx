@@ -17,6 +17,8 @@ const SignupPage = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState({});
+  const [showTermsModal, setShowTermsModal] = useState(false);
+  const [showPrivacyModal, setShowPrivacyModal] = useState(false);
   const navigate = useNavigate();
 
   const handleInputChange = useCallback((e) => {
@@ -131,6 +133,14 @@ const SignupPage = () => {
   const handleHomeClick = useCallback(() => {
     navigate('/');
   }, [navigate]);
+
+  const toggleTermsModal = useCallback(() => {
+    setShowTermsModal(prev => !prev);
+  }, []);
+
+  const togglePrivacyModal = useCallback(() => {
+    setShowPrivacyModal(prev => !prev);
+  }, []);
 
   const passwordStrength = useMemo(() => {
     const password = formData.password;
@@ -368,13 +378,21 @@ const SignupPage = () => {
                 </button>
                 <div className="text-sm text-gray-600">
                   I agree to the{' '}
-                  <a href="#" className="text-blue-600 hover:text-blue-700 font-medium transition-colors">
+                  <button 
+                    type="button"
+                    onClick={toggleTermsModal}
+                    className="text-blue-600 hover:text-blue-700 font-medium transition-colors"
+                  >
                     Terms of Service
-                  </a>{' '}
+                  </button>{' '}
                   and{' '}
-                  <a href="#" className="text-blue-600 hover:text-blue-700 font-medium transition-colors">
+                  <button 
+                    type="button"
+                    onClick={togglePrivacyModal}
+                    className="text-blue-600 hover:text-blue-700 font-medium transition-colors"
+                  >
                     Privacy Policy
-                  </a>
+                  </button>
                 </div>
               </div>
               {errors.agreeToTerms && (
@@ -433,6 +451,56 @@ const SignupPage = () => {
           </div>
         </div>
       </div>
+
+      {/* Terms of Service Modal */}
+      {showTermsModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-hidden">
+            <div className="p-6 border-b border-gray-200">
+              <h2 className="text-2xl font-bold text-gray-900">Terms of Service</h2>
+            </div>
+            <div className="p-6 overflow-y-auto max-h-[60vh]">
+              <div className="text-center py-12">
+                <p className="text-gray-600 text-lg mb-2">Yet to be decided ;)</p>
+                <p className="text-gray-400 text-sm">Our terms and conditions are currently being drafted.</p>
+              </div>
+            </div>
+            <div className="p-6 border-t border-gray-200 flex justify-end">
+              <button
+                onClick={toggleTermsModal}
+                className="px-6 py-2.5 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Privacy Policy Modal */}
+      {showPrivacyModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-hidden">
+            <div className="p-6 border-b border-gray-200">
+              <h2 className="text-2xl font-bold text-gray-900">Privacy Policy</h2>
+            </div>
+            <div className="p-6 overflow-y-auto max-h-[60vh]">
+              <div className="text-center py-12">
+                <p className="text-gray-600 text-lg mb-2">Yet to be decided ;)</p>
+                <p className="text-gray-400 text-sm">Our privacy policy is currently being drafted.</p>
+              </div>
+            </div>
+            <div className="p-6 border-t border-gray-200 flex justify-end">
+              <button
+                onClick={togglePrivacyModal}
+                className="px-6 py-2.5 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

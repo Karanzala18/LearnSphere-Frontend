@@ -196,7 +196,7 @@ const studentAssignmentService = {
   // Delete assignment submission (all files + submission record)
   deleteAssignmentSubmission: async (assignmentId, submissionId) => {
     try {
-      const response = await api.delete(`/student/assignments/${assignmentId}/submissions/${submissionId}`);
+      const response = await api.delete(`/student/assignments/${assignmentId}/submission/${submissionId}`);
       return response.data;
     } catch (error) {
       throw error.response?.data || error.message;

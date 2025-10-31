@@ -25,9 +25,7 @@ const StudentNavbar = ({ activeTab, setActiveTab, onJoinCourse }) => {
   const navTabs = [
     { id: 'overview', label: 'Overview', icon: BarChart3 },
     { id: 'courses', label: 'Courses', icon: BookOpen },
-    { id: 'calendar', label: 'Calendar', icon: Calendar },
     { id: 'notes', label: 'Notes', icon: FileText },
-    { id: 'ai-tools', label: 'AI Tools', icon: Brain }
   ];
 
   return (
@@ -72,12 +70,6 @@ const StudentNavbar = ({ activeTab, setActiveTab, onJoinCourse }) => {
             >
               <Plus className="w-4 h-4" />
               <span>Join Course</span>
-            </button>
-            
-            {/* Notifications */}
-            <button className="p-2 text-gray-400 hover:text-blue-500 transition-colors rounded-lg hover:bg-gray-900 relative">
-              <Bell className="w-6 h-6" />
-              <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
             </button>
             
             {/* User Menu */}
