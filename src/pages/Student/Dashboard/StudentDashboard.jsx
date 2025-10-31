@@ -221,36 +221,7 @@ const StudentDashboard = () => {
 const handleAIQuiz = async (note) => {
   console.log('Note object:', note);
   
-  // Check if PDF processing is complete
-  if (note.processing_status !== 'completed') {
-    alert(`This PDF is still ${note.processing_status}. Please wait for processing to complete.`);
-    
-    // Offer to wait and auto-refresh
-    if (note.processing_status === 'processing' && window.confirm('Would you like to wait and auto-refresh?')) {
-      const checkInterval = setInterval(async () => {
-        try {
-          const status = await pdfService.checkPdfStatus(note.id);
-          console.log('Checking status:', status);
-          
-          if (status.isComplete) {
-            clearInterval(checkInterval);
-            alert('Processing complete! Refreshing...');
-            await fetchUploadedNotes();
-          } else if (status.isFailed) {
-            clearInterval(checkInterval);
-            alert('Processing failed: ' + status.error);
-          }
-        } catch (error) {
-          console.error('Error checking status:', error);
-          clearInterval(checkInterval);
-        }
-      }, 3000);
-      
-      setTimeout(() => clearInterval(checkInterval), 120000);
-    }
-    return;
-  }
-
+  
   // Try to get quizzes from the note object - check all possible property names
   const quizzes = note.generated_quizzes || note.generatedQuizzes || [];
   
