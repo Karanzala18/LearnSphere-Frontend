@@ -23,7 +23,7 @@ import {
   CheckSquare
 } from 'lucide-react';
 import studentQuizService from '../../services/studentQuizService';
-import { subjectService } from '../../../Faculty/services/subjectService';
+import { subjectService } from '../../../Student/services/subjectService';
 
 const StudentQuizView = () => {
   const { courseId } = useParams();

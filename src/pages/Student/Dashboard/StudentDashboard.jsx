@@ -218,48 +218,76 @@ const StudentDashboard = () => {
   const handleGenerateFlashcards = (pdfId) => {
     navigate(`/student/notes/${pdfId}/flashcards`);
   };
-
-  const handleAIQuiz = async (note) => {
-    // Check if PDF processing is complete
-    if (note.processing_status !== 'completed') {
-      alert(`This PDF is still ${note.processing_status}. Please wait for processing to complete.`);
-      
-      // Offer to wait and auto-refresh
-      if (note.processing_status === 'processing' && window.confirm('Would you like to wait and auto-refresh?')) {
-        const checkInterval = setInterval(async () => {
-          try {
-            const status = await pdfService.checkPdfStatus(note.id);
-            console.log('Checking status:', status);
-            
-            if (status.isComplete) {
-              clearInterval(checkInterval);
-              alert('Processing complete! Refreshing...');
-              await fetchUploadedNotes();
-            } else if (status.isFailed) {
-              clearInterval(checkInterval);
-              alert('Processing failed: ' + status.error);
-            }
-          } catch (error) {
-            console.error('Error checking status:', error);
+const handleAIQuiz = async (note) => {
+  console.log('Note object:', note);
+  
+  // Check if PDF processing is complete
+  if (note.processing_status !== 'completed') {
+    alert(`This PDF is still ${note.processing_status}. Please wait for processing to complete.`);
+    
+    // Offer to wait and auto-refresh
+    if (note.processing_status === 'processing' && window.confirm('Would you like to wait and auto-refresh?')) {
+      const checkInterval = setInterval(async () => {
+        try {
+          const status = await pdfService.checkPdfStatus(note.id);
+          console.log('Checking status:', status);
+          
+          if (status.isComplete) {
             clearInterval(checkInterval);
+            alert('Processing complete! Refreshing...');
+            await fetchUploadedNotes();
+          } else if (status.isFailed) {
+            clearInterval(checkInterval);
+            alert('Processing failed: ' + status.error);
           }
-        }, 3000); // Check every 3 seconds
-        
-        // Stop checking after 2 minutes
-        setTimeout(() => clearInterval(checkInterval), 120000);
+        } catch (error) {
+          console.error('Error checking status:', error);
+          clearInterval(checkInterval);
+        }
+      }, 3000);
+      
+      setTimeout(() => clearInterval(checkInterval), 120000);
+    }
+    return;
+  }
+
+  // Try to get quizzes from the note object - check all possible property names
+  const quizzes = note.generated_quizzes || note.generatedQuizzes || [];
+  
+  console.log('Found quizzes:', quizzes);
+  
+  // Check if quiz exists
+  if (!quizzes || quizzes.length === 0) {
+    // If quizzes aren't loaded in the list, fetch the full PDF details
+    try {
+      console.log('Fetching full PDF details for quiz...');
+      const response = await pdfService.getPdfById(note.id);
+      console.log('Full PDF response:', response);
+      
+      const fullNote = response.data;
+      const fullQuizzes = fullNote.generated_quizzes || fullNote.generatedQuizzes || [];
+      
+      if (!fullQuizzes || fullQuizzes.length === 0) {
+        alert('No quiz available for this PDF yet. Please wait for AI processing to complete or try refreshing the page.');
+        return;
       }
+      
+      const quizId = fullQuizzes[0].id;
+      console.log('Navigating to quiz:', quizId);
+      navigate(`/student/pdf-quizzes/${quizId}/start`);
+      return;
+      
+    } catch (error) {
+      console.error('Error fetching PDF details:', error);
+      alert('Failed to load quiz. Please try again or refresh the page.');
       return;
     }
+  }
 
-    // Check if quiz exists
-    if (!note.generated_quizzes || note.generated_quizzes.length === 0) {
-      alert('No quiz available for this PDF yet. Please wait for AI processing to complete.');
-      return;
-    }
-
-    const quizId = note.generated_quizzes[0].id;
-    navigate(`/student/pdf-quizzes/${quizId}/start`);
-  };
+  const quizId = quizzes[0].id;
+  console.log('Navigating to quiz:', quizId);
+  navigate(`/student/pdf-quizzes/${quizId}/start`);
+};
 
   const stats = useMemo(() => ({
     totalCourses: enrolledSubjects.length,
@@ -396,6 +424,15 @@ const StudentDashboard = () => {
             </div>
           </div>
         </div>
+        <button
+  onClick={() => {
+    console.log('Full note object:', JSON.stringify(note, null, 2));
+    alert('Check console for full note object');
+  }}
+  className="w-full bg-yellow-500 text-white px-4 py-2 rounded-lg"
+>
+  Debug Note Object
+</button>
 
         {note.processing_status === 'failed' && note.error_message && (
           <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
