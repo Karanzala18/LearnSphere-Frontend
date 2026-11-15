@@ -58,6 +58,10 @@ npm run lint
 npm run preview
 ```
 
+## Backend overview
+
+LearnSphere’s backend is a separate Laravel 12 API built with PHP 8.2. It provides role-based services for student, faculty, and administrator workflows, including authentication with Laravel Sanctum, profiles, subjects and enrollments, quizzes, assignments and submissions, grading, and PDF-based learning resources. The API uses Laravel Eloquent models and database migrations for its data layer. The backend source repository is private; this overview is included to explain the services this frontend is designed to work with.
+
 ## Notes
 
 This repository is the frontend part of the LearnSphere project. It connects to the backend services for login, course data, assignments, quizzes, and other academic features.
